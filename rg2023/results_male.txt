@@ -1,0 +1,11 @@
+Best players: ('C.Alcaraz', 'D.Medvedev', 'J.Sinner', 'M.Kecmanovic', 'B.Zapata Miralles', 'M.Cecchinato', 'M.Giron', "C.O'Connell")
+Total points: 1635
+Total salary: 40000
+C.Alcaraz: 385 points, 27000 salary
+D.Medvedev: 375 points, 26000 salary
+J.Sinner: 265 points, 18500 salary
+M.Kecmanovic: 155 points, 6650 salary
+B.Zapata Miralles: 155 points, 6650 salary
+M.Cecchinato: 100 points, 5000 salary
+M.Giron: 100 points, 5000 salary
+C.O'Connell: 100 points, 5000 salary

@@ -1,0 +1,12 @@
+Mens
+Brute force: ('C Ruud'(99), 'S Tsitsipas'(381), 'N Djokovic'(409), 'B van de Zandschulp'(96), 'T Paul'(319), 'L Djere'(88), 'M Fucsovics'(151), 'O Otte'(47)) = 1590
+HC v1: ['F Cerundolo'(151), 'D Schwartzman'(93), 'S Kwon'(49), 'D Medvedev'(170), 'J Isner'(45), 'O Otte(47)', 'P Carreno Busta'(104), 'T Daniel'(98)] = 757
+HC v1 revised players: ['F Cerundolo'(151), 'C Moutet'(98), 'P Carreno Busta'(104), 'A Davidovich'(101), 'A Rinderknech'(43), 'A Molcan'(96), 'A Zverev'(101), 'J Munar'(41)] = 735
+HC v2: ['T Paul'(319), 'T Fritz'(102), 'S Tsitsipas'(381), 'B van de Zandschulp'(96), 'N Djokovic'(409), 'A Rinderknech'(43), 'C Lestienne'(102), 'A Ramos-Vinolas'(47)] = 1499
+HC v2 revised players: ['C Moutet'(98), 'A Molcan'(96), 'D Medvedev'(170), 'Y Nishioka'(203), 'H Hurkacz'(213), 'T Daniel'(98), 'R Nadal'(99), 'L Djere'(88)] = 1065
+Womens:
+Brute force: ('I Swiatek'(235), 'J Pegula'(279), 'A Kontaveit'(105), 'I Begu'(103), 'A Cornet'(45), 'X Wang'(94), 'T Maria'(49), 'C McNally'(102)) = 1012
+HC v1: ['K Volynets'(147), 'L Fruhvirtova'(215), 'K Muchova'(110), 'C McNally'(102), 'J Ostapenko'(270), 'A Sabalenka'(398), 'M Linette'(326), 'A Kontaveit'(105)] = 1673
+HC v1 revised players: ['S Stephens'(47), 'A Kontaveit'(105), 'A Riske-Amritraj'(44), 'M Keys'(160), 'N Podoroska'(93), 'C Gauff'(211), 'A Bogdan'(49), 'A Kalinina'(158)] = 867
+HC v2: ['O Jabeur'(99), 'I Begu'(103), 'Q Zheng'(109), 'A Kontaveit'(105), 'C McNally'(102), 'J Ostapenko'(270), 'A Cornet'(45), 'X Wang'(94)] = 927
+HC v2 revised players: ['A Sasnovich'(103), 'K Kanepi'(48), 'A Sabalenka'(398), 'B Pera'(153), 'M Keys'(160), 'K Muchova'(110), 'E Rybakina'(390), 'M Sakkari'(161)] = 1523

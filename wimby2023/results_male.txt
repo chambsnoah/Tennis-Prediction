@@ -1,0 +1,11 @@
+Best players: ('C. ALCARAZ', 'N. DJOKOVIC', 'J. SINNER', 'B. SHELTON', 'B. ZAPATA MIRALLES', 'U. HUMBERT', 'T. GRIEKSPOOR', 'C. LESTIENNE')
+Total points: 1745
+Total salary: 40000
+C. ALCARAZ: 385 points, 27000 salary
+N. DJOKOVIC: 375 points, 22500 salary
+J. SINNER: 265 points, 18500 salary
+B. SHELTON: 155 points, 6650 salary
+B. ZAPATA MIRALLES: 155 points, 6650 salary
+U. HUMBERT: 155 points, 6650 salary
+T. GRIEKSPOOR: 155 points, 6650 salary
+C. LESTIENNE: 100 points, 5000 salary

@@ -1,0 +1,25 @@
+Men:
+Predictor:
+('C.Alcaraz'(344), 'D.Medvedev'(49), 'J.Sinner'(112), 'M.Kecmanovic'(51), 'B.Zapata Miralles'(45), 'M.Cecchinato'(40), 'M.Giron'(163), "C.O'Connell"(36)) = 840
+1635
+
+Predictor HC:
+['J.Kubler', 'G.Dimitrov', 'B.Van De Zandschulp', 'F.Cerundolo', 'B.Shelton', 'B.Zapata Miralles', 'C.Alcaraz', 'A.De Minaur']
+1415
+
+Predictor HC Real:
+['C.Alcaraz', 'JL.Struff', 'M.Kecmanovic', 'B.Zapata Miralles', 'J.Sinner', 'DE.Galan', 'R.Carballes Baena', 'H.Hurkacz']
+1525
+
+Women:
+Predictor:
+('I.Swiatek', 'A.Sabalenka', 'M.Sakkari', 'M.Bouzkova', 'S.Rogers', 'S.Errani', 'E.Navarro', 'R.Marino')
+1635
+
+Predictor HC:
+['C.Gauff', 'C.Garcia', 'C.Giorgi', 'C.Burel', 'X.Wang', 'O.Dodin', 'D.Kasatkina', 'E.Alexandrova']
+1285
+
+Predictor HC Real:
+['I.Swiatek', 'M.Bouzkova', 'M.Linette', 'S.Rogers', 'L.Noskova', 'J.Pegula', 'J.Ostapenko', 'L.Zhu']
+1525

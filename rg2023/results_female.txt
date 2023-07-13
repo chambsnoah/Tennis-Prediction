@@ -1,0 +1,11 @@
+Best players: ('I.Swiatek', 'A.Sabalenka', 'M.Sakkari', 'M.Bouzkova', 'S.Rogers', 'S.Errani', 'E.Navarro', 'R.Marino')
+Total points: 1635
+Total salary: 40000
+I.Swiatek: 385 points, 27000 salary
+A.Sabalenka: 375 points, 26000 salary
+M.Sakkari: 265 points, 18500 salary
+M.Bouzkova: 155 points, 6650 salary
+S.Rogers: 155 points, 6650 salary
+S.Errani: 100 points, 5000 salary
+E.Navarro: 100 points, 5000 salary
+R.Marino: 100 points, 5000 salary
