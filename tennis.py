@@ -366,7 +366,7 @@ class TennisMatch:
         print()
 
     def print_match_statistics(self):
-        winner = player1 if self.player1_sets_won > self.player2_sets_won else player2
+        winner = self.player1 if self.player1_sets_won > self.player2_sets_won else self.player2
         print(f"Match winner: {winner.name}!")
 
         print()
