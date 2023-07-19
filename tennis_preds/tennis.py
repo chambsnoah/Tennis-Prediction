@@ -157,7 +157,7 @@ class TennisMatch:
             else:
                 print()
 
-    def simulate_point(self, player1, player2):
+    def simulate_point(self, player1, player2, verbose):
         if type(player1) == PlayerSimple:
             return self.simulate_point_simple(player1, player2)
         
@@ -170,29 +170,35 @@ class TennisMatch:
                 self.player1_first_serves_in += 1
                 if random.random() <= player1.first_serve_win_percentage:
                     self.player1_first_serves_won += 1
-                    print(f"{player1.name} makes 1st serve and wins point")
+                    if verbose:
+                        print(f"{player1.name} makes 1st serve and wins point")
                     return 1
                 else:
-                    print(f"{player1.name} makes 1st serve but loses point")
+                    if verbose:
+                        print(f"{player1.name} makes 1st serve but loses point")
                     return 2
             else:
                 # 1st serve out
                 self.player1_second_serves_played += 1
-                print(f"{player1.name} misses 1st serve")
+                if verbose:
+                    print(f"{player1.name} misses 1st serve")
                 if random.random() <= player1.second_serve_percentage:
                     # 2nd serve in
                     self.player1_second_serves_in += 1
                     if random.random() <= player1.second_serve_win_percentage:
                         self.player1_second_serves_won += 1
-                        print(f"{player1.name} makes 2nd serve and wins point")
+                        if verbose:
+                            print(f"{player1.name} makes 2nd serve and wins point")
                         return 1
                     else:
-                        print(f"{player1.name} makes 2nd serve but loses point")
+                        if verbose:
+                            print(f"{player1.name} makes 2nd serve but loses point")
                         return 2
                 else:
                     # 2nd serve out
                     self.player1_double_faults += 1
-                    print(f"{player1.name} double faults")
+                    if verbose:
+                        print(f"{player1.name} double faults")
                     return 2
         else:
             # 1st serve
@@ -202,29 +208,35 @@ class TennisMatch:
                 self.player2_first_serves_in += 1
                 if random.random() <= player2.first_serve_win_percentage:
                     self.player2_first_serves_won += 1
-                    print(f"{player2.name} makes 1st serve and wins point")
+                    if verbose:
+                        print(f"{player2.name} makes 1st serve and wins point")
                     return 2
                 else:
-                    print(f"{player2.name} makes 1st serve but loses point")
+                    if verbose:
+                        print(f"{player2.name} makes 1st serve but loses point")
                     return 1
             else:
                 # 1st serve out
                 self.player2_second_serves_played += 1
-                print(f"{player2.name} misses 1st serve")
+                if verbose:
+                    print(f"{player2.name} misses 1st serve")
                 if random.random() <= player2.second_serve_percentage:
                     # 2nd serve in
                     self.player2_second_serves_in += 1
                     if random.random() <= player2.second_serve_win_percentage:
                         self.player2_second_serves_won += 1
-                        print(f"{player2.name} makes 2nd serve and wins point")
+                        if verbose:
+                            print(f"{player2.name} makes 2nd serve and wins point")
                         return 2
                     else:
-                        print(f"{player2.name} makes 2nd serve but loses point")
+                        if verbose:
+                            print(f"{player2.name} makes 2nd serve but loses point")
                         return 1
                 else:
                     # 2nd serve out
                     self.player2_double_faults += 1
-                    print(f"{player2.name} double faults")
+                    if verbose:
+                        print(f"{player2.name} double faults")
                     return 1
 
     def simulate_point_simple(self, player1, player2):
@@ -240,8 +252,10 @@ class TennisMatch:
             else:
                 return 1
 
-    def simulate_match(self):
-        print("Simulating match...")
+    def simulate_match(self, verbose=True):
+        if verbose:
+            print("Simulating match...")
+
         while True: # Simulate a set
             if self.player1_sets_won == self.sets_to_win or self.player2_sets_won == self.sets_to_win:
                 break
@@ -261,8 +275,9 @@ class TennisMatch:
                 if (player1_games_won >= 6 or player2_games_won >= 6) and abs(player1_games_won - player2_games_won) >= 2:
                     break
 
-                print()
-                self.print_scoreline(True, 0, 0)
+                if verbose:
+                    print()
+                    self.print_scoreline(True, 0, 0)
 
                 if player1_games_won == 6 and player2_games_won == 6:
                     # Simulate a tiebreak
@@ -275,7 +290,7 @@ class TennisMatch:
                     points_needed_to_win_tiebreak = 7 if len(self.player1_games_won_per_set) < (self.sets_to_win) * 2 - 1 else 10
 
                     while True:
-                        if self.simulate_point(self.player1, self.player2) == 1:
+                        if self.simulate_point(self.player1, self.player2, verbose) == 1:
                             player1_points_won_in_tiebreak += 1
                             self.player1_points_won_in_tiebreak_per_set[-1] += 1
                             self.player1_totaL_points_won += 1
@@ -301,7 +316,8 @@ class TennisMatch:
                         if (player1_points_won_in_tiebreak + player2_points_won_in_tiebreak) % 2 == 1:
                             self.player1_to_serve = not self.player1_to_serve
                         
-                        self.print_scoreline(True, player1_points_won_in_tiebreak, player2_points_won_in_tiebreak)
+                        if verbose:
+                            self.print_scoreline(True, player1_points_won_in_tiebreak, player2_points_won_in_tiebreak)
 
                     if player1_points_won_in_tiebreak > player2_points_won_in_tiebreak:
                         player1_games_won += 1
@@ -323,7 +339,7 @@ class TennisMatch:
 
                 while True:
                     # Regular game
-                    if self.simulate_point(self.player1, self.player2) == 1:
+                    if self.simulate_point(self.player1, self.player2, verbose) == 1:
                         player1_points_won += 1
                         self.player1_totaL_points_won += 1
                         if not self.player1_to_serve:
@@ -348,7 +364,8 @@ class TennisMatch:
                         if player1_points_won >= 3 and player1_points_won - player2_points_won >= 1:
                             self.player1_break_point_chances += 1
 
-                    self.print_scoreline(True, player1_points_won, player2_points_won)
+                    if verbose:
+                        self.print_scoreline(True, player1_points_won, player2_points_won)
                     
                 if player1_points_won > player2_points_won:
                     if not self.player1_to_serve:
@@ -378,15 +395,25 @@ class TennisMatch:
             else:
                 self.player2_sets_won += 1
 
-            self.print_scoreline(False, 0, 0)
+            if verbose:
+                self.print_scoreline(False, 0, 0)
             # End of set
             
         # End of match
 
-        print()
+        if verbose:
+            print()
 
     def get_match_winner(self):
         return self.player1 if self.player1_sets_won > self.player2_sets_won else self.player2
+    
+    def get_player1_points_won(self):
+        player1_percentage = round(self.player1_totaL_points_won / (self.player1_totaL_points_won + self.player2_total_points_won) * 100, 2)
+        return player1_percentage
+    
+    def get_player2_points_won(self):
+        player2_percentage = round(self.player2_total_points_won / (self.player1_totaL_points_won + self.player2_total_points_won) * 100, 2)
+        return player2_percentage
     
     def print_match_statistics(self):
         winner = self.get_match_winner()
@@ -466,13 +493,25 @@ class TennisMatch:
 # player1 = Player("Carlos Alcaraz", 0.62, 0.875, 0.7, 0.57) # -> 7 df
 # player2 = Player("Novak Djokovic", 0.64, 0.955, 0.62, 0.59) # -> 3 df
 
-# Test simple
-seed = datetime.datetime(2023, 7, 16)
-player1 = PlayerSimple("Player 1", 0.5)
-player2 = PlayerSimple("Player 2", 0.5)
+# seed = int(seed.strftime("%Y%m%d"))
+# print("Seed:", seed)
+# tennis_match = TennisMatch(player1, player2, 3, True, seed)
+# tennis_match.simulate_match(verbose=False)
+# tennis_match.print_match_statistics()
 
-seed = int(seed.strftime("%Y%m%d"))
-print("Seed:", seed)
-tennis_match = TennisMatch(player1, player2, 3, True, seed)
-tennis_match.simulate_match()
-tennis_match.print_match_statistics()
+# Test simple
+player1_wins = 0
+player2_wins = 0
+for i in range(1000):
+    player1 = PlayerSimple("Player 1", 0.68)
+    player2 = PlayerSimple("Player 2", 0.50)
+    player1_to_start = random.choice([True, False])
+    tennis_match = TennisMatch(player1, player2, 2, player1_to_start, None)
+    tennis_match.simulate_match(verbose=False)
+    if tennis_match.get_match_winner() == player1:
+        player1_wins += 1
+    else:
+        player2_wins += 1
+
+print("Player 1 wins:", player1_wins)
+print("Player 2 wins:", player2_wins)
