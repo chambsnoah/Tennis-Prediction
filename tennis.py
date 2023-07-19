@@ -9,6 +9,11 @@ class Player:
         self.first_serve_win_percentage = first_serve_win_percentage
         self.second_serve_win_percentage = second_serve_win_percentage
 
+class PlayerSimple:
+    def __init__(self, name="John Doe", points_won_on_serve_percentage=0.5):
+        self.name = name
+        self.points_won_on_serve_percentage = points_won_on_serve_percentage
+
 class TennisMatch:
     def __init__(self, player1, player2, sets_to_win=3, player1_to_serve=True, seed=None):
         self.player1 = player1
@@ -153,6 +158,9 @@ class TennisMatch:
                 print()
 
     def simulate_point(self, player1, player2):
+        if type(player1) == PlayerSimple:
+            return self.simulate_point_simple(player1, player2)
+        
         # Simulate a point
         if self.player1_to_serve:
             # 1st serve
@@ -219,6 +227,18 @@ class TennisMatch:
                     print(f"{player2.name} double faults")
                     return 1
 
+    def simulate_point_simple(self, player1, player2):
+        # Simulate a point
+        if self.player1_to_serve:
+            if random.random() <= player1.points_won_on_serve_percentage:
+                return 1
+            else:
+                return 2
+        else:
+            if random.random() <= player2.points_won_on_serve_percentage:
+                return 2
+            else:
+                return 1
 
     def simulate_match(self):
         print("Simulating match...")
@@ -260,7 +280,7 @@ class TennisMatch:
                             self.player1_points_won_in_tiebreak_per_set[-1] += 1
                             self.player1_totaL_points_won += 1
                             if not self.player1_to_serve:
-                                self.player2_return_points_won += 1
+                                self.player1_return_points_won += 1
                             else:
                                 self.player1_service_points_won += 1
                         else:
@@ -268,7 +288,7 @@ class TennisMatch:
                             self.player2_points_won_in_tiebreak_per_set[-1] += 1
                             self.player2_total_points_won += 1
                             if self.player1_to_serve:
-                                self.player1_return_points_won += 1
+                                self.player2_return_points_won += 1
                             else:
                                 self.player2_service_points_won += 1
 
@@ -307,14 +327,14 @@ class TennisMatch:
                         player1_points_won += 1
                         self.player1_totaL_points_won += 1
                         if not self.player1_to_serve:
-                            self.player2_return_points_won += 1
+                            self.player1_return_points_won += 1
                         else:
                             self.player1_service_points_won += 1
                     else:
                         player2_points_won += 1
                         self.player2_total_points_won += 1
                         if self.player1_to_serve:
-                            self.player1_return_points_won += 1
+                            self.player2_return_points_won += 1
                         else:
                             self.player2_service_points_won += 1
 
@@ -365,8 +385,11 @@ class TennisMatch:
 
         print()
 
+    def get_match_winner(self):
+        return self.player1 if self.player1_sets_won > self.player2_sets_won else self.player2
+    
     def print_match_statistics(self):
-        winner = self.player1 if self.player1_sets_won > self.player2_sets_won else self.player2
+        winner = self.get_match_winner()
         print(f"Match winner: {winner.name}!")
 
         print()
@@ -374,19 +397,20 @@ class TennisMatch:
         # Statistics table
         print(f"{self.player1.name} | {self.player2.name}")
 
-        print(f"Double faults: {self.player1_double_faults} | {self.player2_double_faults}")
-        
-        player1_first_serve_percentage = round(self.player1_first_serves_in / self.player1_first_serves_played * 100, 2)
-        player2_first_serve_percentage = round(self.player2_first_serves_in / self.player2_first_serves_played * 100, 2)
-        print(f"1st serve in: {player1_first_serve_percentage}% | {player2_first_serve_percentage}%")
+        if type(self.player1) == Player:
+            print(f"Double faults: {self.player1_double_faults} | {self.player2_double_faults}")
+            
+            player1_first_serve_percentage = round(self.player1_first_serves_in / self.player1_first_serves_played * 100, 2)
+            player2_first_serve_percentage = round(self.player2_first_serves_in / self.player2_first_serves_played * 100, 2)
+            print(f"1st serve in: {player1_first_serve_percentage}% | {player2_first_serve_percentage}%")
 
-        player1_first_serve_points_won_percentage = round(self.player1_first_serves_won / self.player1_first_serves_in * 100, 2)
-        player2_first_serve_points_won_percentage = round(self.player2_first_serves_won / self.player2_first_serves_in * 100, 2)
-        print(f"1st serve points won: {player1_first_serve_points_won_percentage}% | {player2_first_serve_points_won_percentage}%")
+            player1_first_serve_points_won_percentage = round(self.player1_first_serves_won / self.player1_first_serves_in * 100, 2)
+            player2_first_serve_points_won_percentage = round(self.player2_first_serves_won / self.player2_first_serves_in * 100, 2)
+            print(f"1st serve points won: {player1_first_serve_points_won_percentage}% | {player2_first_serve_points_won_percentage}%")
 
-        player1_second_serve_points_won_percentage = round(self.player1_second_serves_won / self.player1_second_serves_in * 100, 2)
-        player2_second_serve_points_won_percentage = round(self.player2_second_serves_won / self.player2_second_serves_in * 100, 2)
-        print(f"2nd serve points won: {player1_second_serve_points_won_percentage}% | {player2_second_serve_points_won_percentage}%")
+            player1_second_serve_points_won_percentage = round(self.player1_second_serves_won / self.player1_second_serves_in * 100, 2)
+            player2_second_serve_points_won_percentage = round(self.player2_second_serves_won / self.player2_second_serves_in * 100, 2)
+            print(f"2nd serve points won: {player1_second_serve_points_won_percentage}% | {player2_second_serve_points_won_percentage}%")
 
         print(f"Break points won: {self.player1_break_points_converted}/{self.player1_break_point_chances} | {self.player2_break_points_converted}/{self.player2_break_point_chances}")
 
@@ -405,7 +429,18 @@ class TennisMatch:
         print(f"Service games won: {self.player1_service_games_won}/{self.player1_service_games_played} | {self.player2_service_games_won}/{self.player2_service_games_played}")
 
 
+
 # Example usage
+# Australian open womens (Sabalenka served first)
+# seed = datetime.datetime(2023, 1, 28)
+# player1 = Player("Elena Rybakina", 0.64, 0.977, 0.72, 0.41) # -> 1 df
+# player2 = Player("Aryna Sabalenka", 0.66, 0.816, 0.72, 0.53) # -> 7 df
+
+# Australian open mens (Djokovic served first)
+# seed = datetime.datetime(2023, 1, 29)
+# player1 = Player("Stefanos Tsitsipas", 0.65, 0.919, 0.72, 0.56) # -> 3 df
+# player2 = Player("Novak Djokovic", 0.66, 0.912, 0.80, 0.71) # -> 3 df
+
 # French open womens (Swiatek served first)
 # seed = datetime.datetime(2023, 6, 10)
 # player1 = Player("Iga Swiatek", 0.63, 0.909, 0.62, 0.57) # -> 3 df
@@ -431,8 +466,13 @@ class TennisMatch:
 # player1 = Player("Carlos Alcaraz", 0.62, 0.875, 0.7, 0.57) # -> 7 df
 # player2 = Player("Novak Djokovic", 0.64, 0.955, 0.62, 0.59) # -> 3 df
 
+# Test simple
+seed = datetime.datetime(2023, 7, 16)
+player1 = PlayerSimple("Player 1", 0.5)
+player2 = PlayerSimple("Player 2", 0.5)
+
 seed = int(seed.strftime("%Y%m%d"))
 print("Seed:", seed)
-tennis_match = TennisMatch(player1, player2, 3, False, seed)
+tennis_match = TennisMatch(player1, player2, 3, True, seed)
 tennis_match.simulate_match()
 tennis_match.print_match_statistics()
