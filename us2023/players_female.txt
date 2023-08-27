@@ -1,0 +1,608 @@
+3
++1
+1
+Iga Swiatek
+POLPoland
+6
+-1
+2
+Aryna Sabalenka
+BLR
+5
+-2
+3
+Jessica Pegula
+USAUnited States of America
+7
+4
+Elena Rybakina
+KAZKazakhstan
+2
+5
+Ons Jabeur
+TUNTunisia
+1
+6
+Coco Gauff
+USAUnited States of America
+12
++15
+7
+Caroline Garcia
+FRAFrance
+9
+8
+Maria Sakkari
+GREGreece
+4
++4
+9
+Marketa Vondrousova
+CZECzech Republic
+10
+10
+Karolina Muchova
+CZECzech Republic
+13
++1
+11
+Petra Kvitova
+CZECzech Republic
+23
+-5
+12
+Barbora Krejcikova
+CZECzech Republic
+16
+-1
+13
+Daria Kasatkina
+RUS
+8
+-2
+14
+Liudmila Samsonova
+RUS
+14
+-1
+15
+Belinda Bencic
+SUISwitzerland
+21
+16
+Veronika Kudermetova
+RUS
+15
+-3
+17
+Madison Keys
+USAUnited States of America
+20
+18
+Victoria Azarenka
+BLR
+17
+19
+Beatriz Haddad Maia
+BRABrazil
+25
+-3
+20
+Jelena Ostapenko
+LATLatvia
+22
++13
+21
+Donna Vekic
+CROCroatia
+18
++1
+22
+Ekaterina Alexandrova
+RUS
+47
+-31
+23
+Qinwen Zheng
+CHNChina
+55
+-32
+24
+Magda Linette
+POLPoland
+29
++8
+25
+Karolina Pliskova
+CZECzech Republic
+11
+26
+Elina Svitolina
+UKRUkraine
+28
++27
+27
+Anastasia Potapova
+RUS
+30
+-1
+28
+Anhelina Kalinina
+UKRUkraine
+19
++11
+29
+Elisabetta Cocciaretto
+ITAItaly
+57
+-3
+30
+Sorana Cirstea
+ROURomania
+26
++27
+31
+Marie Bouzkova
+CZECzech Republic
+33
++10
+32
+Elise Mertens
+BELBelgium
+61
+-35
+33
+Mayar Sherif
+EGYEgypt
+32
++25
+34
+Danielle Collins
+USAUnited States of America
+58
+-7
+35
+Jasmine Paolini
+ITAItaly
+63
+-35
+36
+Petra Martic
+CROCroatia
+60
+-4
+37
+Marta Kostyuk
+UKRUkraine
+56
+-6
+38
+Sloane Stephens
+USAUnited States of America
+34
+-3
+39
+Anna Blinkova
+RUS
+35
+-1
+40
+Irina-Camelia Begu
+ROURomania
+37
+-4
+41
+Varvara Gracheva
+FRAFrance
+27
+-2
+42
+Linda Noskova
+CZECzech Republic
+66
+-3
+43
+Alycia Parks
+USAUnited States of America
+53
+-4
+44
+Arantxa Rus
+NEDNetherlands
+31
++27
+45
+Lesia Tsurenko
+UKRUkraine
+39
+-3
+46
+Paula Badosa
+ESPSpain
+42
++22
+47
+Katerina Siniakova
+CZECzech Republic
+41
++1
+48
+Lin Zhu
+CHNChina
+44
+-5
+49
+Tatjana Maria
+GERGermany
+45
++20
+50
+Lauren Davis
+USAUnited States of America
+43
+-5
+51
+Bianca Andreescu
+CANCanada
+69
+-7
+52
+Camila Giorgi
+ITAItaly
+38
+-6
+53
+Martina Trevisan
+ITAItaly
+50
++18
+54
+Julia Grabher
+AUTAustria
+71
+-24
+55
+Linda Fruhvirtova
+CZECzech Republic
+52
++7
+56
+Xinyu Wang
+CHNChina
+46
+-2
+57
+Emma Navarro
+USAUnited States of America
+49
+-8
+58
+Peyton Stearns
+USAUnited States of America
+54
+-6
+59
+Ana Bogdan
+ROURomania
+51
+-5
+60
+Katie Boulter
+GBRUnited Kingdom
+73
++1
+61
+Bernarda Pera
+USAUnited States of America
+24
+62
+Clara Burel
+FRAFrance
+67
+-22
+63
+Anna Karolina Schmiedlova
+SVKSlovakia
+48
+-8
+64
+Elina Avanesyan
+RUS
+72
++1
+65
+Alizé Cornet
+FRAFrance
+74
+-3
+66
+Camila Osorio
+COLColombia
+40
++12
+67
+Mirra Andreeva
+RUS
+59
++13
+68
+Aliaksandra Sasnovich
+BLR
+80
+70
+Cristina Bucsa
+ESPSpain
+36
++24
+71
+Nadia Podoroska
+ARGArgentina
+76
++1
+72
+Leylah Fernandez
+CANCanada
+70
+73
+Diane Parry
+FRAFrance
+84
++2
+74
+Rebeka Masarova
+ESPSpain
+81
++1
+75
+Magdalena Frech
+POLPoland
+68
++1
+77
+Tamara Korpatsch
+GERGermany
+86
++2
+78
+Kamilla Rakhimova
+RUS
+83
++1
+79
+Yulia Putintseva
+KAZKazakhstan
+78
+81
+Claire Liu
+USAUnited States of America
+92
+-2
+82
+Lucia Bronzetti
+ITAItaly
+62
++14
+83
+Kateryna Baindl
+UKRUkraine
+90
+-23
+84
+Xiyu Wang
+CHNChina
+64
+86
+Yanina Wickmayer
+BELBelgium
+98
+-19
+87
+Anna Kalinskaya
+RUS
+95
+-4
+88
+Anna-Lena Friedsam
+GERGermany
+91
+-25
+90
+Clara Tauson
+DENDenmark
+77
++4
+91
+Kayla Day
+USAUnited States of America
+100
+-5
+92
+Rebecca Peterson
+SWESweden
+85
+93
+Sofia Kenin
+USAUnited States of America
+99
+-16
+94
+Danka Kovinic
+MNEMontenegro
+88
+-13
+95
+Sara Sorribes Tormo
+ESPSpain
+94
+-2
+96
+Jodie Burrage
+GBRUnited Kingdom
+114
+-11
+97
+Madison Brengle
+USAUnited States of America
+87
+98
+Greet Minnen
+BELBelgium
+97
+-1
+99
+Anastasia Pavlyuchenkova
+RUS
+96
+-7
+101
+Rebecca Marino
+CANCanada
+106
+-8
+104
+Viktoriya Tomova
+BULBulgaria
+119
+-14
+106
+Caroline Dolehide
+USAUnited States of America
+79
+108
+Laura Siegemund
+GERGermany
+75
+112
+Kimberly Birrell
+AUSAustralia
+110
+-8
+113
+Maryna Zanevska
+BELBelgium
+120
+115
+Yafan Wang
+CHNChina
+117
+-24
+122
+Ashlyn Krueger
+USAUnited States of America
+108
+-7
+124
+Panna Udvardy
+HUNHungary
+109
+127
+Katie Volynets
+USAUnited States of America
+105
+-11
+130
+Ajla Tomljanovic
+AUSAustralia
+116
+-12
+134
+Taylor Townsend
+USAUnited States of America
+82
++5
+135
+Kaia Kanepi
+ESTEstonia
+118
+139
+Olivia Gadecki
+AUSAustralia
+93
+145
+Eva Lys
+GERGermany
+101
+146
+Kaja Juvan
+SLOSlovenia
+121
+-21
+148
+Robin Montgomery
+USAUnited States of America
+113
+155
+Mirjam Bjorklund
+SWESweden
+111
+166
+Elena-Gabriela Ruse
+ROURomania
+104
+-5
+167
+Storm Hunter
+AUSAustralia
+107
+181
+Elsa Jacquemot
+FRAFrance
+102
+-5
+190
+Fiona Ferro
+FRAFrance
+65
+-4
+192
+Daria Saville
+AUSAustralia
+103
+199
+Yuriko Lily Miyazaki
+GBRUnited Kingdom
+112
+203
+Sachia Vickery
+USAUnited States of America
+89
+229
+Tatiana Prozorova
+RUS
+115
+243
+Na Lae Han
+KORKorea
+125
+-15
+407
+Venus Williams
+USAUnited States of America
+122
+-14
+427
+Barbora Strycova
+CZECzech Republic
+124
+-17
+428
+Jennifer Brady
+USAUnited States of America
+130
+500
+Fiona Crawley
+USAUnited States of America
+129
+500
+Vera Zvonareva
+RUS
+128
+-16
+500
+Clervie Ngounoue
+USAUnited States of America
+127
+-16
+500
+Patricia Maria Tig
+ROURomania

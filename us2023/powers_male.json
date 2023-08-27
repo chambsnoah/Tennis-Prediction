@@ -1,0 +1,338 @@
+{
+    "N. Djokovic": {
+        "power": 1
+    },
+    "C. Alcaraz": {
+        "power": 2
+    },
+    "J. Sinner": {
+        "power": 3
+    },
+    "D. Medvedev": {
+        "power": 4
+    },
+    "A. Zverev": {
+        "power": 5
+    },
+    "G. Dimitrov": {
+        "power": 6
+    },
+    "T. Fritz": {
+        "power": 7
+    },
+    "A. de Minaur": {
+        "power": 8
+    },
+    "S. Tsitsipas": {
+        "power": 9
+    },
+    "H. Rune": {
+        "power": 10
+    },
+    "F. Tiafoe": {
+        "power": 11
+    },
+    "H. Hurkacz": {
+        "power": 12
+    },
+    "A. Davidovich Fokina": {
+        "power": 13
+    },
+    "T. Paul": {
+        "power": 14
+    },
+    "A. Murray": {
+        "power": 15
+    },
+    "T. Griekspoor": {
+        "power": 16
+    },
+    "A. Mannarino": {
+        "power": 17
+    },
+    "K. Khachanov": {
+        "power": 18
+    },
+    "M. Purcell": {
+        "power": 19
+    },
+    "L. Djere": {
+        "power": 20
+    },
+    "C. Ruud": {
+        "power": 21
+    },
+    "M. Berrettini": {
+        "power": 22
+    },
+    "D. Evans": {
+        "power": 23
+    },
+    "C. Eubanks": {
+        "power": 24
+    },
+    "A. Bublik": {
+        "power": 25
+    },
+    "N. Jarry": {
+        "power": 26
+    },
+    "B. Coric": {
+        "power": 27
+    },
+    "M. McDonald": {
+        "power": 28
+    },
+    "S. Korda": {
+        "power": 29
+    },
+    "S. Baez": {
+        "power": 30
+    },
+    "L. Musetti": {
+        "power": 31
+    },
+    "R. Safiullin": {
+        "power": 32
+    },
+    "F. Cerundolo": {
+        "power": 33
+    },
+    "S. Wawrinka": {
+        "power": 34
+    },
+    "J. Wolf": {
+        "power": 35
+    },
+    "M. Kecmanovic": {
+        "power": 36
+    },
+    "A. Rublev": {
+        "power": 37
+    },
+    "B. Shelton": {
+        "power": 38
+    },
+    "D. Altmaier": {
+        "power": 39
+    },
+    "T. Martin Etcheverry": {
+        "power": 40
+    },
+    "J. Lehecka": {
+        "power": 41
+    },
+    "M. Arnaldi": {
+        "power": 42
+    },
+    "A. Popyrin": {
+        "power": 43
+    },
+    "B. van De Zandschulp": {
+        "power": 44
+    },
+    "E. Ruusuvuori": {
+        "power": 45
+    },
+    "S. Ofner": {
+        "power": 46
+    },
+    "L. Sonego": {
+        "power": 47
+    },
+    "F. Auger-Aliassime": {
+        "power": 48
+    },
+    "C. Norrie": {
+        "power": 49
+    },
+    "U. Humbert": {
+        "power": 50
+    },
+    "Q. Halys": {
+        "power": 51
+    },
+    "A. Rinderknech": {
+        "power": 52
+    },
+    "A. Fils": {
+        "power": 53
+    },
+    "G. Monfils": {
+        "power": 54
+    },
+    "G. Barrere": {
+        "power": 55
+    },
+    "B. Zapata Miralles": {
+        "power": 56
+    },
+    "R. Gasquet": {
+        "power": 57
+    },
+    "Y. Nishioka": {
+        "power": 58
+    },
+    "J. Thompson": {
+        "power": 59
+    },
+    "D. Lajovic": {
+        "power": 60
+    },
+    "A. Vukic": {
+        "power": 61
+    },
+    "Y. Hanfmann": {
+        "power": 62
+    },
+    "P. Cachin": {
+        "power": 63
+    },
+    "M. Fucsovics": {
+        "power": 64
+    },
+    "A. Shevchenko": {
+        "power": 65
+    },
+    "M. Giron": {
+        "power": 66
+    },
+    "T. Kokkinakis": {
+        "power": 67
+    },
+    "A. Ramos-Vinolas": {
+        "power": 68
+    },
+    "F. Marozsan": {
+        "power": 69
+    },
+    "G. Pella": {
+        "power": 70
+    },
+    "Z. Zhang": {
+        "power": 71
+    },
+    "Y. Wu": {
+        "power": 72
+    },
+    "L. Van Assche": {
+        "power": 73
+    },
+    "R. Carballes Baena": {
+        "power": 74
+    },
+    "C. O'Connell": {
+        "power": 75
+    },
+    "B. Nakashima": {
+        "power": 76
+    },
+    "D. Elahi Galan": {
+        "power": 77
+    },
+    "A. Karatsev": {
+        "power": 78
+    },
+    "D. Thiem": {
+        "power": 79
+    },
+    "C. Moutet": {
+        "power": 80
+    },
+    "D. Koepfer": {
+        "power": 81
+    },
+    "J. Pablo Varillas": {
+        "power": 82
+    },
+    "P. Kotov": {
+        "power": 83
+    },
+    "F. Diaz Acosta": {
+        "power": 84
+    },
+    "J. Manuel Cerundolo": {
+        "power": 85
+    },
+    "A. Muller": {
+        "power": 86
+    },
+    "N. Borges": {
+        "power": 87
+    },
+    "Y. Watanuki": {
+        "power": 88
+    },
+    "J. Isner": {
+        "power": 89
+    },
+    "J. Draper": {
+        "power": 90
+    },
+    "J. Kubler": {
+        "power": 91
+    },
+    "M. Huesler": {
+        "power": 92
+    },
+    "M. Mmoh": {
+        "power": 93
+    },
+    "H. Dellien": {
+        "power": 94
+    },
+    "A. Michelsen": {
+        "power": 95
+    },
+    "D. Schwartzman": {
+        "power": 96
+    },
+    "I. Ivashka": {
+        "power": 97
+    },
+    "M. Cecchinato": {
+        "power": 98
+    },
+    "R. Albot": {
+        "power": 99
+    },
+    "L. Harris": {
+        "power": 100
+    },
+    "C. Lestienne": {
+        "power": 101
+    },
+    "S. Johnson": {
+        "power": 102
+    },
+    "S. Kwon": {
+        "power": 103
+    },
+    "R. Hijikata": {
+        "power": 104
+    },
+    "A. Molcan": {
+        "power": 105
+    },
+    "B. Bonzi": {
+        "power": 106
+    },
+    "M. Raonic": {
+        "power": 107
+    },
+    "K. Nishikori": {
+        "power": 108
+    },
+    "E. Quinn": {
+        "power": 109
+    },
+    "J. Vesely": {
+        "power": 110
+    },
+    "L. Tien": {
+        "power": 111
+    },
+    "A. Balazs": {
+        "power": 112
+    }
+}

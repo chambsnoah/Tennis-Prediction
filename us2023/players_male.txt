@@ -1,0 +1,617 @@
+2
+1
+Carlos Alcaraz
+ESPSpain
+1
+2
+Novak Djokovic
+SRBSerbia
+5
+-1
+3
+Daniil Medvedev
+RUS
+12
+-2
+4
+Holger Rune
+DENDenmark
+9
++12
+5
+Casper Ruud
+NORNorway
+3
+6
+Jannik Sinner
+ITAItaly
+11
+-2
+7
+Stefanos Tsitsipas
+GREGreece
+41
+-8
+8
+Andrey Rublev
+RUS
+10
+-3
+9
+Taylor Fritz
+USAUnited States of America
+13
+-2
+10
+Frances Tiafoe
+USAUnited States of America
+19
+-5
+11
+Karen Khachanov
+RUS
+7
+-2
+12
+Alexander Zverev
+GERGermany
+4
++4
+13
+Alex de Minaur
+AUSAustralia
+6
++10
+14
+Tommy Paul
+USAUnited States of America
+49
+-7
+15
+Felix Auger-Aliassime
+CANCanada
+24
++19
+16
+Cameron Norrie
+GBRUnited Kingdom
+14
+-2
+17
+Hubert Hurkacz
+POLPoland
+22
++4
+18
+Lorenzo Musetti
+ITAItaly
+8
+-2
+19
+Grigor Dimitrov
+BULBulgaria
+23
++7
+20
+Francisco Cerundolo
+ARGArgentina
+15
+-2
+21
+Alejandro Davidovich Fokina
+ESPSpain
+18
++22
+23
+Adrian Mannarino
+FRAFrance
+29
+-9
+24
+Nicolas Jarry
+CHIChile
+17
+-2
+25
+Tallon Griekspoor
+NEDNetherlands
+28
++18
+27
+Alexander Bublik
+KAZKazakhstan
+26
++18
+28
+Daniel Evans
+GBRUnited Kingdom
+30
++4
+29
+Borna Coric
+CROCroatia
+27
+-5
+30
+Christopher Eubanks
+USAUnited States of America
+52
+-5
+31
+Ugo Humbert
+FRAFrance
+31
++7
+32
+Tomas Martin Etcheverry
+ARGArgentina
+34
+-9
+33
+Sebastian Korda
+USAUnited States of America
+21
+-4
+34
+Laslo Djere
+SRBSerbia
+44
+-21
+35
+Jiri Lehecka
+CZECzech Republic
+25
+-6
+36
+Matteo Berrettini
+ITAItaly
+16
++23
+37
+Andy Murray
+GBRUnited Kingdom
+36
++5
+38
+Lorenzo Sonego
+ITAItaly
+32
+-8
+39
+Mackenzie McDonald
+USAUnited States of America
+33
++3
+40
+Alexei Popyrin
+AUSAustralia
+35
+-7
+42
+Sebastian Baez
+ARGArgentina
+59
+-28
+43
+Yoshihito Nishioka
+JPNJapan
+39
++13
+44
+J.J. Wolf
+USAUnited States of America
+40
+-11
+45
+Miomir Kecmanovic
+SRBSerbia
+42
+-10
+46
+Ben Shelton
+USAUnited States of America
+20
+-2
+47
+Max Purcell
+AUSAustralia
+55
+48
+Arthur Fils
+FRAFrance
+38
++13
+49
+Stan Wawrinka
+SUISwitzerland
+60
++1
+50
+Jordan Thompson
+AUSAustralia
+62
+51
+Aleksandar Vukic
+AUSAustralia
+61
++4
+52
+Dusan Lajovic
+SRBSerbia
+43
+-8
+53
+Daniel Altmaier
+GERGermany
+63
+54
+Yannick Hanfmann
+GERGermany
+46
++3
+55
+Botic van De Zandschulp
+NEDNetherlands
+47
+-10
+56
+Emil Ruusuvuori
+FINFinland
+58
+-2
+57
+Richard Gasquet
+FRAFrance
+65
++2
+58
+Marton Fucsovics
+HUNHungary
+48
++31
+59
+Sebastian Ofner
+AUTAustria
+50
++8
+60
+Gregoire Barrere
+FRAFrance
+37
+-10
+61
+Roman Safiullin
+RUS
+45
++21
+62
+Matteo Arnaldi
+ITAItaly
+66
++4
+63
+Marcos Giron
+USAUnited States of America
+73
++11
+64
+Roberto Carballes Baena
+ESPSpain
+72
++5
+65
+Luca Van Assche
+FRAFrance
+64
++5
+66
+Pedro Cachin
+ARGArgentina
+70
+-25
+67
+Zhizhen Zhang
+CHNChina
+74
++7
+68
+Christopher O'Connell
+AUSAustralia
+53
+-5
+69
+Quentin Halys
+FRAFrance
+76
+-22
+70
+Daniel Elahi Galan
+COLColombia
+79
+-26
+71
+Corentin Moutet
+FRAFrance
+75
++8
+72
+Brandon Nakashima
+USAUnited States of America
+54
+-4
+73
+Arthur Rinderknech
+FRAFrance
+81
++5
+74
+Juan Pablo Varillas
+PERPeru
+57
++2
+75
+Bernabe Zapata Miralles
+ESPSpain
+77
++5
+76
+Aslan Karatsev
+RUS
+56
++20
+77
+Thanasi Kokkinakis
+AUSAustralia
+80
+78
+Dominik Koepfer
+GERGermany
+86
+-22
+79
+Nuno Borges
+PORPortugal
+78
+-18
+82
+Dominic Thiem
+AUTAustria
+68
++4
+83
+Fabian Marozsan
+HUNHungary
+90
+-19
+84
+Alexander Shevchenko
+RUS
+85
++7
+85
+Alexandre Muller
+FRAFrance
+94
+-21
+86
+Jason Kubler
+AUSAustralia
+96
+-5
+87
+Marc-Andrea Huesler
+SUISwitzerland
+88
+-20
+88
+Yosuke Watanuki
+JPNJapan
+71
++4
+89
+Yibing Wu
+CHNChina
+67
++11
+90
+Albert Ramos-Vinolas
+ESPSpain
+83
++5
+93
+Facundo Diaz Acosta
+ARGArgentina
+97
+-4
+94
+Michael Mmoh
+USAUnited States of America
+98
+95
+Taro Daniel
+JPNJapan
+82
++5
+97
+Pavel Kotov
+RUS
+87
+98
+Hugo Gaston
+FRAFrance
+101
+-4
+99
+Ilya Ivashka
+BLR
+84
++5
+100
+Juan Manuel Cerundolo
+ARGArgentina
+116
+-10
+101
+Benjamin Bonzi
+FRAFrance
+107
+-3
+103
+Constant Lestienne
+FRAFrance
+109
+-9
+104
+Soonwoo Kwon
+KORKorea
+105
+-2
+105
+Radu Albot
+MDAMoldova
+93
+106
+Borna Gojo
+CROCroatia
+103
+-4
+109
+Marco Cecchinato
+ITAItaly
+111
+-6
+111
+Rinky Hijikata
+AUSAustralia
+100
+-4
+116
+Diego Schwartzman
+ARGArgentina
+112
+-10
+117
+Alex Molcan
+SVKSlovakia
+92
+-2
+118
+Jack Draper
+GBRUnited Kingdom
+110
+127
+Dominic Stricker
+SUISwitzerland
+115
+128
+Timofey Skatov
+KAZKazakhstan
+121
+130
+Nicolas Moreno De Alboran
+USAUnited States of America
+99
+-4
+133
+Alex Michelsen
+USAUnited States of America
+113
+134
+Otto Virtanen
+FINFinland
+104
+-10
+149
+Hugo Dellien
+BOLBolivia
+118
+155
+Emilio Nava
+USAUnited States of America
+89
+-4
+158
+John Isner
+USAUnited States of America
+102
+159
+Sho Shimabukuro
+JPNJapan
+51
++6
+163
+Gael Monfils
+FRAFrance
+95
+170
+Felipe Meligeni Alves
+BRABrazil
+119
+172
+Titouan Droguet
+FRAFrance
+106
+-8
+178
+Lloyd Harris
+RSASouth Africa
+91
+182
+Enzo Couacaud
+FRAFrance
+108
+-7
+186
+Steve Johnson
+USAUnited States of America
+120
+191
+Jakub Mensik
+CZECzech Republic
+69
++5
+210
+Guido Pella
+ARGArgentina
+117
+234
+Stefano Travaglia
+ITAItaly
+114
+235
+Zachary Svajda
+USAUnited States of America
+122
+237
+Yu Hsiou Hsu
+TPEChinese Taipei (Taiwan)
+123
+-16
+339
+Milos Raonic
+CANCanada
+124
+-16
+353
+Kei Nishikori
+JPNJapan
+127
+-17
+431
+Jiri Vesely
+CZECzech Republic
+125
+-16
+474
+Ethan Quinn
+USAUnited States of America
+126
+-15
+500
+Learner Tien
+USAUnited States of America
+128
+-16
+500
+Attila Balazs
+HUNHungary
