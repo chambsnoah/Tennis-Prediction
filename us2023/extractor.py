@@ -1,4 +1,6 @@
-config = "f"
+import json
+
+config = "m"
 
 # open the txt file (gotten from just plain selecting the text from the power rankings page)
 file_name = ""
@@ -77,7 +79,5 @@ for i, line in enumerate(lines):
     prevWasDigit = False
 
 # export the list of players to a json file
-import json
-
 with open(file_name + ".json", "w") as f:
     json.dump(players, f, indent=4)

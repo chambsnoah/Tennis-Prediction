@@ -3,9 +3,18 @@ import random
 
 random.seed(20230828)
 
-players_points = json.load(open("player_points_female.json", "r"))
+config = "f"
 
-players = json.load(open("players_female.json", "r"))
+if config == "m":
+    player_points_file = "player_points_male.json"
+    players_file = "players_male.json"
+elif config == "f":
+    player_points_file = "player_points_female.json"
+    players_file = "players_female.json"
+    
+players_points = json.load(open(player_points_file, "r"))
+
+players = json.load(open(players_file, "r"))
 
 # with a hill-climbing approach, find the best combination of 8 players with the highest total points under the salary cap (100,000)
 # first, lets remove the players that have less than 50 points

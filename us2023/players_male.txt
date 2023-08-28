@@ -2,616 +2,748 @@
 1
 Carlos Alcaraz
 ESPSpain
+Favorable
 1
 2
 Novak Djokovic
 SRBSerbia
-5
--1
+Favorable
+14
+-9
 3
 Daniil Medvedev
 RUS
-12
--2
+Favorable
+11
++1
 4
 Holger Rune
 DENDenmark
-9
-+12
+Favorable
+8
++1
 5
 Casper Ruud
 NORNorway
+Favorable
 3
 6
 Jannik Sinner
 ITAItaly
-11
--2
+Favorable
+10
++1
 7
 Stefanos Tsitsipas
 GREGreece
-41
--8
+Favorable
+12
++29
 8
 Andrey Rublev
 RUS
-10
--3
+Favorable
+7
++3
 9
 Taylor Fritz
 USAUnited States of America
+Favorable
 13
--2
 10
 Frances Tiafoe
 USAUnited States of America
-19
--5
+Favorable
+20
+-1
 11
 Karen Khachanov
 RUS
-7
--2
+Neutral
+6
++1
 12
 Alexander Zverev
 GERGermany
+Favorable
 4
-+4
 13
 Alex de Minaur
 AUSAustralia
-6
-+10
+Favorable
+5
++1
 14
 Tommy Paul
 USAUnited States of America
-49
--7
+Favorable
+23
++26
 15
 Felix Auger-Aliassime
 CANCanada
-24
-+19
+Neutral
+26
+-2
 16
 Cameron Norrie
 GBRUnited Kingdom
-14
--2
+Neutral
+15
+-1
 17
 Hubert Hurkacz
 POLPoland
-22
-+4
+Favorable
+16
++6
 18
 Lorenzo Musetti
 ITAItaly
-8
--2
+Neutral
+9
+-1
 19
 Grigor Dimitrov
 BULBulgaria
-23
-+7
+Neutral
+24
+-1
 20
 Francisco Cerundolo
 ARGArgentina
-15
+Neutral
+17
 -2
 21
 Alejandro Davidovich Fokina
 ESPSpain
-18
-+22
+Favorable
+21
+-3
 23
 Adrian Mannarino
 FRAFrance
-29
--9
+Neutral
+31
+-2
 24
 Nicolas Jarry
 CHIChile
-17
+Neutral
+19
 -2
 25
 Tallon Griekspoor
 NEDNetherlands
-28
-+18
+Neutral
+27
++1
 27
 Alexander Bublik
 KAZKazakhstan
-26
-+18
+Neutral
+28
+-2
 28
 Daniel Evans
 GBRUnited Kingdom
-30
-+4
+Neutral
+53
+-23
 29
 Borna Coric
 CROCroatia
-27
--5
+Neutral
+29
+-2
 30
 Christopher Eubanks
 USAUnited States of America
-52
--5
+Neutral
+30
++22
 31
 Ugo Humbert
 FRAFrance
-31
-+7
+Neutral
+34
+-3
 32
 Tomas Martin Etcheverry
 ARGArgentina
-34
--9
+Neutral
+36
+-2
 33
 Sebastian Korda
 USAUnited States of America
-21
+Neutral
+25
 -4
 34
 Laslo Djere
 SRBSerbia
-44
--21
+Neutral
+35
++9
 35
 Jiri Lehecka
 CZECzech Republic
-25
--6
+Neutral
+50
+-25
 36
 Matteo Berrettini
 ITAItaly
-16
-+23
+Neutral
+18
+-2
 37
 Andy Murray
 GBRUnited Kingdom
-36
-+5
+Neutral
+37
+-1
 38
 Lorenzo Sonego
 ITAItaly
-32
--8
+Neutral
+54
+-22
 39
 Mackenzie McDonald
 USAUnited States of America
+Neutral
 33
-+3
 40
 Alexei Popyrin
 AUSAustralia
-35
--7
+Neutral
+32
++3
 42
 Sebastian Baez
 ARGArgentina
-59
--28
+Neutral
+44
++15
 43
 Yoshihito Nishioka
 JPNJapan
-39
-+13
+Neutral
+38
++1
 44
 J.J. Wolf
 USAUnited States of America
+Neutral
 40
--11
 45
 Miomir Kecmanovic
 SRBSerbia
+Neutral
 42
--10
 46
 Ben Shelton
 USAUnited States of America
-20
+Neutral
+22
 -2
 47
 Max Purcell
 AUSAustralia
-55
+Neutral
+56
+-1
 48
 Arthur Fils
 FRAFrance
-38
-+13
+Neutral
+57
+-19
 49
 Stan Wawrinka
 SUISwitzerland
-60
-+1
+Difficult
+43
++17
 50
 Jordan Thompson
 AUSAustralia
-62
+Neutral
+60
++2
 51
 Aleksandar Vukic
 AUSAustralia
-61
-+4
+Difficult
+47
++14
 52
 Dusan Lajovic
 SRBSerbia
-43
--8
+Neutral
+45
+-2
 53
 Daniel Altmaier
 GERGermany
+Neutral
 63
 54
 Yannick Hanfmann
 GERGermany
-46
-+3
+Difficult
+61
+-15
 55
 Botic van De Zandschulp
 NEDNetherlands
-47
--10
+Difficult
+62
+-15
 56
 Emil Ruusuvuori
 FINFinland
-58
--2
+Difficult
+41
++17
 57
 Richard Gasquet
 FRAFrance
-65
-+2
+Neutral
+64
++1
 58
 Marton Fucsovics
 HUNHungary
+Neutral
 48
-+31
 59
 Sebastian Ofner
 AUTAustria
-50
-+8
+Neutral
+52
+-2
 60
 Gregoire Barrere
 FRAFrance
-37
--10
+Neutral
+39
+-2
 61
 Roman Safiullin
 RUS
-45
-+21
+Neutral
+46
+-1
 62
 Matteo Arnaldi
 ITAItaly
-66
-+4
+Neutral
+70
+-4
 63
 Marcos Giron
 USAUnited States of America
-73
-+11
+Difficult
+68
++5
 64
 Roberto Carballes Baena
 ESPSpain
-72
+Difficult
+67
 +5
 65
 Luca Van Assche
 FRAFrance
-64
-+5
+Neutral
+65
+-1
 66
 Pedro Cachin
 ARGArgentina
-70
--25
+Difficult
+66
++4
 67
 Zhizhen Zhang
 CHNChina
-74
-+7
+Difficult
+69
++5
 68
 Christopher O'Connell
 AUSAustralia
-53
--5
+Difficult
+51
++2
 69
 Quentin Halys
 FRAFrance
-76
--22
+Neutral
+71
++5
 70
 Daniel Elahi Galan
 COLColombia
-79
--26
+Difficult
+74
++5
 71
 Corentin Moutet
 FRAFrance
-75
-+8
+Difficult
+72
++3
 72
 Brandon Nakashima
 USAUnited States of America
-54
+Neutral
+58
 -4
 73
 Arthur Rinderknech
 FRAFrance
-81
-+5
+Neutral
+80
++1
 74
 Juan Pablo Varillas
 PERPeru
-57
-+2
+Difficult
+59
+-2
 75
 Bernabe Zapata Miralles
 ESPSpain
-77
-+5
+Neutral
+75
++2
 76
 Aslan Karatsev
 RUS
-56
-+20
+Difficult
+55
++1
 77
 Thanasi Kokkinakis
 AUSAustralia
-80
+Neutral
+78
++2
 78
 Dominik Koepfer
 GERGermany
-86
--22
+Difficult
+84
++2
 79
 Nuno Borges
 PORPortugal
-78
--18
+Difficult
+73
++5
 82
 Dominic Thiem
 AUTAustria
-68
-+4
+Difficult
+92
+-24
 83
 Fabian Marozsan
 HUNHungary
-90
--19
+Difficult
+88
++2
 84
 Alexander Shevchenko
 RUS
-85
-+7
+Difficult
+89
+-4
 85
 Alexandre Muller
 FRAFrance
-94
--21
+Difficult
+99
+-5
 86
 Jason Kubler
 AUSAustralia
-96
--5
+Difficult
+94
++2
 87
 Marc-Andrea Huesler
 SUISwitzerland
-88
--20
+Difficult
+86
++2
 88
 Yosuke Watanuki
 JPNJapan
-71
-+4
+Difficult
+93
+-22
 89
 Yibing Wu
 CHNChina
-67
-+11
+Difficult
+96
+-29
 90
 Albert Ramos-Vinolas
 ESPSpain
-83
-+5
+Difficult
+81
++2
 93
 Facundo Diaz Acosta
 ARGArgentina
-97
--4
+Difficult
+98
+-1
 94
 Michael Mmoh
 USAUnited States of America
-98
+Difficult
+100
+-2
 95
 Taro Daniel
 JPNJapan
-82
-+5
+Difficult
+79
++3
 97
 Pavel Kotov
 RUS
-87
+Difficult
+97
+-10
 98
 Hugo Gaston
 FRAFrance
-101
--4
+Difficult
+102
+-1
 99
 Ilya Ivashka
 BLR
-84
-+5
+Difficult
+82
++2
 100
 Juan Manuel Cerundolo
 ARGArgentina
-116
--10
+Difficult
+109
++7
 101
 Benjamin Bonzi
 FRAFrance
-107
--3
+Difficult
+120
+-13
 103
 Constant Lestienne
 FRAFrance
-109
--9
+Difficult
+112
+-3
 104
 Soonwoo Kwon
 KORKorea
-105
+Difficult
+107
 -2
 105
 Radu Albot
 MDAMoldova
-93
+Difficult
+87
++6
 106
 Borna Gojo
 CROCroatia
-103
--4
+Difficult
+106
+-3
 109
 Marco Cecchinato
 ITAItaly
-111
--6
+Difficult
+108
++3
 111
 Rinky Hijikata
 AUSAustralia
-100
--4
+Difficult
+101
+-1
 116
 Diego Schwartzman
 ARGArgentina
-112
--10
+Difficult
+103
++9
 117
 Alex Molcan
 SVKSlovakia
-92
--2
+Difficult
+95
+-3
 118
 Jack Draper
 GBRUnited Kingdom
-110
+Difficult
+111
+-1
 127
 Dominic Stricker
 SUISwitzerland
+Difficult
 115
 128
 Timofey Skatov
 KAZKazakhstan
-121
+Difficult
+119
++2
 130
 Nicolas Moreno De Alboran
 USAUnited States of America
-99
--4
+Difficult
+76
++23
 133
 Alex Michelsen
 USAUnited States of America
+Difficult
 113
 134
 Otto Virtanen
 FINFinland
-104
--10
+Difficult
+110
+-6
 149
 Hugo Dellien
 BOLBolivia
-118
+Difficult
+116
++2
 155
 Emilio Nava
 USAUnited States of America
-89
--4
+Difficult
+77
++12
 158
 John Isner
 USAUnited States of America
-102
+Difficult
+104
+-2
 159
 Sho Shimabukuro
 JPNJapan
-51
-+6
+Difficult
+49
++2
 163
 Gael Monfils
 FRAFrance
-95
+Neutral
+91
++4
 170
 Felipe Meligeni Alves
 BRABrazil
-119
+Difficult
+118
++1
 172
 Titouan Droguet
 FRAFrance
-106
--8
+Difficult
+85
++21
 178
 Lloyd Harris
 RSASouth Africa
-91
+Difficult
+83
++8
 182
 Enzo Couacaud
 FRAFrance
-108
--7
+Difficult
+105
++3
 186
 Steve Johnson
 USAUnited States of America
-120
+Difficult
+121
+-1
 191
 Jakub Mensik
 CZECzech Republic
-69
-+5
+Difficult
+90
+-21
 210
 Guido Pella
 ARGArgentina
+Difficult
 117
 234
 Stefano Travaglia
 ITAItaly
+Difficult
 114
 235
 Zachary Svajda
 USAUnited States of America
+Difficult
 122
 237
 Yu Hsiou Hsu
 TPEChinese Taipei (Taiwan)
+Difficult
 123
--16
 339
 Milos Raonic
 CANCanada
+Difficult
 124
--16
 353
 Kei Nishikori
 JPNJapan
-127
--17
+Difficult
+128
+-1
 431
 Jiri Vesely
 CZECzech Republic
+Difficult
 125
--16
 474
 Ethan Quinn
 USAUnited States of America
-126
--15
-500
-Learner Tien
-USAUnited States of America
-128
--16
+Difficult
+127
++1
 500
 Attila Balazs
 HUNHungary
+Difficult
+126
+500
+Learner Tien
+USAUnited States of America
+Difficult

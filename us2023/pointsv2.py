@@ -3,12 +3,27 @@ import random
 
 from tennis import PlayerSimple, TennisMatch
 
-config = "f"
+config = "m"
+
+### -------- Values that can be changed ---------- ###
+savefile = True
+watchplayer = ""
+outline_player_matches = ""
+num_runs = 100
+verbose = False
+
+seed = 20230828
+top_player_boost = 0.02
+match_replays = True # replays the match 5,3 times depending bracket size to get less variance but still give a chance for upsets
+
+# from online sources
+average_percentage_won_on_serve = 0.64
+
+### ---------------------------------------------- ###
 
 players = None
 bracket = None
 sets_to_win = 3
-
 
 if config == "m" or config == "M":
     load_players = json.load(open("players_male.json", "r"))
@@ -23,24 +38,29 @@ player_points_total = {}
 for player in load_players:
     player_points_total[player] = 0
 
-savefile = True
-watchplayer = ""
-outline_player_matches = ""
-num_runs = 100
-verbose = False
-seed = 20230828
-top_player_boost = 0.03
-
-# from online sources
-average_percentage_won_on_serve = 0.64
+# values of bracket_size are 64,32,16,8,4,2
+def get_num_match_replay_per_bracket_size(bracket_size):
+    # 5 top margin
+    if not match_replays:
+        return 1
+    if bracket_size > 4:
+        return 5
+    return bracket_size + 1
 
 if seed != None:
     random.seed(seed)
+
+if num_runs > 1:
+    verbose = False
+
+brackets = []
 
 for i in range(num_runs):
 
     players = load_players
     bracket = load_bracket
+    if num_runs == 1:
+        brackets.append(bracket)
 
     # TODO: make sure the player names are the same in the bracket and in the players file
     player_points = {}
@@ -81,6 +101,8 @@ for i in range(num_runs):
                         # then we'll gradually descend to 0% diff as the seeds get closer
                         averaged_player_1_seeding = (stats1["seed"] + stats1["power"]) / 2
                         averaged_player_2_seeding = (stats2["seed"] + stats2["power"]) / 2
+                        if player1 == outline_player_matches or player2 == outline_player_matches:
+                            print(f"{player1} : {averaged_player_1_seeding} vs {player2} : {averaged_player_2_seeding}")
                         better_seed = player1 if averaged_player_1_seeding < averaged_player_2_seeding else player2
                         worse_seed = player2 if averaged_player_1_seeding < averaged_player_2_seeding else player1
                         diff = abs(averaged_player_1_seeding  - averaged_player_2_seeding)
@@ -90,45 +112,59 @@ for i in range(num_runs):
                         # These are arbitrary numbers, but they're based on the fact that the higher seed should have a higher chance of winning
                         # also adding some variance
                         percentage_diff = diff / 100 * 0.08
-                        worse_seed_points_won_on_serve = average_percentage_won_on_serve - percentage_diff / 2 + random.uniform(-0.03, 0.03)
-                        better_seed_points_won_on_serve = average_percentage_won_on_serve + percentage_diff / 2 + random.uniform(-0.03, 0.03)
-                        player1_points_won_on_serve = worse_seed_points_won_on_serve if worse_seed == player1 else better_seed_points_won_on_serve
-                        player2_points_won_on_serve = worse_seed_points_won_on_serve if worse_seed == player2 else better_seed_points_won_on_serve
-                        if (player1 == "C. Alcaraz" and player2 != "N. Djokovic") \
-                            or (player1 == "N. Djokovic" and player2 != "C. Alcaraz"):
-                            player1_points_won_on_serve += top_player_boost
-                            player2_points_won_on_serve -= top_player_boost
-                        elif (player2 == "C. Alcaraz" and player1 != "N. Djokovic") \
-                            or (player2 == "N. Djokovic" and player1 != "C. Alcaraz"):
-                            player2_points_won_on_serve += top_player_boost
-                            player1_points_won_on_serve -= top_player_boost
-                        elif (player1 == "C. Alcaraz" and player2 == "N. Djokovic") \
-                            or (player1 == "N. Djokovic" and player2 == "C. Alcaraz"):
-                            player1_points_won_on_serve = average_percentage_won_on_serve
-                            player2_points_won_on_serve = average_percentage_won_on_serve
 
-                        player1_points_won_on_serve = round(player1_points_won_on_serve, 4)
-                        player2_points_won_on_serve = round(player2_points_won_on_serve, 4)
-                        player_simple_1 = PlayerSimple(player1, player1_points_won_on_serve)
-                        player_simple_2 = PlayerSimple(player2, player2_points_won_on_serve)
-                        if player1 == outline_player_matches or player2 == outline_player_matches:
-                            print(f"{player1} : {player1_points_won_on_serve*100}% vs {player2} : {player2_points_won_on_serve*100}%")
+                        num_match_replays = get_num_match_replay_per_bracket_size(len(bracket))
+                        player1_total_matches_won = 0
+                        player2_total_matches_won = 0
 
-                        player1_to_start = random.choice([True, False])
+                        for _ in range(num_match_replays):
+                            worse_seed_points_won_on_serve = average_percentage_won_on_serve - percentage_diff / 2 + random.uniform(-0.03, 0.03)
+                            better_seed_points_won_on_serve = average_percentage_won_on_serve + percentage_diff / 2 + random.uniform(-0.03, 0.03)
+                            player1_points_won_on_serve = worse_seed_points_won_on_serve if worse_seed == player1 else better_seed_points_won_on_serve
+                            player2_points_won_on_serve = worse_seed_points_won_on_serve if worse_seed == player2 else better_seed_points_won_on_serve
+                            if (player1 == "C. Alcaraz" and player2 != "N. Djokovic") \
+                                or (player1 == "N. Djokovic" and player2 != "C. Alcaraz"):
+                                player1_points_won_on_serve += top_player_boost
+                                player2_points_won_on_serve -= top_player_boost
+                            elif (player2 == "C. Alcaraz" and player1 != "N. Djokovic") \
+                                or (player2 == "N. Djokovic" and player1 != "C. Alcaraz"):
+                                player2_points_won_on_serve += top_player_boost
+                                player1_points_won_on_serve -= top_player_boost
+                            elif (player1 == "C. Alcaraz" and player2 == "N. Djokovic") \
+                                or (player1 == "N. Djokovic" and player2 == "C. Alcaraz"):
+                                player1_points_won_on_serve = average_percentage_won_on_serve
+                                player2_points_won_on_serve = average_percentage_won_on_serve
 
-                        match = TennisMatch(player_simple_1, player_simple_2, sets_to_win, player1_to_start, None)
-                        if player1 == outline_player_matches or player2 == outline_player_matches:
-                            match.simulate_match(verbose=True)
-                        else:
-                            match.simulate_match(verbose=False)
+                            player1_points_won_on_serve = round(player1_points_won_on_serve, 4)
+                            player2_points_won_on_serve = round(player2_points_won_on_serve, 4)
+                            player_simple_1 = PlayerSimple(player1, player1_points_won_on_serve)
+                            player_simple_2 = PlayerSimple(player2, player2_points_won_on_serve)
+                            if player1 == outline_player_matches or player2 == outline_player_matches:
+                                print(f"{player1} : {player1_points_won_on_serve*100}% vs {player2} : {player2_points_won_on_serve*100}%")
+                        
+                            player1_to_start = random.choice([True, False])
+                            match = TennisMatch(player_simple_1, player_simple_2, sets_to_win, player1_to_start, None)
+                            if (player1 == outline_player_matches or player2 == outline_player_matches) \
+                                and num_match_replays == 1:
+                                match.simulate_match(verbose=True)
+                            else:
+                                match.simulate_match(verbose=False)
 
-                        winner1 = match.get_match_winner().name
-                        loser1 = player2 if winner1 == player1 else player1
+                            winner1 = match.get_match_winner().name
+                            loser1 = player2 if winner1 == player1 else player1
 
-                        player1_points_won = match.get_player1_points_won()
-                        player2_points_won = match.get_player2_points_won()
-                        winner1_points = player1_points_won if winner1 == player1 else player2_points_won
-                        loser1_points = player2_points_won if winner1 == player1 else player1_points_won
+                            player1_points_won = match.get_player1_points_won()
+                            player2_points_won = match.get_player2_points_won()
+                            winner1_points = player1_points_won if winner1 == player1 else player2_points_won
+                            loser1_points = player2_points_won if winner1 == player1 else player1_points_won
+
+                            player1_total_matches_won += 1 if winner1 == player1 else 0
+                            player2_total_matches_won += 1 if winner1 == player2 else 0
+                        
+                        winner1 = player1 if player1_total_matches_won > player2_total_matches_won else player2
+                        loser1 = player2 if player1_total_matches_won > player2_total_matches_won else player1
+                        if (player1 == outline_player_matches or player2 == outline_player_matches) and verbose:
+                            print(f"Player 1: {player1} | Player 2: {player2} | {player1_total_matches_won} - {player2_total_matches_won}")
                 elif stats1:
                     winner1 = player1
                     loser1 = player2
@@ -162,6 +198,8 @@ for i in range(num_runs):
                         # then we'll gradually descend to 0% diff as the seeds get closer
                         averaged_player_1_seeding = (stats1["seed"] + stats1["power"]) / 2
                         averaged_player_2_seeding = (stats2["seed"] + stats2["power"]) / 2
+                        if player1 == outline_player_matches or player2 == outline_player_matches:
+                            print(f"{player1} : {averaged_player_1_seeding} vs {player2} : {averaged_player_2_seeding}")
                         better_seed = player1 if averaged_player_1_seeding < averaged_player_2_seeding else player2
                         worse_seed = player2 if averaged_player_1_seeding < averaged_player_2_seeding else player1
                         diff = abs(averaged_player_1_seeding  - averaged_player_2_seeding)
@@ -171,45 +209,60 @@ for i in range(num_runs):
                         # These are arbitrary numbers, but they're based on the fact that the higher seed should have a higher chance of winning
                         # also adding some variance
                         percentage_diff = diff / 100 * 0.08
-                        worse_seed_points_won_on_serve = average_percentage_won_on_serve - percentage_diff / 2 + random.uniform(-0.03, 0.03)
-                        better_seed_points_won_on_serve = average_percentage_won_on_serve + percentage_diff / 2 + random.uniform(-0.03, 0.03)
-                        player1_points_won_on_serve = worse_seed_points_won_on_serve if worse_seed == player1 else better_seed_points_won_on_serve
-                        player2_points_won_on_serve = worse_seed_points_won_on_serve if worse_seed == player2 else better_seed_points_won_on_serve
-                        if (player1 == "C. Alcaraz" and player2 != "N. Djokovic") \
-                            or (player1 == "N. Djokovic" and player2 != "C. Alcaraz"):
-                            player1_points_won_on_serve += top_player_boost
-                            player2_points_won_on_serve -= top_player_boost
-                        elif (player2 == "C. Alcaraz" and player1 != "N. Djokovic") \
-                            or (player2 == "N. Djokovic" and player1 != "C. Alcaraz"):
-                            player2_points_won_on_serve += top_player_boost
-                            player1_points_won_on_serve -= top_player_boost
-                        elif (player1 == "C. Alcaraz" and player2 == "N. Djokovic") \
-                            or (player1 == "N. Djokovic" and player2 == "C. Alcaraz"):
-                            player1_points_won_on_serve = average_percentage_won_on_serve
-                            player2_points_won_on_serve = average_percentage_won_on_serve
 
-                        player1_points_won_on_serve = round(player1_points_won_on_serve, 4)
-                        player2_points_won_on_serve = round(player2_points_won_on_serve, 4)
-                        player_simple_1 = PlayerSimple(player1, player1_points_won_on_serve)
-                        player_simple_2 = PlayerSimple(player2, player2_points_won_on_serve)
-                        if player1 == outline_player_matches or player2 == outline_player_matches:
-                            print(f"{player1} : {player1_points_won_on_serve*100}% vs {player2} : {player2_points_won_on_serve*100}%")
+                        num_match_replays = get_num_match_replay_per_bracket_size(len(bracket))
+                        player1_total_matches_won = 0
+                        player2_total_matches_won = 0
 
-                        player1_to_start = random.choice([True, False])
+                        for _ in range(num_match_replays):
+                            worse_seed_points_won_on_serve = average_percentage_won_on_serve - percentage_diff / 2 + random.uniform(-0.03, 0.03)
+                            better_seed_points_won_on_serve = average_percentage_won_on_serve + percentage_diff / 2 + random.uniform(-0.03, 0.03)
+                            player1_points_won_on_serve = worse_seed_points_won_on_serve if worse_seed == player1 else better_seed_points_won_on_serve
+                            player2_points_won_on_serve = worse_seed_points_won_on_serve if worse_seed == player2 else better_seed_points_won_on_serve
+                            if (player1 == "C. Alcaraz" and player2 != "N. Djokovic") \
+                                or (player1 == "N. Djokovic" and player2 != "C. Alcaraz"):
+                                player1_points_won_on_serve += top_player_boost
+                                player2_points_won_on_serve -= top_player_boost
+                            elif (player2 == "C. Alcaraz" and player1 != "N. Djokovic") \
+                                or (player2 == "N. Djokovic" and player1 != "C. Alcaraz"):
+                                player2_points_won_on_serve += top_player_boost
+                                player1_points_won_on_serve -= top_player_boost
+                            elif (player1 == "C. Alcaraz" and player2 == "N. Djokovic") \
+                                or (player1 == "N. Djokovic" and player2 == "C. Alcaraz"):
+                                player1_points_won_on_serve = average_percentage_won_on_serve
+                                player2_points_won_on_serve = average_percentage_won_on_serve
 
-                        match = TennisMatch(player_simple_1, player_simple_2, sets_to_win, player1_to_start, None)
-                        if player1 == outline_player_matches or player2 == outline_player_matches:
-                            match.simulate_match(verbose=True)
-                        else:
-                            match.simulate_match(verbose=False)
+                            player1_points_won_on_serve = round(player1_points_won_on_serve, 4)
+                            player2_points_won_on_serve = round(player2_points_won_on_serve, 4)
+                            player_simple_1 = PlayerSimple(player1, player1_points_won_on_serve)
+                            player_simple_2 = PlayerSimple(player2, player2_points_won_on_serve)
+                            if player1 == outline_player_matches or player2 == outline_player_matches:
+                                print(f"{player1} : {player1_points_won_on_serve*100}% vs {player2} : {player2_points_won_on_serve*100}%")
 
-                        winner2 = match.get_match_winner().name
-                        loser2 = player2 if winner2 == player1 else player1
+                            player1_to_start = random.choice([True, False])
 
-                        player1_points_won = match.get_player1_points_won()
-                        player2_points_won = match.get_player2_points_won()
-                        winner2_points = player1_points_won if winner2 == player1 else player2_points_won
-                        loser2_points = player2_points_won if winner2 == player1 else player1_points_won
+                            match = TennisMatch(player_simple_1, player_simple_2, sets_to_win, player1_to_start, None)
+                            if (player1 == outline_player_matches or player2 == outline_player_matches) \
+                                and num_match_replays == 1:
+                                match.simulate_match(verbose=True)
+                            else:
+                                match.simulate_match(verbose=False)
+
+                            winner2 = match.get_match_winner().name
+                            loser2 = player2 if winner2 == player1 else player1
+
+                            player1_points_won = match.get_player1_points_won()
+                            player2_points_won = match.get_player2_points_won()
+                            winner2_points = player1_points_won if winner2 == player1 else player2_points_won
+                            loser2_points = player2_points_won if winner2 == player1 else player1_points_won
+
+                            player1_total_matches_won += 1 if winner2 == player1 else 0
+                            player2_total_matches_won += 1 if winner2 == player2 else 0
+
+                        winner2 = player1 if player1_total_matches_won > player2_total_matches_won else player2
+                        loser2 = player2 if player1_total_matches_won > player2_total_matches_won else player1
+                        if (player1 == outline_player_matches or player2 == outline_player_matches) and verbose:
+                            print(f"Player 1: {player1} | Player 2: {player2} | {player1_total_matches_won} - {player2_total_matches_won}\n")
                 elif stats1:
                     winner2 = player1
                     loser2 = player2
@@ -227,6 +280,8 @@ for i in range(num_runs):
                 if loser2 in player_points:
                     player_points[loser2] += loser2_points
         bracket = next_bracket
+        if num_runs == 1:
+            brackets.append(bracket)
         if len(bracket) == 1:
             if verbose:
                 print(bracket)
@@ -252,6 +307,8 @@ for i in range(num_runs):
                 # then we'll gradually descend to 0% diff as the seeds get closer
                 averaged_player_1_seeding = (stats1["seed"] + stats1["power"]) / 2
                 averaged_player_2_seeding = (stats2["seed"] + stats2["power"]) / 2
+                if player1 == outline_player_matches or player2 == outline_player_matches:
+                    print(f"{player1} : {averaged_player_1_seeding} vs {player2} : {averaged_player_2_seeding}")
                 better_seed = player1 if averaged_player_1_seeding < averaged_player_2_seeding else player2
                 worse_seed = player2 if averaged_player_1_seeding < averaged_player_2_seeding else player1
                 diff = abs(averaged_player_1_seeding  - averaged_player_2_seeding)
@@ -305,8 +362,10 @@ for i in range(num_runs):
             player_points[winner] += winner_points
             player_points[loser] += loser_points
             bracket = [winner]
+            if num_runs == 1:
+                brackets.append(bracket)
             break
-
+            
     if verbose:
         print(bracket)
         print(player_points)
@@ -324,6 +383,12 @@ if savefile:
     if config == "m" or config == "M":
         with open("player_points_male.json", "w") as f:
             json.dump(player_points_total, f, indent=4)
+        if num_runs == 1:
+            with open("bracket_filled_male.json", "w") as f:
+                json.dump(brackets, f, indent=4)
     elif config == "f" or config == "F":
         with open("player_points_female.json", "w") as f:
             json.dump(player_points_total, f, indent=4)
+        if num_runs == 1:
+            with open("bracket_filled_female.json", "w") as f:
+                json.dump(brackets, f, indent=4)

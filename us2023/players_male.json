@@ -12,17 +12,17 @@
     "D. Medvedev": {
         "seed": 3,
         "cost": 22500,
-        "power": 5
+        "power": 14
     },
     "H. Rune": {
         "seed": 4,
         "cost": 22500,
-        "power": 12
+        "power": 11
     },
     "C. Ruud": {
         "seed": 5,
         "cost": 22500,
-        "power": 9
+        "power": 8
     },
     "J. Sinner": {
         "seed": 6,
@@ -32,17 +32,17 @@
     "S. Tsitsipas": {
         "seed": 7,
         "cost": 22500,
-        "power": 11
+        "power": 10
     },
     "A. Rublev": {
         "seed": 8,
         "cost": 18500,
-        "power": 41
+        "power": 12
     },
     "T. Fritz": {
         "seed": 9,
         "cost": 18500,
-        "power": 10
+        "power": 7
     },
     "F. Tiafoe": {
         "seed": 10,
@@ -52,12 +52,12 @@
     "K. Khachanov": {
         "seed": 11,
         "cost": 18500,
-        "power": 19
+        "power": 20
     },
     "A. Zverev": {
         "seed": 12,
         "cost": 18500,
-        "power": 7
+        "power": 6
     },
     "A. de Minaur": {
         "seed": 13,
@@ -67,122 +67,122 @@
     "T. Paul": {
         "seed": 14,
         "cost": 16700,
-        "power": 6
+        "power": 5
     },
     "F. Auger-Aliassime": {
         "seed": 15,
         "cost": 16700,
-        "power": 49
+        "power": 23
     },
     "C. Norrie": {
         "seed": 16,
         "cost": 16700,
-        "power": 24
+        "power": 26
     },
     "H. Hurkacz": {
         "seed": 17,
         "cost": 11900,
-        "power": 14
+        "power": 15
     },
     "L. Musetti": {
         "seed": 18,
         "cost": 11900,
-        "power": 22
+        "power": 16
     },
     "G. Dimitrov": {
         "seed": 19,
         "cost": 11900,
-        "power": 8
+        "power": 9
     },
     "F. Cerundolo": {
         "seed": 20,
         "cost": 11900,
-        "power": 23
+        "power": 24
     },
     "A. Davidovich Fokina": {
         "seed": 21,
         "cost": 11900,
-        "power": 15
+        "power": 17
     },
     "A. Mannarino": {
         "seed": 23,
         "cost": 11900,
-        "power": 18
+        "power": 21
     },
     "N. Jarry": {
         "seed": 24,
         "cost": 11900,
-        "power": 29
+        "power": 31
     },
     "T. Griekspoor": {
         "seed": 25,
         "cost": 11900,
-        "power": 17
+        "power": 19
     },
     "A. Bublik": {
         "seed": 27,
         "cost": 11900,
-        "power": 28
+        "power": 27
     },
     "D. Evans": {
         "seed": 28,
         "cost": 11900,
-        "power": 26
+        "power": 28
     },
     "B. Coric": {
         "seed": 29,
         "cost": 11900,
-        "power": 30
+        "power": 53
     },
     "C. Eubanks": {
         "seed": 30,
         "cost": 11900,
-        "power": 27
+        "power": 29
     },
     "U. Humbert": {
         "seed": 31,
         "cost": 11900,
-        "power": 52
+        "power": 30
     },
     "T. Martin Etcheverry": {
         "seed": 32,
         "cost": 6650,
-        "power": 31
+        "power": 34
     },
     "S. Korda": {
         "seed": 33,
         "cost": 6650,
-        "power": 34
+        "power": 36
     },
     "L. Djere": {
         "seed": 34,
         "cost": 6650,
-        "power": 21
+        "power": 25
     },
     "J. Lehecka": {
         "seed": 35,
         "cost": 6650,
-        "power": 44
+        "power": 35
     },
     "M. Berrettini": {
         "seed": 36,
         "cost": 6650,
-        "power": 25
+        "power": 50
     },
     "A. Murray": {
         "seed": 37,
         "cost": 6650,
-        "power": 16
+        "power": 18
     },
     "L. Sonego": {
         "seed": 38,
         "cost": 6650,
-        "power": 36
+        "power": 37
     },
     "M. McDonald": {
         "seed": 39,
         "cost": 6650,
-        "power": 32
+        "power": 54
     },
     "A. Popyrin": {
         "seed": 40,
@@ -192,17 +192,17 @@
     "S. Baez": {
         "seed": 42,
         "cost": 6650,
-        "power": 35
+        "power": 32
     },
     "Y. Nishioka": {
         "seed": 43,
         "cost": 6650,
-        "power": 59
+        "power": 44
     },
     "J. Wolf": {
         "seed": 44,
         "cost": 6650,
-        "power": 39
+        "power": 38
     },
     "M. Kecmanovic": {
         "seed": 45,
@@ -217,37 +217,37 @@
     "M. Purcell": {
         "seed": 47,
         "cost": 6650,
-        "power": 20
+        "power": 22
     },
     "A. Fils": {
         "seed": 48,
         "cost": 6650,
-        "power": 55
+        "power": 56
     },
     "S. Wawrinka": {
         "seed": 49,
         "cost": 6650,
-        "power": 38
+        "power": 57
     },
     "J. Thompson": {
         "seed": 50,
         "cost": 6650,
-        "power": 60
+        "power": 43
     },
     "A. Vukic": {
         "seed": 51,
         "cost": 6650,
-        "power": 62
+        "power": 60
     },
     "D. Lajovic": {
         "seed": 52,
         "cost": 6650,
-        "power": 61
+        "power": 47
     },
     "D. Altmaier": {
         "seed": 53,
         "cost": 6650,
-        "power": 43
+        "power": 45
     },
     "Y. Hanfmann": {
         "seed": 54,
@@ -257,22 +257,22 @@
     "B. van De Zandschulp": {
         "seed": 55,
         "cost": 6650,
-        "power": 46
+        "power": 61
     },
     "E. Ruusuvuori": {
         "seed": 56,
         "cost": 6650,
-        "power": 47
+        "power": 62
     },
     "R. Gasquet": {
         "seed": 57,
         "cost": 6650,
-        "power": 58
+        "power": 41
     },
     "M. Fucsovics": {
         "seed": 58,
         "cost": 6650,
-        "power": 65
+        "power": 64
     },
     "S. Ofner": {
         "seed": 59,
@@ -282,237 +282,237 @@
     "G. Barrere": {
         "seed": 60,
         "cost": 6650,
-        "power": 50
+        "power": 52
     },
     "R. Safiullin": {
         "seed": 61,
         "cost": 6650,
-        "power": 37
+        "power": 39
     },
     "M. Arnaldi": {
         "seed": 62,
         "cost": 6650,
-        "power": 45
+        "power": 46
     },
     "M. Giron": {
         "seed": 63,
         "cost": 6650,
-        "power": 66
+        "power": 70
     },
     "R. Carballes Baena": {
         "seed": 64,
         "cost": 5000,
-        "power": 73
+        "power": 68
     },
     "L. Van Assche": {
         "seed": 65,
         "cost": 5000,
-        "power": 72
+        "power": 67
     },
     "P. Cachin": {
         "seed": 66,
         "cost": 5000,
-        "power": 64
+        "power": 65
     },
     "Z. Zhang": {
         "seed": 67,
         "cost": 5000,
-        "power": 70
+        "power": 66
     },
     "C. O'Connell": {
         "seed": 68,
         "cost": 5000,
-        "power": 74
+        "power": 69
     },
     "Q. Halys": {
         "seed": 69,
         "cost": 5000,
-        "power": 53
+        "power": 51
     },
     "D. Elahi Galan": {
         "seed": 70,
         "cost": 5000,
-        "power": 76
+        "power": 71
     },
     "C. Moutet": {
         "seed": 71,
         "cost": 5000,
-        "power": 79
+        "power": 74
     },
     "B. Nakashima": {
         "seed": 72,
         "cost": 5000,
-        "power": 75
+        "power": 72
     },
     "A. Rinderknech": {
         "seed": 73,
         "cost": 5000,
-        "power": 54
+        "power": 58
     },
     "J. Pablo Varillas": {
         "seed": 74,
         "cost": 5000,
-        "power": 81
+        "power": 80
     },
     "B. Zapata Miralles": {
         "seed": 75,
         "cost": 5000,
-        "power": 57
+        "power": 59
     },
     "A. Karatsev": {
         "seed": 76,
         "cost": 5000,
-        "power": 77
+        "power": 75
     },
     "T. Kokkinakis": {
         "seed": 77,
         "cost": 5000,
-        "power": 56
+        "power": 55
     },
     "D. Koepfer": {
         "seed": 78,
         "cost": 5000,
-        "power": 80
+        "power": 78
     },
     "N. Borges": {
         "seed": 79,
         "cost": 5000,
-        "power": 86
+        "power": 84
     },
     "D. Thiem": {
         "seed": 82,
         "cost": 5000,
-        "power": 78
+        "power": 73
     },
     "F. Marozsan": {
         "seed": 83,
         "cost": 5000,
-        "power": 68
+        "power": 92
     },
     "A. Shevchenko": {
         "seed": 84,
         "cost": 5000,
-        "power": 90
+        "power": 88
     },
     "A. Muller": {
         "seed": 85,
         "cost": 5000,
-        "power": 85
+        "power": 89
     },
     "J. Kubler": {
         "seed": 86,
         "cost": 5000,
-        "power": 94
+        "power": 99
     },
     "M. Huesler": {
         "seed": 87,
         "cost": 5000,
-        "power": 96
+        "power": 94
     },
     "Y. Watanuki": {
         "seed": 88,
         "cost": 5000,
-        "power": 88
+        "power": 86
     },
     "Y. Wu": {
         "seed": 89,
         "cost": 5000,
-        "power": 71
+        "power": 93
     },
     "A. Ramos-Vinolas": {
         "seed": 90,
         "cost": 5000,
-        "power": 67
+        "power": 96
     },
     "F. Diaz Acosta": {
         "seed": 93,
         "cost": 5000,
-        "power": 83
+        "power": 81
     },
     "M. Mmoh": {
         "seed": 94,
         "cost": 5000,
-        "power": 97
+        "power": 98
     },
     "T. Daniel": {
         "seed": 95,
         "cost": 5000,
-        "power": 98
+        "power": 100
     },
     "P. Kotov": {
         "seed": 97,
         "cost": 5000,
-        "power": 82
+        "power": 79
     },
     "H. Gaston": {
         "seed": 98,
         "cost": 5000,
-        "power": 87
+        "power": 97
     },
     "I. Ivashka": {
         "seed": 99,
         "cost": 5000,
-        "power": 101
+        "power": 102
     },
     "J. Manuel Cerundolo": {
         "seed": 100,
         "cost": 5000,
-        "power": 84
+        "power": 82
     },
     "B. Bonzi": {
         "seed": 101,
         "cost": 5000,
-        "power": 116
+        "power": 109
     },
     "C. Lestienne": {
         "seed": 103,
         "cost": 5000,
-        "power": 107
+        "power": 120
     },
     "S. Kwon": {
         "seed": 104,
         "cost": 5000,
-        "power": 109
+        "power": 112
     },
     "R. Albot": {
         "seed": 105,
         "cost": 5000,
-        "power": 105
+        "power": 107
     },
     "B. Gojo": {
         "seed": 106,
         "cost": 5000,
-        "power": 93
+        "power": 87
     },
     "M. Cecchinato": {
         "seed": 109,
         "cost": 5000,
-        "power": 103
+        "power": 106
     },
     "R. Hijikata": {
         "seed": 111,
         "cost": 5000,
-        "power": 111
+        "power": 108
     },
     "D. Schwartzman": {
         "seed": 116,
         "cost": 5000,
-        "power": 100
+        "power": 101
     },
     "A. Molcan": {
         "seed": 117,
         "cost": 5000,
-        "power": 112
+        "power": 103
     },
     "J. Draper": {
         "seed": 118,
         "cost": 5000,
-        "power": 92
+        "power": 95
     },
     "D. Stricker": {
         "seed": 127,
         "cost": 5000,
-        "power": 110
+        "power": 111
     },
     "T. Skatov": {
         "seed": 128,
@@ -522,12 +522,12 @@
     "N. Moreno De Alboran": {
         "seed": 130,
         "cost": 5000,
-        "power": 121
+        "power": 119
     },
     "A. Michelsen": {
         "seed": 133,
         "cost": 5000,
-        "power": 99
+        "power": 76
     },
     "O. Virtanen": {
         "seed": 134,
@@ -537,62 +537,62 @@
     "H. Dellien": {
         "seed": 149,
         "cost": 5000,
-        "power": 104
+        "power": 110
     },
     "E. Nava": {
         "seed": 155,
         "cost": 5000,
-        "power": 118
+        "power": 116
     },
     "J. Isner": {
         "seed": 158,
         "cost": 5000,
-        "power": 89
+        "power": 77
     },
     "S. Shimabukuro": {
         "seed": 159,
         "cost": 5000,
-        "power": 102
+        "power": 104
     },
     "G. Monfils": {
         "seed": 163,
         "cost": 5000,
-        "power": 51
+        "power": 49
     },
     "F. Meligeni Alves": {
         "seed": 170,
         "cost": 5000,
-        "power": 95
+        "power": 91
     },
     "T. Droguet": {
         "seed": 172,
         "cost": 5000,
-        "power": 119
+        "power": 118
     },
     "L. Harris": {
         "seed": 178,
         "cost": 5000,
-        "power": 106
+        "power": 85
     },
     "E. Couacaud": {
         "seed": 182,
         "cost": 5000,
-        "power": 91
+        "power": 83
     },
     "S. Johnson": {
         "seed": 186,
         "cost": 5000,
-        "power": 108
+        "power": 105
     },
     "J. Mensik": {
         "seed": 191,
         "cost": 5000,
-        "power": 120
+        "power": 121
     },
     "G. Pella": {
         "seed": 210,
         "cost": 5000,
-        "power": 69
+        "power": 90
     },
     "S. Travaglia": {
         "seed": 234,
@@ -622,21 +622,21 @@
     "J. Vesely": {
         "seed": 431,
         "cost": 5000,
-        "power": 127
+        "power": 128
     },
     "E. Quinn": {
         "seed": 474,
         "cost": 5000,
         "power": 125
     },
+    "A. Balazs": {
+        "seed": 500,
+        "cost": 5000,
+        "power": 127
+    },
     "L. Tien": {
         "seed": 500,
         "cost": 5000,
         "power": 126
-    },
-    "A. Balazs": {
-        "seed": 500,
-        "cost": 5000,
-        "power": 128
     }
 }

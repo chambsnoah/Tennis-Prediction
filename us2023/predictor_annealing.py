@@ -4,9 +4,19 @@ import math
 
 random.seed(20230828)
 
-# if using 100 runs of pointsv2
-men_cutoff = 1600
-women_cutoff = 1200
+config = "f"
+
+# if using 100 runs of pointsv2 change values below as needed
+cutoff = 1400
+
+if config == "m":
+    player_points_file = "player_points_male.json"
+    players_file = "players_male.json"
+    cutoff = 1400
+elif config == "f":
+    player_points_file = "player_points_female.json"
+    players_file = "players_female.json"
+    cutoff = 1300
 
 def evaluate_combination(combination, points, costs):
     total_points = sum(points[player] for player in combination)
@@ -31,7 +41,7 @@ def simulated_annealing(players, points, costs, budget):
     temperature = 100.0
     cooling_rate = 0.95
 
-    while temperature > 0.1 or best_score < 1200:
+    while temperature > 0.1 or best_score < cutoff:
         new_solution = perturb_solution(current_solution, remaining_players)
         new_score, new_cost = evaluate_combination(new_solution, points, costs)
 
@@ -53,11 +63,11 @@ def simulated_annealing(players, points, costs, budget):
     return best_solution, best_score
 
 # Read player points from file
-with open('player_points_female.json') as points_file:
+with open(player_points_file) as points_file:
     points_data = json.load(points_file)
 
 # Read player costs from file
-with open('players_female.json') as costs_file:
+with open(players_file) as costs_file:
     costs_data = json.load(costs_file)
 
 # Extract player names and points

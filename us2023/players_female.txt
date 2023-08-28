@@ -1,608 +1,755 @@
 3
-+1
 1
 Iga Swiatek
 POLPoland
+Favorable
 6
--1
 2
 Aryna Sabalenka
 BLR
+Favorable
 5
--2
 3
 Jessica Pegula
 USAUnited States of America
-7
+Favorable
+8
+-1
 4
 Elena Rybakina
 KAZKazakhstan
+Favorable
 2
 5
 Ons Jabeur
 TUNTunisia
+Favorable
 1
 6
 Coco Gauff
 USAUnited States of America
-12
-+15
+Favorable
+13
+-1
 7
 Caroline Garcia
 FRAFrance
+Favorable
 9
 8
 Maria Sakkari
 GREGreece
+Favorable
 4
-+4
 9
 Marketa Vondrousova
 CZECzech Republic
-10
+Favorable
+11
+-1
 10
 Karolina Muchova
 CZECzech Republic
-13
+Favorable
+12
 +1
 11
 Petra Kvitova
 CZECzech Republic
-23
--5
+Favorable
+20
++3
 12
 Barbora Krejcikova
 CZECzech Republic
-16
+Neutral
+17
 -1
 13
 Daria Kasatkina
 RUS
-8
--2
+Neutral
+7
++1
 14
 Liudmila Samsonova
 RUS
-14
+Favorable
+15
 -1
 15
 Belinda Bencic
 SUISwitzerland
-21
+Favorable
+24
+-3
 16
 Veronika Kudermetova
 RUS
-15
--3
+Neutral
+14
++1
 17
 Madison Keys
 USAUnited States of America
-20
+Neutral
+25
+-5
 18
 Victoria Azarenka
 BLR
-17
+Neutral
+19
+-2
 19
 Beatriz Haddad Maia
 BRABrazil
-25
--3
+Neutral
+26
+-1
 20
 Jelena Ostapenko
 LATLatvia
+Neutral
 22
-+13
 21
 Donna Vekic
 CROCroatia
+Neutral
 18
-+1
 22
 Ekaterina Alexandrova
 RUS
-47
--31
+Neutral
+16
++31
 23
 Qinwen Zheng
 CHNChina
-55
--32
+Favorable
+23
++32
 24
 Magda Linette
 POLPoland
-29
-+8
+Neutral
+32
+-3
 25
 Karolina Pliskova
 CZECzech Republic
-11
+Neutral
+10
++1
 26
 Elina Svitolina
 UKRUkraine
-28
-+27
+Favorable
+31
+-3
 27
 Anastasia Potapova
 RUS
-30
--1
+Neutral
+34
+-4
 28
 Anhelina Kalinina
 UKRUkraine
-19
-+11
+Neutral
+21
+-2
 29
 Elisabetta Cocciaretto
 ITAItaly
-57
--3
+Neutral
+29
++28
 30
 Sorana Cirstea
 ROURomania
-26
-+27
+Neutral
+28
+-2
 31
 Marie Bouzkova
 CZECzech Republic
-33
-+10
+Neutral
+36
+-3
 32
 Elise Mertens
 BELBelgium
-61
--35
+Neutral
+33
++28
 33
 Mayar Sherif
 EGYEgypt
-32
-+25
+Neutral
+60
+-28
 34
 Danielle Collins
 USAUnited States of America
-58
--7
+Difficult
+55
++3
 35
 Jasmine Paolini
 ITAItaly
-63
--35
+Neutral
+35
++28
 36
 Petra Martic
 CROCroatia
-60
--4
+Neutral
+59
++1
 37
 Marta Kostyuk
 UKRUkraine
+Neutral
 56
--6
 38
 Sloane Stephens
 USAUnited States of America
-34
--3
+Neutral
+54
+-20
 39
 Anna Blinkova
 RUS
-35
--1
+Neutral
+39
+-4
 40
 Irina-Camelia Begu
 ROURomania
+Neutral
 37
--4
 41
 Varvara Gracheva
 FRAFrance
+Neutral
 27
--2
 42
 Linda Noskova
 CZECzech Republic
-66
--3
+Neutral
+63
++3
 43
 Alycia Parks
 USAUnited States of America
-53
--4
+Difficult
+52
++1
 44
 Arantxa Rus
 NEDNetherlands
-31
-+27
+Neutral
+38
+-7
 45
 Lesia Tsurenko
 UKRUkraine
-39
--3
+Neutral
+40
+-1
 46
 Paula Badosa
 ESPSpain
 42
-+22
 47
 Katerina Siniakova
 CZECzech Republic
-41
-+1
+Neutral
+65
+-24
 48
 Lin Zhu
 CHNChina
-44
--5
+Difficult
+68
+-24
 49
 Tatjana Maria
 GERGermany
-45
-+20
+Difficult
+44
++1
 50
 Lauren Davis
 USAUnited States of America
-43
--5
-51
-Bianca Andreescu
-CANCanada
-69
--7
+Neutral
+61
++8
 52
 Camila Giorgi
 ITAItaly
-38
--6
+Difficult
+41
+-3
 53
 Martina Trevisan
 ITAItaly
+Neutral
 50
-+18
 54
 Julia Grabher
 AUTAustria
-71
--24
+Neutral
+47
++24
 55
 Linda Fruhvirtova
 CZECzech Republic
-52
-+7
+Neutral
+51
++1
 56
 Xinyu Wang
 CHNChina
-46
--2
+Neutral
+45
++1
 57
 Emma Navarro
 USAUnited States of America
+Neutral
 49
--8
 58
 Peyton Stearns
 USAUnited States of America
-54
--6
+Neutral
+53
++1
 59
 Ana Bogdan
 ROURomania
-51
--5
+Neutral
+48
++3
 60
 Katie Boulter
 GBRUnited Kingdom
-73
-+1
+Neutral
+71
++2
 61
 Bernarda Pera
 USAUnited States of America
-24
+Difficult
+30
+-6
 62
 Clara Burel
 FRAFrance
+Neutral
 67
--22
 63
 Anna Karolina Schmiedlova
 SVKSlovakia
-48
--8
+Difficult
+46
++2
 64
 Elina Avanesyan
 RUS
-72
-+1
+Neutral
+70
++2
 65
 Alizé Cornet
 FRAFrance
-74
--3
+Difficult
+73
++1
 66
 Camila Osorio
 COLColombia
-40
-+12
+Difficult
+43
+-3
 67
 Mirra Andreeva
 RUS
-59
-+13
+Neutral
+72
+-13
 68
 Aliaksandra Sasnovich
 BLR
-80
+Difficult
+76
++4
 70
 Cristina Bucsa
 ESPSpain
-36
-+24
+Difficult
+64
+-28
 71
 Nadia Podoroska
 ARGArgentina
-76
-+1
+Neutral
+74
++2
 72
 Leylah Fernandez
 CANCanada
-70
+Difficult
+69
++1
 73
 Diane Parry
 FRAFrance
-84
-+2
+Difficult
+79
++5
 74
 Rebeka Masarova
 ESPSpain
-81
-+1
+Difficult
+77
++4
 75
 Magdalena Frech
 POLPoland
-68
-+1
+Difficult
+66
++2
 77
 Tamara Korpatsch
 GERGermany
-86
-+2
+Difficult
+80
++6
 78
 Kamilla Rakhimova
 RUS
-83
-+1
+Difficult
+78
++5
 79
 Yulia Putintseva
 KAZKazakhstan
-78
+Difficult
+75
++3
 81
 Claire Liu
 USAUnited States of America
-92
--2
+Difficult
+90
++2
 82
 Lucia Bronzetti
 ITAItaly
-62
-+14
+Difficult
+57
++5
 83
 Kateryna Baindl
 UKRUkraine
-90
--23
+Neutral
+84
++6
 84
 Xiyu Wang
 CHNChina
-64
+Difficult
+58
++6
 86
 Yanina Wickmayer
 BELBelgium
-98
--19
+Neutral
+96
++2
 87
 Anna Kalinskaya
 RUS
+Difficult
 95
--4
 88
 Anna-Lena Friedsam
 GERGermany
-91
--25
+Difficult
+85
++6
 90
 Clara Tauson
 DENDenmark
-77
-+4
+Difficult
+97
+-20
 91
 Kayla Day
 USAUnited States of America
-100
--5
+Difficult
+99
++1
 92
 Rebecca Peterson
 SWESweden
-85
+Difficult
+82
++3
 93
 Sofia Kenin
 USAUnited States of America
-99
--16
+Difficult
+98
++1
 94
 Danka Kovinic
 MNEMontenegro
-88
--13
+Difficult
+94
+-6
 95
 Sara Sorribes Tormo
 ESPSpain
-94
--2
+Difficult
+93
++1
 96
 Jodie Burrage
 GBRUnited Kingdom
-114
--11
+Difficult
+106
++8
 97
 Madison Brengle
 USAUnited States of America
-87
+Difficult
+86
++1
 98
 Greet Minnen
 BELBelgium
-97
--1
+Difficult
+88
++9
 99
 Anastasia Pavlyuchenkova
 RUS
-96
--7
+Difficult
+92
++4
 101
 Rebecca Marino
 CANCanada
-106
--8
+Difficult
+105
++1
 104
 Viktoriya Tomova
 BULBulgaria
-119
--14
+Difficult
+118
++1
 106
 Caroline Dolehide
 USAUnited States of America
-79
+Difficult
+81
+-2
 108
 Laura Siegemund
 GERGermany
-75
+Difficult
+87
+-12
 112
 Kimberly Birrell
 AUSAustralia
-110
--8
+Difficult
+115
+-5
 113
 Maryna Zanevska
 BELBelgium
-120
+Difficult
+117
++3
 115
 Yafan Wang
 CHNChina
-117
--24
+Difficult
+111
++6
 122
 Ashlyn Krueger
 USAUnited States of America
-108
--7
+Difficult
+89
++19
 124
 Panna Udvardy
 HUNHungary
-109
+Difficult
+107
++2
 127
 Katie Volynets
 USAUnited States of America
-105
--11
+Difficult
+120
+-15
 130
 Ajla Tomljanovic
 AUSAustralia
-116
--12
+Difficult
+110
++6
 134
 Taylor Townsend
 USAUnited States of America
-82
-+5
+Difficult
+91
+-9
 135
 Kaia Kanepi
 ESTEstonia
-118
+Difficult
+119
+-1
 139
 Olivia Gadecki
 AUSAustralia
-93
+Difficult
+112
+-19
 145
 Eva Lys
 GERGermany
+Difficult
 101
 146
 Kaja Juvan
 SLOSlovenia
-121
--21
+Difficult
+100
++21
 148
 Robin Montgomery
 USAUnited States of America
-113
+Difficult
+114
+-1
 155
 Mirjam Bjorklund
 SWESweden
-111
+Difficult
+113
+-2
 166
 Elena-Gabriela Ruse
 ROURomania
-104
--5
+Difficult
+102
++2
 167
 Storm Hunter
 AUSAustralia
-107
+Difficult
+108
+-1
 181
 Elsa Jacquemot
 FRAFrance
-102
--5
+Difficult
+103
+-1
 190
 Fiona Ferro
 FRAFrance
-65
--4
+Difficult
+62
++3
 192
 Daria Saville
 AUSAustralia
-103
+Neutral
+104
+-1
 199
 Yuriko Lily Miyazaki
 GBRUnited Kingdom
-112
+Difficult
+109
++3
 203
 Sachia Vickery
 USAUnited States of America
-89
+Difficult
+83
++6
 229
 Tatiana Prozorova
 RUS
-115
+Difficult
+116
+-1
 243
 Na Lae Han
 KORKorea
-125
--15
+Difficult
+124
++1
 407
 Venus Williams
 USAUnited States of America
-122
--14
+Difficult
+121
++1
 427
 Barbora Strycova
 CZECzech Republic
-124
--17
+Difficult
+123
++1
 428
 Jennifer Brady
 USAUnited States of America
-130
+Difficult
+129
++1
 500
 Fiona Crawley
 USAUnited States of America
-129
+Difficult
+128
++1
 500
 Vera Zvonareva
 RUS
-128
--16
+Difficult
+127
++1
 500
 Clervie Ngounoue
 USAUnited States of America
-127
--16
+Difficult
+126
++1
 500
 Patricia Maria Tig
 ROURomania
+Difficult
+125
++1
+500
+Margarita Betova
+RUS
+Difficult
+122
++1
+500
+Caroline Wozniacki
+DENDenmark
+Difficult

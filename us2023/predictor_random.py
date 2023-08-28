@@ -3,9 +3,19 @@ import random
 
 random.seed(20230828)
 
-# if using 100 runs of pointsv2
-men_cutoff = 1600
-women_cutoff = 1200
+config = "f"
+
+# if using 100 runs of pointsv2 change values below as needed
+cutoff = 1400
+
+if config == "m":
+    player_points_file = "player_points_male.json"
+    players_file = "players_male.json"
+    cutoff = 1400
+elif config == "f":
+    player_points_file = "player_points_female.json"
+    players_file = "players_female.json"
+    cutoff = 1300
 
 def evaluate_combination(combination, points, costs, budget):
     total_points = sum(points[player] for player in combination)
@@ -13,11 +23,11 @@ def evaluate_combination(combination, points, costs, budget):
     return total_points, total_cost
 
 # Read player points from file
-with open('player_points_female.json') as points_file:
+with open(player_points_file) as points_file:
     points_data = json.load(points_file)
 
 # Read player costs from file
-with open('players_female.json') as costs_file:
+with open(players_file) as costs_file:
     costs_data = json.load(costs_file)
 
 # Extract player names and points
@@ -40,7 +50,7 @@ best_combination = None
 best_score = 0
 
 # Perform random search for the specified number of iterations
-while best_score < 1200:
+while best_score < cutoff:
     random_combination = random.sample(players, 8)
     score, cost = evaluate_combination(random_combination, points, costs, budget_constraint)
     if cost <= budget_constraint and score > best_score:
