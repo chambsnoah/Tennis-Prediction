@@ -1,0 +1,510 @@
+{
+    "I. Swiatek": {
+        "seed": 1,
+        "cost": 27000
+    },
+    "A. Sabalenka": {
+        "seed": 2,
+        "cost": 26000
+    },
+    "C. Gauff": {
+        "seed": 3,
+        "cost": 22500
+    },
+    "E. Rybakina": {
+        "seed": 4,
+        "cost": 22500
+    },
+    "M. Vondrousova": {
+        "seed": 6,
+        "cost": 22500
+    },
+    "M. Sakkari": {
+        "seed": 7,
+        "cost": 22500
+    },
+    "Q. Zheng": {
+        "seed": 8,
+        "cost": 18500
+    },
+    "O. Jabeur": {
+        "seed": 9,
+        "cost": 18500
+    },
+    "J. Ostapenko": {
+        "seed": 10,
+        "cost": 18500
+    },
+    "D. Kasatkina": {
+        "seed": 11,
+        "cost": 18500
+    },
+    "D. Collins": {
+        "seed": 12,
+        "cost": 18500
+    },
+    "J. Paolini": {
+        "seed": 13,
+        "cost": 16700
+    },
+    "B. Haddad Maia": {
+        "seed": 14,
+        "cost": 16700
+    },
+    "M. Keys": {
+        "seed": 16,
+        "cost": 16700
+    },
+    "E. Svitolina": {
+        "seed": 17,
+        "cost": 11900
+    },
+    "E. Alexandrova": {
+        "seed": 18,
+        "cost": 11900
+    },
+    "L. Samsonova": {
+        "seed": 19,
+        "cost": 11900
+    },
+    "M. Kostyuk": {
+        "seed": 20,
+        "cost": 11900
+    },
+    "V. Azarenka": {
+        "seed": 21,
+        "cost": 11900
+    },
+    "A. Pavlyuchenkova": {
+        "seed": 22,
+        "cost": 11900
+    },
+    "C. Garcia": {
+        "seed": 23,
+        "cost": 11900
+    },
+    "E. Navarro": {
+        "seed": 24,
+        "cost": 11900
+    },
+    "A. Kalinskaya": {
+        "seed": 25,
+        "cost": 11900
+    },
+    "B. Krejcikova": {
+        "seed": 26,
+        "cost": 11900
+    },
+    "E. Mertens": {
+        "seed": 27,
+        "cost": 11900
+    },
+    "K. Boulter": {
+        "seed": 28,
+        "cost": 11900
+    },
+    "L. Noskova": {
+        "seed": 29,
+        "cost": 11900
+    },
+    "S. Cirstea": {
+        "seed": 30,
+        "cost": 11900
+    },
+    "V. Kudermetova": {
+        "seed": 31,
+        "cost": 11900
+    },
+    "D. Yastremska": {
+        "seed": 32,
+        "cost": 6650
+    },
+    "L. Fernandez": {
+        "seed": 33,
+        "cost": 6650
+    },
+    "K. Siniakova": {
+        "seed": 34,
+        "cost": 6650
+    },
+    "S. Stephens": {
+        "seed": 35,
+        "cost": 6650
+    },
+    "Y. Yuan": {
+        "seed": 36,
+        "cost": 6650
+    },
+    "Y. Putintseva": {
+        "seed": 37,
+        "cost": 6650
+    },
+    "M. Andreeva": {
+        "seed": 38,
+        "cost": 6650
+    },
+    "X. Wang": {
+        "seed": 62,
+        "cost": 6650
+    },
+    "D. Vekic": {
+        "seed": 40,
+        "cost": 6650
+    },
+    "A. Potapova": {
+        "seed": 41,
+        "cost": 6650
+    },
+    "M. Bouzkova": {
+        "seed": 42,
+        "cost": 6650
+    },
+    "C. Burel": {
+        "seed": 43,
+        "cost": 6650
+    },
+    "L. Tsurenko": {
+        "seed": 44,
+        "cost": 6650
+    },
+    "A. Blinkova": {
+        "seed": 45,
+        "cost": 6650
+    },
+    "S. Sorribes Tormo": {
+        "seed": 46,
+        "cost": 6650
+    },
+    "D. Shnaider": {
+        "seed": 47,
+        "cost": 6650
+    },
+    "L. Bronzetti": {
+        "seed": 48,
+        "cost": 6650
+    },
+    "A. Rus": {
+        "seed": 49,
+        "cost": 6650
+    },
+    "M. Linette": {
+        "seed": 50,
+        "cost": 6650
+    },
+    "K. Pliskova": {
+        "seed": 51,
+        "cost": 6650
+    },
+    "E. Cocciaretto": {
+        "seed": 52,
+        "cost": 6650
+    },
+    "A. Karolina Schmiedlova": {
+        "seed": 53,
+        "cost": 6650
+    },
+    "M. Frech": {
+        "seed": 54,
+        "cost": 6650
+    },
+    "S. Kenin": {
+        "seed": 55,
+        "cost": 6650
+    },
+    "A. Kalinina": {
+        "seed": 56,
+        "cost": 6650
+    },
+    "L. Zhu": {
+        "seed": 58,
+        "cost": 6650
+    },
+    "N. Podoroska": {
+        "seed": 59,
+        "cost": 6650
+    },
+    "C. Dolehide": {
+        "seed": 60,
+        "cost": 6650
+    },
+    "D. Parry": {
+        "seed": 61,
+        "cost": 6650
+    },
+    "A. Bogdan": {
+        "seed": 63,
+        "cost": 6650
+    },
+    "T. Maria": {
+        "seed": 64,
+        "cost": 5000
+    },
+    "A. Krueger": {
+        "seed": 65,
+        "cost": 5000
+    },
+    "M. Sherif": {
+        "seed": 66,
+        "cost": 5000
+    },
+    "J. Cristian": {
+        "seed": 67,
+        "cost": 5000
+    },
+    "Y. Wang": {
+        "seed": 68,
+        "cost": 5000
+    },
+    "E. Avanesyan": {
+        "seed": 69,
+        "cost": 5000
+    },
+    "B. Pera": {
+        "seed": 70,
+        "cost": 5000
+    },
+    "C. Tauson": {
+        "seed": 71,
+        "cost": 5000
+    },
+    "C. Bucsa": {
+        "seed": 72,
+        "cost": 5000
+    },
+    "O. Dodin": {
+        "seed": 73,
+        "cost": 5000
+    },
+    "V. Golubic": {
+        "seed": 74,
+        "cost": 5000
+    },
+    "T. Korpatsch": {
+        "seed": 76,
+        "cost": 5000
+    },
+    "C. Osorio": {
+        "seed": 77,
+        "cost": 5000
+    },
+    "L. Siegemund": {
+        "seed": 78,
+        "cost": 5000
+    },
+    "P. Martic": {
+        "seed": 79,
+        "cost": 5000
+    },
+    "M. Uchijima": {
+        "seed": 80,
+        "cost": 5000
+    },
+    "P. Stearns": {
+        "seed": 81,
+        "cost": 5000
+    },
+    "V. Gracheva": {
+        "seed": 82,
+        "cost": 5000
+    },
+    "M. Lourdes Carle": {
+        "seed": 83,
+        "cost": 5000
+    },
+    "V. Tomova": {
+        "seed": 84,
+        "cost": 5000
+    },
+    "D. Saville": {
+        "seed": 85,
+        "cost": 5000
+    },
+    "G. Minnen": {
+        "seed": 86,
+        "cost": 5000
+    },
+    "J. Bouzas Maneiro": {
+        "seed": 87,
+        "cost": 5000
+    },
+    "M. Trevisan": {
+        "seed": 88,
+        "cost": 5000
+    },
+    "R. Sramkova": {
+        "seed": 89,
+        "cost": 5000
+    },
+    "H. Dart": {
+        "seed": 91,
+        "cost": 5000
+    },
+    "J. Riera": {
+        "seed": 93,
+        "cost": 5000
+    },
+    "R. Masarova": {
+        "seed": 94,
+        "cost": 5000
+    },
+    "S. Errani": {
+        "seed": 95,
+        "cost": 5000
+    },
+    "N. Hibino": {
+        "seed": 96,
+        "cost": 5000
+    },
+    "J. Niemeier": {
+        "seed": 97,
+        "cost": 5000
+    },
+    "E. Bektas": {
+        "seed": 98,
+        "cost": 5000
+    },
+    "Z. Bai": {
+        "seed": 99,
+        "cost": 5000
+    },
+    "K. Day": {
+        "seed": 100,
+        "cost": 5000
+    },
+    "E. Andreeva": {
+        "seed": 101,
+        "cost": 5000
+    },
+    "R. Zarazua": {
+        "seed": 102,
+        "cost": 5000
+    },
+    "K. Rakhimova": {
+        "seed": 105,
+        "cost": 5000
+    },
+    "M. Timofeeva": {
+        "seed": 106,
+        "cost": 5000
+    },
+    "A. Cornet": {
+        "seed": 107,
+        "cost": 5000
+    },
+    "K. Volynets": {
+        "seed": 109,
+        "cost": 5000
+    },
+    "L. Pigossi": {
+        "seed": 119,
+        "cost": 5000
+    },
+    "S. Vickery": {
+        "seed": 124,
+        "cost": 5000
+    },
+    "O. Danilovic": {
+        "seed": 125,
+        "cost": 5000
+    },
+    "J. Fett": {
+        "seed": 126,
+        "cost": 5000
+    },
+    "I. Begu": {
+        "seed": 127,
+        "cost": 5000
+    },
+    "T. Zidansek": {
+        "seed": 131,
+        "cost": 5000
+    },
+    "P. Udvardy": {
+        "seed": 132,
+        "cost": 5000
+    },
+    "N. Osaka": {
+        "seed": 134,
+        "cost": 5000
+    },
+    "C. Paquet": {
+        "seed": 139,
+        "cost": 5000
+    },
+    "P. Badosa": {
+        "seed": 140,
+        "cost": 5000
+    },
+    "F. Ferro": {
+        "seed": 142,
+        "cost": 5000
+    },
+    "L. Jeanjean": {
+        "seed": 143,
+        "cost": 5000
+    },
+    "Y. Starodubtseva": {
+        "seed": 144,
+        "cost": 5000
+    },
+    "E. Lys": {
+        "seed": 145,
+        "cost": 5000
+    },
+    "D. Galfi": {
+        "seed": 147,
+        "cost": 5000
+    },
+    "J. Ponchet": {
+        "seed": 149,
+        "cost": 5000
+    },
+    "E. Jacquemot": {
+        "seed": 150,
+        "cost": 5000
+    },
+    "Z. Sonmez": {
+        "seed": 157,
+        "cost": 5000
+    },
+    "L. Ciric Bagaric": {
+        "seed": 185,
+        "cost": 5000
+    },
+    "J. Avdeeva": {
+        "seed": 188,
+        "cost": 5000
+    },
+    "A. Tomljanovic": {
+        "seed": 207,
+        "cost": 5000
+    },
+    "K. Mladenovic": {
+        "seed": 217,
+        "cost": 5000
+    },
+    "B. Andreescu": {
+        "seed": 234,
+        "cost": 5000
+    },
+    "A. Anisimova": {
+        "seed": 237,
+        "cost": 5000
+    },
+    "A. Kerber": {
+        "seed": 238,
+        "cost": 5000
+    },
+    "I. Burillo Escorihuela": {
+        "seed": 280,
+        "cost": 5000
+    },
+    "A. Van Uytvanck": {
+        "seed": 398,
+        "cost": 5000
+    },
+    "A. Krunic": {
+        "seed": 471,
+        "cost": 5000
+    }
+}

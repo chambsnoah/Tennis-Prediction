@@ -1,0 +1,33 @@
+Female
+annealing
+['M. Trevisan', 'X. Wang', 'V. Tomova', 'D. Galfi', 'M. Sakkari', 'D. Collins', 'S. Cirstea', 'B. Krejcikova']
+1358.06
+
+hc_real
+['X. Wang', 'M. Sakkari', 'C. Gauff', 'O. Jabeur', 'C. Garcia', 'L. Fruhvirtova', 'K. Rakhimova', 'M. Bouzkova']
+1723.8700000000001
+
+hc
+['O. Jabeur', 'D. Vekic', 'C. Gauff', 'L. Tsurenko', 'A. Bogdan', 'S. Rogers', 'L. Siegemund', 'P. Martic']
+1122.29
+
+random
+['M. Vondrousova', 'M. Linette', 'B. Pera', 'L. Fruhvirtova', 'D. Parry', 'K. Siniakova', 'S. Cirstea', 'X. Wang']
+1332.8400000000001
+
+Male
+annealing
+['S. Baez', 'M. Arnaldi', 'N. Jarry', 'F. Cerundolo', 'U. Humbert', 'E. Ruusuvuori', 'L. Musetti', 'C. Alcaraz']
+1402.43
+
+hc_real
+['C. Alcaraz', 'N. Jarry', 'D. Medvedev', 'A. Fils', 'U. Humbert', 'A. Bublik', 'M. McDonald', 'L. Djere']
+1476.1799999999998
+
+hc
+['S. Tsitsipas', 'N. Jarry', 'D. Medvedev', 'F. Coria', 'J. Struff', 'Y. Hanfmann', 'R. Carballes Baena', 'L. Djere']
+1222.0000000000002
+
+random
+['C. Eubanks', 'Y. Hanfmann', 'F. Auger-Aliassime', 'C. Alcaraz', 'U. Humbert', 'A. Davidovich Fokina', 'N. Jarry', 'F. Cerundolo']
+1431.7700000000002

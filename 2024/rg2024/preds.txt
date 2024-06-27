@@ -1,0 +1,41 @@
+Female
+annealing
+['D. Yastremska'(166), 'J. Paolini'(370), 'O. Jabeur'(266), 'T. Zidansek'(97), 'Y. Putintseva'(111), 'K. Boulter'(49), 'I. Swiatek'(443), 'X. Wang'(97)]
+1353.3300000000002
+Real: 1599
+
+hc_real
+['A. Sabalenka'(292), 'C. Gauff'(340), 'M. Vondrousova'(260), 'X. Wang'(97), 'D. Yastremska'(166), 'P. Martic'(100), 'P. Stearns'(149), 'C. Bucsa'(103)]
+1389.4099999999999
+Real: 1507
+
+hc
+['D. Collins'(105), 'B. Krejcikova'(49), 'E. Svitolina'(210), 'J. Niemeier'(50), 'M. Andreeva'(317), 'D. Kasatkina'(103), 'C. Garcia'(97), 'A. Potapova'(190)]
+1141.31
+Real: 1121
+
+random
+['X. Wang'(97), 'Q. Zheng'(171), 'A. Krunic'(45), 'L. Noskova'(97), 'A. Kalinina'(49), 'I. Swiatek'(443), 'E. Alexandrova'(45), 'D. Yastremska'(166)]
+1317.01
+Real: 1113
+
+Male
+annealing
+['H. Rune'(206), 'B. Shelton'(145), 'A. Mannarino'(44), 'A. Fils'(46), 'S. Baez'(104), 'T. Paul'(173), 'A. Shevchenko'(99), 'M. Navone'(104)]
+1317.88
+Real: 921
+
+hc_real
+['A. Zverev'(372), 'N. Djokovic'(222), 'M. Navone'(104), 'C. Norrie'(50), 'F. Marozsan'(102), 'S. Ofner'(146), "C. O'Connell"(0), 'H. Hurkacz'(212)]
+1371.4700000000003
+Real: 1208
+
+hc
+['A. Tabilo'(47), 'B. Shelton'(145), 'B. Van De Zandschulp'(40), 'J. Thompson'(39), 'G. Dimitrov'(264), 'F. Auger-Aliassime'(215), 'R. Safiullin'(48), 'A. De Minaur'(276)]
+1220.19
+Real: 1074
+
+random
+['F. Tiafoe'(98), 'C. Norrie'(50), 'N. Jarry'(43), 'A. Bublik'(92), 'A. Mannarino'(44), 'L. Van Assche'(47), 'K. Khachanov'(106), 'C. Alcaraz'(391)]
+1337.76
+Real: 871s

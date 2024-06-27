@@ -1,0 +1,124 @@
+1	Poland	Iga Swiatek	$27,000	select
+2	Belarus	Aryna Sabalenka	$26,000	select
+3	United States	Coco Gauff	$22,500	select
+4	Kazakhstan	Elena Rybakina	$22,500	select
+5	United States	Jessica Pegula	$22,500	select
+6	Tunisia	Ons Jabeur	$22,500	select
+7	Czech Republic	Marketa Vondrousova	$22,500	select
+8	Greece	Maria Sakkari	$18,500	select
+9	Czech Republic	Karolina Muchova	$18,500	select
+10	Czech Republic	Barbora Krejcikova	$18,500	select
+12	Latvia	Jelena Ostapenko	$18,500	select
+13	United States	Madison Keys	$18,500	select
+14	China	Qinwen Zheng	$16,700	select
+15	Russia	Liudmila Samsonova	$16,700	select
+16	Russia	Veronika Kudermetova	$16,700	select
+17	Czech Republic	Petra Kvitova	$16,700	select
+18	Russia	Daria Kasatkina	$11,900	select
+19	Switzerland	Belinda Bencic	$11,900	select
+20	France	Caroline Garcia	$11,900	select
+21	Russia	Ekaterina Alexandrova	$11,900	select
+22	Poland	Magda Linette	$11,900	select
+23	Belarus	Victoria Azarenka	$11,900	select
+24	Croatia	Donna Vekic	$11,900	select
+26	Romania	Sorana Cirstea	$11,900	select
+27	Ukraine	Anhelina Kalinina	$11,900	select
+28	Russia	Anastasia Potapova	$11,900	select
+29	Italy	Jasmine Paolini	$11,900	select
+30	Belgium	Elise Mertens	$11,900	select
+32	Ukraine	Lesia Tsurenko	$11,900	select
+33	China	Lin Zhu	$11,900	select
+34	Canada	Leylah Fernandez	$11,900	select
+35	China	Xinyu Wang	$6,650	select
+36	Czech Republic	Marie Bouzkova	$6,650	select
+37	United States	Sofia Kenin	$6,650	select
+38	Ukraine	Marta Kostyuk	$6,650	select
+39	Czech Republic	Karolina Pliskova	$6,650	select
+41	Croatia	Petra Martic	$6,650	select
+42	Russian Federation	Varvara Gracheva	$6,650	select
+43	Germany	Tatjana Maria	$6,650	select
+44	United States	Sloane Stephens	$6,650	select
+46	Italy	Martina Trevisan	$6,650	select
+47	Italy	Elisabetta Cocciaretto	$6,650	select
+48	Russia	Anna Blinkova	$6,650	select
+50	Czech Republic	Katerina Siniakova	$6,650	select
+52	Italy	Lucia Bronzetti	$6,650	select
+54	United States	Danielle Collins	$6,650	select
+55	Italy	Camila Giorgi	$6,650	select
+56	France	Clara Burel	$6,650	select
+59	Egypt	Mayar Sherif	$6,650	select
+60	Russia	Anastasia Pavlyuchenkova	$6,650	select
+61	Spain	Cristina Bucsa	$6,650	select
+62	Argentina	Nadia Podoroska	$6,650	select
+63	Kazakhstan	Yulia Putintseva	$6,650	select
+66	Romania	Ana Bogdan	$6,650	select
+69	United States	Bernarda Pera	$6,650	select
+71	China	Xiyu Wang	$6,650	select
+72	United States	Lauren Davis	$6,650	select
+75	Bulgaria	Viktoriya Tomova	$6,650	select
+76	France	Diane Parry	$6,650	select
+77	China	Yue Yuan	$6,650	select
+79	Romania	Irina-Camelia Begu	$6,650	select
+80	Russia	Anna Kalinskaya	$6,650	select
+81	Estonia	Anett Kontaveit	$6,650	select
+81	Colombia	Maria Camila Osorio Serrano	$5,000	select
+82	United States	Taylor Townsend	$5,000	select
+83	Germany	Tamara Korpatsch	$5,000	select
+85	Switzerland	Viktorija Golubic	$5,000	select
+86	Belarus	Aliaksandra Sasnovich	$5,000	select
+87	Romania	Jaqueline Cristian	$5,000	select
+88	Czech Republic	Linda Fruhvirtova	$5,000	select
+92	Germany	Laura Siegemund	$5,000	select
+93	United States	Catherine McNally	$5,000	select
+95	United States	Claire Liu	$5,000	select
+96	Russian Federation	Kamilla Rakhimova	$5,000	select
+97	Russian Federation	Diana Shnaider	$5,000	select
+98	Ukraine	Dayana Yastremska	$5,000	select
+100	Canada	Bianca Andreescu	$5,000	select
+103	Slovenia	Tamara Zidansek	$5,000	select
+104	Austria	Julia Grabher	$5,000	select
+106	Slovenia	Kaja Juvan	$5,000	select
+108	United States	Katie Volynets	$5,000	select
+109	France	Alizé Cornet	$5,000	select
+112	Brazil	Laura Pigossi	$5,000	select
+114	United States	Elizabeth Mandlik	$5,000	select
+115	Australia	Kimberly Birrell	$5,000	select
+117	Czech Republic	Brenda Fruhvirtova	$5,000	select
+118	Hungary	Anna Bondar	$5,000	select
+120	United Kingdom	Harriet Dart	$5,000	select
+124	Australia	Olivia Gadecki	$5,000	select
+125	Italy	Lucrezia Stefanini	$5,000	select
+130	Switzerland	Jil Belen Teichmann	$5,000	select
+132	Czech Republic	Sara Bejlek	$5,000	select
+135	Ukraine	Kateryna Baindl	$5,000	select
+138	Germany	Eva Lys	$5,000	select
+141	Hungary	Dalma Galfi	$5,000	select
+146	France	Leolia Jeanjean	$5,000	select
+147	United States	Madison Brengle	$5,000	select
+149	United States	Shelby Rogers	$5,000	select
+152	Netherlands	Arianne Hartono	$5,000	select
+154	Montenegro	Danka Kovinic	$5,000	select
+156	Czech Republic	Tereza Martincova	$5,000	select
+160	Hungary	Panna Udvardy	$5,000	select
+161	Estonia	Kaia Kanepi	$5,000	select
+165	Canada	Katherine Sebov	$5,000	select
+169	Germany	Jule Niemeier	$5,000	select
+172	Japan	Moyuka Uchijima	$5,000	select
+173	Canada	Rebecca Marino	$5,000	select
+175	Australia	Storm Hunter	$5,000	select
+187	Russian Federation	Polina Kudermetova	$5,000	select
+193	Belgium	Ysaline Bonaventure	$5,000	select
+216	Australia	Jaimee Fourlis	$5,000	select
+230	France	Selena Janicijevic	$5,000	select
+236	Australia	Talia Gibson	$5,000	select
+248	China	Shuai Zhang	$5,000	select
+258	Ukraine	Maryna Zanevska	$5,000	select
+301	United Kingdom	Emma Raducanu	$5,000	select
+373	United States	Amanda Anisimova	$5,000	select
+427	United States	Coco Vandeweghe	$5,000	select
+437	Russian Federation	Oksana Selekhmeteva	$5,000	select
+440	Romania	Patricia Maria Tig	$5,000	select
+447	Russia	Evgeniya Rodina	$5,000	select
+461	Spain	Garbiñe Muguruza	$5,000	select
+514	Slovakia	Kristina Kucova	$5,000	select
+663	United States	Alison Riske-Amritraj	$5,000	select

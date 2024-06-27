@@ -1,0 +1,133 @@
+1	Serbia	Novak Djokovic	$27,000	select
+2	Spain	Carlos Alcaraz Garfia	$26,000	select
+3	Russian Federation	Daniil Medvedev	$22,500	select
+4	Italy	Jannik Sinner	$22,500	select
+5	Russian Federation	Andrey Rublev	$22,500	select
+6	Greece	Stefanos Tsitsipas	$22,500	select
+7	Germany	Alexander Zverev	$22,500	select
+8	Denmark	Holger Vitus Nodskov Rune	$18,500	select
+9	Poland	Hubert Hurkacz	$18,500	select
+10	United States	Taylor Fritz	$18,500	select
+11	Norway	Casper Ruud	$18,500	select
+12	Australia	Alex De Minaur	$18,500	select
+13	United States	Tommy Paul	$16,700	select
+14	Bulgaria	Grigor Dimitrov	$16,700	select
+15	Russian Federation	Karen Khachanov	$16,700	select
+16	United States	Frances Tiafoe	$16,700	select
+17	United States	Ben Shelton	$11,900	select
+18	United Kingdom	Cameron Norrie	$11,900	select
+19	Chile	Nicolas Jarry	$11,900	select
+20	France	Ugo Humbert	$11,900	select
+21	Argentina	Francisco Cerundolo	$11,900	select
+22	France	Adrian Mannarino	$11,900	select
+23	Netherlands	Tallon Griekspoor	$11,900	select
+24	United States	Sebastian Korda	$11,900	select
+25	Germany	Jan-Lennard Struff	$11,900	select
+26	Spain	Alejandro Davidovich	$11,900	select
+27	Italy	Lorenzo Musetti	$11,900	select
+28	Argentina	Sebastian Baez	$11,900	select
+29	Canada	Felix Auger-Aliassime	$11,900	select
+30	Argentina	Tomas Martin Etcheverry	$11,900	select
+31	Czech Republic	Jiri Lehecka	$11,900	select
+32	Russian Federation	Alexander Bublik	$6,650	select
+33	Serbia	Laslo Djere	$6,650	select
+34	United States	Christopher Eubanks	$6,650	select
+36	France	Arthur Fils	$6,650	select
+37	Croatia	Borna Coric	$6,650	select
+38	United Kingdom	Daniel Evans	$6,650	select
+39	Russian Federation	Roman Safiullin	$6,650	select
+40	Australia	Alexei Popyrin	$6,650	select
+41	United States	Mackenzie McDonald	$6,650	select
+42	United Kingdom	Andy Murray	$6,650	select
+43	Austria	Sebastian Ofner	$6,650	select
+44	Italy	Matteo Arnaldi	$6,650	select
+45	Australia	Max Purcell	$6,650	select
+46	Italy	Lorenzo Sonego	$6,650	select
+47	Japan	Yoshihito Nishioka	$6,650	select
+48	Russian Federation	Alexander Shevchenko	$6,650	select
+49	Switzerland	Stan Wawrinka	$6,650	select
+50	Netherlands	Botic Van de Zandschulp	$6,650	select
+51	Germany	Yannick Hanfmann	$6,650	select
+52	Serbia	Dusan Lajovic	$6,650	select
+53	United States	J.J. Wolf	$6,650	select
+54	Serbia	Miomir Kecmanovic	$6,650	select
+55	Australia	Jordan Thompson	$6,650	select
+56	Germany	Daniel Altmaier	$6,650	select
+57	Spain	Roberto Bautista Agut	$6,650	select
+58	China	Zhizhen Zhang	$6,650	select
+59	Hungary	Marton Fucsovics	$6,650	select
+60	United States	Marcos Giron	$6,650	select
+61	United Kingdom	Jack Draper	$6,650	select
+62	Australia	Aleksandar Vukic	$6,650	select
+63	Spain	Roberto Carballes Baena	$6,650	select
+64	Hungary	Fabian Marozsan	$6,650	select
+65	Australia	Thanasi Kokkinakis	$5,000	select
+66	Portugal	Nuno Borges	$5,000	select
+67	Russian Federation	Pavel Kotov	$5,000	select
+68	Australia	Christopher O'Connell	$5,000	select
+69	Finland	Emil Ruusuvuori	$5,000	select
+70	Argentina	Pedro Cachin	$5,000	select
+71	Australia	Rinky Hijikata	$5,000	select
+72	Croatia	Borna Gojo	$5,000	select
+73	Chile	Christian Garin	$5,000	select
+73	France	Benjamin Bonzi	$5,000	select
+74	France	Gael Monfils	$5,000	select
+75	Japan	Taro Daniel	$5,000	select
+76	France	Richard Gasquet	$5,000	select
+77	Germany	Dominik Koepfer	$5,000	select
+78	Czech Republic	Tomas Machac	$5,000	select
+79	Brazil	Thiago Seyboth Wild	$5,000	select
+80	Spain	Bernabe Zapata	$5,000	select
+81	France	Alexandre Muller	$5,000	select
+82	Chile	Cristian Garin	$5,000	select
+84	France	Gregoire Barrere	$5,000	select
+85	Canada	Alejandro Tabilo	$5,000	select
+86	Spain	Jaume Munar	$5,000	select
+87	France	Constant Lestienne	$5,000	select
+88	Argentina	Federico Coria	$5,000	select
+89	Spain	Albert Ramos-Vinolas	$5,000	select
+90	Italy	Luca Vanni	$5,000	select
+91	Germany	Maximilian Marterer	$5,000	select
+92	Italy	Matteo Berrettini	$5,000	select
+93	Colombia	Daniel Elahi Galan	$5,000	select
+95	Argentina	Facundo Diaz Acosta	$5,000	select
+96	France	Arthur Rinderknech	$5,000	select
+97	United States	Alex Michelsen	$5,000	select
+98	Austria	Dominic Thiem	$5,000	select
+99	Japan	Yosuke Watanuki	$5,000	select
+100	France	Quentin Halys	$5,000	select
+101	Italy	Flavio Cobolli	$5,000	select
+102	Australia	Jason Kubler	$5,000	select
+109	Canada	Denis Shapovalov	$5,000	select
+110	United States	Aleksandar Kovacevic	$5,000	select
+111	Belgium	David Goffin	$5,000	select
+116	Australia	James Duckworth	$5,000	select
+130	France	Arthur Cazaux	$5,000	select
+132	Czech Republic	Vit Kopriva	$5,000	select
+135	Italy	Giulio Zeppieri	$5,000	select
+137	Japan	Shintaro Mochizuki	$5,000	select
+138	India	Sumit Nagal	$5,000	select
+140	South Africa	Lloyd Harris	$5,000	select
+144	France	Terence Atmane	$5,000	select
+150	Australia	Marc Polmans	$5,000	select
+153	Netherlands	Jesper De Jong	$5,000	select
+166	Croatia	Dino Prizmic	$5,000	select
+168	Czech Republic	Jakub Mensik	$5,000	select
+171	Slovakia	Lukas Klein	$5,000	select
+176	France	Hugo Grenier	$5,000	select
+177	Australia	Adam Walton	$5,000	select
+183	China	Juncheng Shang	$5,000	select
+192	United States	Patrick Kypson	$5,000	select
+194	Japan	Yusuke Watanuki	$5,000	select
+197	South Korea	Soonwoo Kwon	$5,000	select
+216	Hungary	Mate Valkusz	$5,000	select
+221	Australia	Christopher O'Connell	$5,000	select
+256	Australia	Dane Sweeny	$5,000	select
+272	Australia	James McCabe	$5,000	select
+292	Czech Republic	Jiri Vesely	$5,000	select
+317	Canada	Milos Raonic	$5,000	select
+341	Australia	Omar Jasika	$5,000	select
+579	Argentina	Juan Pablo	$5,000	select
+670	Croatia	Marin Cilic	$5,000	select
+999	Netherlands	Scott Griekspoor	$5,000	select
+1000	China	Ze Zhang	$5,000	select

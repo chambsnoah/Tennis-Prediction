@@ -2,9 +2,9 @@ import json
 import random
 import math
 
-random.seed(20230828)
+random.seed(20240526)
 
-config = "f"
+config = "m"
 
 # if using 100 runs of pointsv2 change values below as needed
 cutoff = 1400
@@ -12,7 +12,7 @@ cutoff = 1400
 if config == "m":
     player_points_file = "player_points_male.json"
     players_file = "players_male.json"
-    cutoff = 1400
+    cutoff = 1300
 elif config == "f":
     player_points_file = "player_points_female.json"
     players_file = "players_female.json"
