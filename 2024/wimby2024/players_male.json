@@ -1,0 +1,514 @@
+{
+    "J. SINNER": {
+        "seed": 1,
+        "cost": 27000
+    },
+    "N. DJOKOVIC": {
+        "seed": 2,
+        "cost": 26000
+    },
+    "C. ALCARAZ": {
+        "seed": 3,
+        "cost": 22500
+    },
+    "A. ZVEREV": {
+        "seed": 4,
+        "cost": 22500
+    },
+    "D. MEDVEDEV": {
+        "seed": 5,
+        "cost": 22500
+    },
+    "A. RUBLEV": {
+        "seed": 6,
+        "cost": 22500
+    },
+    "H. HURKACZ": {
+        "seed": 7,
+        "cost": 22500
+    },
+    "C. RUUD": {
+        "seed": 8,
+        "cost": 18500
+    },
+    "A. DE MINAUR": {
+        "seed": 9,
+        "cost": 18500
+    },
+    "G. DIMITROV": {
+        "seed": 10,
+        "cost": 18500
+    },
+    "S. TSITSIPAS": {
+        "seed": 11,
+        "cost": 18500
+    },
+    "T. PAUL": {
+        "seed": 12,
+        "cost": 18500
+    },
+    "T. FRITZ": {
+        "seed": 13,
+        "cost": 16700
+    },
+    "B. SHELTON": {
+        "seed": 14,
+        "cost": 16700
+    },
+    "H. RUNE": {
+        "seed": 15,
+        "cost": 16700
+    },
+    "U. HUMBERT": {
+        "seed": 16,
+        "cost": 16700
+    },
+    "F. AUGER-ALIASSIME": {
+        "seed": 17,
+        "cost": 11900
+    },
+    "S. BAEZ": {
+        "seed": 18,
+        "cost": 11900
+    },
+    "N. JARRY": {
+        "seed": 19,
+        "cost": 11900
+    },
+    "S. KORDA": {
+        "seed": 20,
+        "cost": 11900
+    },
+    "K. KHACHANOV": {
+        "seed": 21,
+        "cost": 11900
+    },
+    "A. MANNARINO": {
+        "seed": 22,
+        "cost": 11900
+    },
+    "A. BUBLIK": {
+        "seed": 23,
+        "cost": 11900
+    },
+    "A. TABILO": {
+        "seed": 24,
+        "cost": 11900
+    },
+    "L. MUSETTI": {
+        "seed": 25,
+        "cost": 11900
+    },
+    "F. CERUNDOLO": {
+        "seed": 26,
+        "cost": 11900
+    },
+    "J. DRAPER": {
+        "seed": 27,
+        "cost": 11900
+    },
+    "F. TIAFOE": {
+        "seed": 28,
+        "cost": 11900
+    },
+    "T. ETCHEVERRY": {
+        "seed": 29,
+        "cost": 11900
+    },
+    "M. NAVONE": {
+        "seed": 30,
+        "cost": 11900
+    },
+    "A. FILS": {
+        "seed": 31,
+        "cost": 11900
+    },
+    "M. ARNALDI": {
+        "seed": 32,
+        "cost": 6650
+    },
+    "A. DAVIDOVICH FOKINA": {
+        "seed": 33,
+        "cost": 6650
+    },
+    "L. DARDERI": {
+        "seed": 34,
+        "cost": 6650
+    },
+    "T. MACHAC": {
+        "seed": 35,
+        "cost": 6650
+    },
+    "J. THOMPSON": {
+        "seed": 36,
+        "cost": 6650
+    },
+    "G. MONFILS": {
+        "seed": 37,
+        "cost": 6650
+    },
+    "J. STRUFF": {
+        "seed": 38,
+        "cost": 6650
+    },
+    "C. EUBANKS": {
+        "seed": 39,
+        "cost": 6650
+    },
+    "R. SAFIULLIN": {
+        "seed": 40,
+        "cost": 6650
+    },
+    "C. NORRIE": {
+        "seed": 41,
+        "cost": 6650
+    },
+    "F. MAROZSAN": {
+        "seed": 42,
+        "cost": 6650
+    },
+    "M. GIRON": {
+        "seed": 43,
+        "cost": 6650
+    },
+    "A. POPYRIN": {
+        "seed": 44,
+        "cost": 6650
+    },
+    "P. MARTINEZ": {
+        "seed": 45,
+        "cost": 6650
+    },
+    "F. COBOLLI": {
+        "seed": 46,
+        "cost": 6650
+    },
+    "P. KOTOV": {
+        "seed": 47,
+        "cost": 6650
+    },
+    "N. BORGES": {
+        "seed": 48,
+        "cost": 6650
+    },
+    "L. DJERE": {
+        "seed": 49,
+        "cost": 6650
+    },
+    "M. KECMANOVIC": {
+        "seed": 50,
+        "cost": 6650
+    },
+    "S. OFNER": {
+        "seed": 51,
+        "cost": 6650
+    },
+    "D. LAJOVIC": {
+        "seed": 52,
+        "cost": 6650
+    },
+    "L. SONEGO": {
+        "seed": 53,
+        "cost": 6650
+    },
+    "A. SHEVCHENKO": {
+        "seed": 54,
+        "cost": 6650
+    },
+    "M. BERRETTINI": {
+        "seed": 55,
+        "cost": 6650
+    },
+    "D. EVANS": {
+        "seed": 56,
+        "cost": 6650
+    },
+    "A. MICHELSEN": {
+        "seed": 57,
+        "cost": 6650
+    },
+    "J. MUNAR": {
+        "seed": 58,
+        "cost": 6650
+    },
+    "B. NAKASHIMA": {
+        "seed": 59,
+        "cost": 6650
+    },
+    "R. CARBALLES BAENA": {
+        "seed": 60,
+        "cost": 6650
+    },
+    "D. KOEPFER": {
+        "seed": 61,
+        "cost": 6650
+    },
+    "F. DIAZ ACOSTA": {
+        "seed": 62,
+        "cost": 6650
+    },
+    "A. RINDERKNECH": {
+        "seed": 63,
+        "cost": 6650
+    },
+    "M. FUCSOVICS": {
+        "seed": 64,
+        "cost": 5000
+    },
+    "H. GASTON": {
+        "seed": 65,
+        "cost": 5000
+    },
+    "F. CORIA": {
+        "seed": 66,
+        "cost": 5000
+    },
+    "S. NAGAL": {
+        "seed": 67,
+        "cost": 5000
+    },
+    "C. GARIN": {
+        "seed": 68,
+        "cost": 5000
+    },
+    "L. NARDI": {
+        "seed": 69,
+        "cost": 5000
+    },
+    "T. SEYBOTH WILD": {
+        "seed": 70,
+        "cost": 5000
+    },
+    "R. HIJIKATA": {
+        "seed": 71,
+        "cost": 5000
+    },
+    "D. ALTMAIER": {
+        "seed": 72,
+        "cost": 5000
+    },
+    "J. DUCKWORTH": {
+        "seed": 73,
+        "cost": 5000
+    },
+    "Z. BERGS": {
+        "seed": 74,
+        "cost": 5000
+    },
+    "M. MCDONALD": {
+        "seed": 75,
+        "cost": 5000
+    },
+    "A. VUKIC": {
+        "seed": 76,
+        "cost": 5000
+    },
+    "T. DANIEL": {
+        "seed": 77,
+        "cost": 5000
+    },
+    "T. MONTEIRO": {
+        "seed": 78,
+        "cost": 5000
+    },
+    "J. MENSIK": {
+        "seed": 79,
+        "cost": 5000
+    },
+    "A. KOVACEVIC": {
+        "seed": 80,
+        "cost": 5000
+    },
+    "M. MARTERER": {
+        "seed": 81,
+        "cost": 5000
+    },
+    "E. RUUSUVUORI": {
+        "seed": 82,
+        "cost": 5000
+    },
+    "B. CORIC": {
+        "seed": 83,
+        "cost": 5000
+    },
+    "C. LESTIENNE": {
+        "seed": 84,
+        "cost": 5000
+    },
+    "L. HARRIS": {
+        "seed": 85,
+        "cost": 5000
+    },
+    "T. KOKKINAKIS": {
+        "seed": 86,
+        "cost": 5000
+    },
+    "S. WAWRINKA": {
+        "seed": 87,
+        "cost": 5000
+    },
+    "M. PURCELL": {
+        "seed": 88,
+        "cost": 5000
+    },
+    "Y. HANFMANN": {
+        "seed": 89,
+        "cost": 5000
+    },
+    "B. VAN DE ZANDSCHULP": {
+        "seed": 90,
+        "cost": 5000
+    },
+    "F. FOGNINI": {
+        "seed": 91,
+        "cost": 5000
+    },
+    "A. CAZAUX": {
+        "seed": 92,
+        "cost": 5000
+    },
+    "A. KARATSEV": {
+        "seed": 93,
+        "cost": 5000
+    },
+    "Y. NISHIOKA": {
+        "seed": 94,
+        "cost": 5000
+    },
+    "A. MULLER": {
+        "seed": 95,
+        "cost": 5000
+    },
+    "J. SHANG": {
+        "seed": 96,
+        "cost": 5000
+    },
+    "A. WALTON": {
+        "seed": 97,
+        "cost": 5000
+    },
+    "A. MURRAY": {
+        "seed": 98,
+        "cost": 5000
+    },
+    "D. SHAPOVALOV": {
+        "seed": 99,
+        "cost": 5000
+    },
+    "F. COMESANA": {
+        "seed": 100,
+        "cost": 5000
+    },
+    "R. BAUTISTA AGUT": {
+        "seed": 101,
+        "cost": 5000
+    },
+    "V. KOPRIVA": {
+        "seed": 102,
+        "cost": 5000
+    },
+    "B. HARRIS": {
+        "seed": 103,
+        "cost": 5000
+    },
+    "R. ALBOT": {
+        "seed": 104,
+        "cost": 5000
+    },
+    "L. BROADY": {
+        "seed": 105,
+        "cost": 5000
+    },
+    "F. MELIGENI ALVES": {
+        "seed": 106,
+        "cost": 5000
+    },
+    "O. VIRTANEN": {
+        "seed": 107,
+        "cost": 5000
+    },
+    "D. STRICKER": {
+        "seed": 108,
+        "cost": 5000
+    },
+    "J. CHOINSKI": {
+        "seed": 109,
+        "cost": 5000
+    },
+    "A. MORO CANAS": {
+        "seed": 110,
+        "cost": 5000
+    },
+    "E. YMER": {
+        "seed": 111,
+        "cost": 5000
+    },
+    "L. POUILLE": {
+        "seed": 112,
+        "cost": 5000
+    },
+    "C. O'CONNELL": {
+        "seed": 113,
+        "cost": 5000
+    },
+    "Q. HALYS": {
+        "seed": 114,
+        "cost": 5000
+    },
+    "M. JANVIER": {
+        "seed": 115,
+        "cost": 5000
+    },
+    "A. BOLT": {
+        "seed": 116,
+        "cost": 5000
+    },
+    "A. FERY": {
+        "seed": 117,
+        "cost": 5000
+    },
+    "C. BROOM": {
+        "seed": 118,
+        "cost": 5000
+    },
+    "M. LAJAL": {
+        "seed": 119,
+        "cost": 5000
+    },
+    "J. FEARNLEY": {
+        "seed": 120,
+        "cost": 5000
+    },
+    "P. JUBB": {
+        "seed": 121,
+        "cost": 5000
+    },
+    "S. KWON": {
+        "seed": 122,
+        "cost": 5000
+    },
+    "K. NISHIKORI": {
+        "seed": 123,
+        "cost": 5000
+    },
+    "H. SEARLE": {
+        "seed": 124,
+        "cost": 5000
+    },
+    "P. CARRENO BUSTA": {
+        "seed": 125,
+        "cost": 5000
+    },
+    "T. BELLUCCI": {
+        "seed": 126,
+        "cost": 5000
+    },
+    "S. GRIEKSPOOR": {
+        "seed": 127,
+        "cost": 5000
+    },
+    "Z. ZHANG": {
+        "seed": 128,
+        "cost": 5000
+    }
+}
