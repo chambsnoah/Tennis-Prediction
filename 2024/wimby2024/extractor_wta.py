@@ -4,9 +4,9 @@ config = "f"
 # open the txt file (gotten from just plain selecting the text from the power rankings page)
 file_name = ""
 if config == "m":
-    file_name = "players_male.txt"
+    file_name = "players_male_atp.txt"
 elif config == "f":
-    file_name = "players_female.txt"
+    file_name = "players_female_wta.txt"
 
 # read the file
 file = open(file_name, "r")
@@ -37,6 +37,8 @@ def seed_to_cost(seed):
 
 players = {}
 seed = 1
+first_name = ""
+last_name = ""
 
 for i, line in enumerate(lines):
     name = ""
@@ -45,22 +47,18 @@ for i, line in enumerate(lines):
     # if the line is empty, skip it
     if not line:
         continue
-    # only get the part before the (
-    line = line.split("(")[0]
-    # split the line by spaces
-    line = line.split(" ")
-    # get the seed
-    seed = int(line[0])
-    # get the cost
-    cost = seed_to_cost(seed)
-    # the name is the rest of the line written LASTNAME, Firstname.
-    name = " ".join(line[1:])
-    # We want it to be F. Lastname (or F. LASTNAME is fine also)
-    name = name.split(",")[1][1] + ". " + name.split(",")[0]
-    # add the player to the list
-    players[name] = ({"seed": seed, "cost": cost, "p_factor": 0, "n_factor": 0})
-    # increment the seed
-    seed += 1
+    if line.isdigit() or line == "-":
+        # next line will be first name
+        first_name = lines[i+1]
+        last_name = lines[i+2]
+        rank = seed
+        cost = seed_to_cost(rank)
+    
+        name = (first_name[0] + ". " + last_name).upper()
+        # add the player to the list
+        players[name] = ({"seed": seed, "cost": cost, "p_factor": 0, "n_factor": 0})
+
+        seed += 1
 
 # export the list of players to a json file
 import json

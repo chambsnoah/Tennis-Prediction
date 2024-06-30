@@ -3,7 +3,7 @@ import random
 
 random.seed(20240701)
 
-config = "m"
+config = "f"
 
 if config == "m":
     player_points_file = "player_points_male.json"

@@ -3,14 +3,18 @@ import random
 
 from tennis import PlayerSimple, TennisMatch
 
-config = "m"
+config = "f"
 
 ### -------- Values that can be changed ---------- ###
-savefile = False
+savefile = True
 watchplayer = ""
 outline_player_matches = ""
-num_runs = 1
+num_runs = 100
 verbose = True
+
+# these values should range from 0 to 0.1
+# 0.1 would mean an almost 100% improved performance from regular
+use_p_and_n_factors = True
 
 seed = 20240701
 top_player_boost = 0.02
@@ -66,6 +70,9 @@ for i in range(num_runs):
     player_points = {}
     for player in players:
         player_points[player] = 0
+        if players[player]["p_factor"] > 0.1 or players[player]["n_factor"] > 0.1:
+            print(player + " has a p_factor or n_factor greater than 0.1, make sure this is accurate")
+            exit()
 
     while True:
         if verbose:
@@ -112,6 +119,15 @@ for i in range(num_runs):
                         # These are arbitrary numbers, but they're based on the fact that the higher seed should have a higher chance of winning
                         # also adding some variance
                         percentage_diff = diff / 100 * 0.08
+
+                        # add the p and n factors
+                        if use_p_and_n_factors:
+                            if player1 == better_seed:
+                                percentage_diff += stats1["p_factor"] - stats1["n_factor"]
+                                percentage_diff -= stats2["p_factor"] - stats2["n_factor"]
+                            else:
+                                percentage_diff -= stats1["p_factor"] - stats1["n_factor"]
+                                percentage_diff += stats2["p_factor"] - stats2["n_factor"]
 
                         num_match_replays = get_num_match_replay_per_bracket_size(len(bracket))
                         player1_total_matches_won = 0
@@ -197,6 +213,15 @@ for i in range(num_runs):
                         # These are arbitrary numbers, but they're based on the fact that the higher seed should have a higher chance of winning
                         # also adding some variance
                         percentage_diff = diff / 100 * 0.08
+                        
+                        # add the p and n factors
+                        if use_p_and_n_factors:
+                            if player1 == better_seed:
+                                percentage_diff += stats1["p_factor"] - stats1["n_factor"]
+                                percentage_diff -= stats2["p_factor"] - stats2["n_factor"]
+                            else:
+                                percentage_diff -= stats1["p_factor"] - stats1["n_factor"]
+                                percentage_diff += stats2["p_factor"] - stats2["n_factor"]
 
                         num_match_replays = get_num_match_replay_per_bracket_size(len(bracket))
                         player1_total_matches_won = 0
@@ -294,6 +319,16 @@ for i in range(num_runs):
                 # These are arbitrary numbers, but they're based on the fact that the higher seed should have a higher chance of winning
                 # also adding some variance
                 percentage_diff = diff / 100 * 0.08
+
+                # add the p and n factors
+                if use_p_and_n_factors:
+                    if player1 == better_seed:
+                        percentage_diff += stats1["p_factor"] - stats1["n_factor"]
+                        percentage_diff -= stats2["p_factor"] - stats2["n_factor"]
+                    else:
+                        percentage_diff -= stats1["p_factor"] - stats1["n_factor"]
+                        percentage_diff += stats2["p_factor"] - stats2["n_factor"]
+
                 worse_seed_points_won_on_serve = average_percentage_won_on_serve - percentage_diff / 2 + random.uniform(-0.03, 0.03)
                 better_seed_points_won_on_serve = average_percentage_won_on_serve + percentage_diff / 2 + random.uniform(-0.03, 0.03)
                 player1_points_won_on_serve = worse_seed_points_won_on_serve if worse_seed == player1 else better_seed_points_won_on_serve
@@ -338,6 +373,12 @@ for i in range(num_runs):
 
 for player in player_points_total:
     player_points_total[player] = round(player_points_total[player] / num_runs, 2)
+
+if num_runs > 50:
+    for player in player_points_total:
+        if player_points_total[player] == 0:
+            print(player + " has 0 points for more than 50 games, please check the names")
+            exit()
 
 if num_runs >= 1:
     print(player_points_total)

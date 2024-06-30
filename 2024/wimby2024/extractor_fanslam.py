@@ -57,7 +57,7 @@ for i, line in enumerate(lines):
         cost = int(cost.replace("$", "").replace(",", ""))
         # add the player to the list
         name = (name.split(" ")[0][0] + ". " + " ".join(name.split(" ")[1:])).upper()
-        players[name] = ({"seed": seed, "cost": cost})
+        players[name] = ({"seed": seed, "cost": cost, "p_factor": 0, "n_factor": 0})
         # increment the seed
         seed += 1
 

@@ -4,7 +4,7 @@ import math
 
 random.seed(20240701)
 
-config = "m"
+config = "f"
 
 # if using 100 runs of pointsv2 change values below as needed
 cutoff = 1400
