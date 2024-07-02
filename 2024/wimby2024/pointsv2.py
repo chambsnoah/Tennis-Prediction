@@ -3,13 +3,13 @@ import random
 
 from tennis import PlayerSimple, TennisMatch
 
-config = "f"
+config = "m"
 
 ### -------- Values that can be changed ---------- ###
-savefile = True
+savefile = False
 watchplayer = ""
 outline_player_matches = ""
-num_runs = 100
+num_runs = 300
 verbose = True
 
 # these values should range from 0 to 0.1
@@ -28,6 +28,8 @@ average_percentage_won_on_serve = 0.64
 players = None
 bracket = None
 sets_to_win = 3
+projected_top_8 = [{}, {}, {}, {}, {}, {}, {}, {}]
+actual_num_runs = 0
 
 if config == "m" or config == "M":
     load_players = json.load(open("players_male.json", "r"))
@@ -51,6 +53,13 @@ def get_num_match_replay_per_bracket_size(bracket_size):
         return 5
     return bracket_size + 1
 
+def is_player_points_total_diff_small_enough(old_player_points_total, new_player_points_total):
+    for player in old_player_points_total:
+        if abs(old_player_points_total[player] - new_player_points_total[player]) / new_player_points_total[player] > 0.01:
+            return False
+        
+    return True
+
 if seed != None:
     random.seed(seed)
 
@@ -60,7 +69,7 @@ if num_runs > 1:
 brackets = []
 
 for i in range(num_runs):
-
+    actual_num_runs += 1
     players = load_players
     bracket = load_bracket
     if num_runs == 1:
@@ -77,6 +86,16 @@ for i in range(num_runs):
     while True:
         if verbose:
             print(bracket)
+        if len(bracket) == 4:
+            for i, duo_players in enumerate(bracket):
+                if duo_players[0] in projected_top_8[i*2]:
+                    projected_top_8[i*2][duo_players[0]] += 1
+                else:
+                    projected_top_8[i*2][duo_players[0]] = 1
+                if duo_players[1] in projected_top_8[i*2+1]:
+                    projected_top_8[i*2+1][duo_players[1]] += 1
+                else:
+                    projected_top_8[i*2+1][duo_players[1]] = 1
         next_bracket = []
         for i in range(len(bracket)):
             if i % 2 == 0:
@@ -368,13 +387,19 @@ for i in range(num_runs):
         print(bracket)
         print(player_points)
     
+    old_player_points_total = player_points_total.copy()
+
     for player in player_points:
         player_points_total[player] += player_points[player]
 
-for player in player_points_total:
-    player_points_total[player] = round(player_points_total[player] / num_runs, 2)
+    if is_player_points_total_diff_small_enough(old_player_points_total, player_points_total):
+        print("Actual number of runs: " + str(actual_num_runs))
+        break
 
-if num_runs > 50:
+for player in player_points_total:
+    player_points_total[player] = round(player_points_total[player] / actual_num_runs, 2)
+
+if actual_num_runs > 50:
     for player in player_points_total:
         if player_points_total[player] == 0:
             print(player + " has 0 points for more than 50 games, please check the names")
@@ -382,6 +407,15 @@ if num_runs > 50:
 
 if num_runs >= 1:
     print(player_points_total)
+
+print()
+print("Projected Top 8")
+top_8_list = []
+for i, top_8_players in enumerate(projected_top_8):
+    # pick the one with the most wins
+    sorted_top_8_players = sorted(top_8_players.items(), key=lambda x: x[1], reverse=True)
+    top_8_list.append(sorted_top_8_players[0])
+print(top_8_list)
 
 if savefile:
     if config == "m" or config == "M":

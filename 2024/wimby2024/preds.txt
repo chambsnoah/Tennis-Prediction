@@ -15,6 +15,9 @@ random
 ['S. ZHANG', 'H. DART', 'B. FRUHVIRTOVA', 'Q. ZHENG', 'C. GAUFF', 'D. KASATKINA', 'A. KALINSKAYA', 'E. NAVARRO']
 1311.69
 
+Projected Top 8
+[('I. SWIATEK', 64), ('D. COLLINS', 101), ('A. KALINSKAYA', 72), ('J. PEGULA', 95), ('Q. ZHENG', 100), ('D. KASATKINA', 126), ('J. PAOLINI', 93), ('C. GAUFF', 108)]
+
 Male
 annealing
 ['T. FRITZ', 'L. DARDERI', 'L. BROADY', 'A. ZVEREV', 'C. RUUD', 'L. MUSETTI', 'J. STRUFF', 'S. BAEZ']
@@ -31,3 +34,6 @@ hc
 random
 ['J. STRUFF', 'A. DE MINAUR', 'T. GRIEKSPOOR', 'L. HARRIS', 'A. RUBLEV', 'F. AUGER-ALIASSIME', 'T. PAUL', 'S. WAWRINKA']  
 1309.74
+
+Projected Top 8
+[('J. SINNER', 78), ('D. MEDVEDEV', 84), ('C. ALCARAZ', 105), ('C. RUUD', 98), ('A. RUBLEV', 80), ('A. ZVEREV', 89), ('H. HURKACZ', 76), ('H. RUNE', 106)]
