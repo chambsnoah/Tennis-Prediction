@@ -9,6 +9,16 @@ class Player:
         self.first_serve_win_percentage = first_serve_win_percentage
         self.second_serve_win_percentage = second_serve_win_percentage
 
+    # def __init__(self, name="John Doe", first_serve_percentage=0.5, service_points_won=80,  first_serve_win_percentage=0.5, second_serve_win_percentage=0.5):
+    #     self.name = name
+    #     self.first_serve_percentage = first_serve_percentage
+    #     self.second_serve_percentage = (service_points_won / self.avg(first_serve_win_percentage, second_serve_win_percentage)) * (1 - first_serve_percentage)
+    #     self.first_serve_win_percentage = second_serve_win_percentage
+    #     self.second_serve_win_percentage = second_serve_win_percentage
+
+    def avg(self, no1, no2):
+        return (no1 + no2) / 2
+
 class PlayerSimple:
     def __init__(self, name="John Doe", points_won_on_serve_percentage=0.5):
         self.name = name
@@ -455,7 +465,23 @@ class TennisMatch:
         print(f"Service points won: {self.player1_service_points_won} | {self.player2_service_points_won}")
 
         print(f"Service games won: {self.player1_service_games_won}/{self.player1_service_games_played} | {self.player2_service_games_won}/{self.player2_service_games_played}")
+    
+    def test_simple():
+        player1_wins = 0
+        player2_wins = 0
+        for i in range(1000):
+            player1 = PlayerSimple("Player 1", 0.68)
+            player2 = PlayerSimple("Player 2", 0.50)
+            player1_to_start = random.choice([True, False])
+            tennis_match = TennisMatch(player1, player2, 2, player1_to_start, None)
+            tennis_match.simulate_match(verbose=False)
+            if tennis_match.get_match_winner() == player1:
+                player1_wins += 1
+            else:
+                player2_wins += 1
 
+        print("Player 1 wins:", player1_wins)
+        print("Player 2 wins:", player2_wins)
 
 
 # Example usage
@@ -490,30 +516,22 @@ if __name__ == "__main__":
     # player1 = Player("Carlos Alcaraz", 0.645, 0.87, 0.7, 0.56) # -> 7 df
     # player2 = Player("Novak Djokovic", 0.643, 0.92, 0.72, 0.57) # -> 1 df
 
-    # Wimbledon mens actual (Djokovic served first)
+    # Wimbledon mens actual 2023 (Djokovic served first)
     # seed = datetime.datetime(2023, 7, 16)
     # player1 = Player("Carlos Alcaraz", 0.62, 0.875, 0.7, 0.57) # -> 7 df
     # player2 = Player("Novak Djokovic", 0.64, 0.955, 0.62, 0.59) # -> 3 df
 
-    # seed = int(seed.strftime("%Y%m%d"))
-    # print("Seed:", seed)
-    # tennis_match = TennisMatch(player1, player2, 3, True, seed)
-    # tennis_match.simulate_match(verbose=False)
-    # tennis_match.print_match_statistics()
+    # Wimbledon mens actual 2024 (Djokovic served first)
+    # to calculate second serve percentage:
+    # Points on second serve = Total service points * (1 - 1st serve %)
+    # = ((service points won) / avg(1st serve win %, 2nd serve win %)) * (1 -  1st serve %)
+    # second serve percentage = points on second serve / (points on second serve + double faults)
+    seed = datetime.datetime(2024, 7, 14)
+    player1 = Player("Carlos Alcaraz", 0.635, 0.907, 0.737, 0.617) # -> 7 df
+    player2 = Player("Novak Djokovic", 0.672, 0.918, 0.818, 0.656) # -> 3 df
 
-    # Test simple
-    player1_wins = 0
-    player2_wins = 0
-    for i in range(1000):
-        player1 = PlayerSimple("Player 1", 0.68)
-        player2 = PlayerSimple("Player 2", 0.50)
-        player1_to_start = random.choice([True, False])
-        tennis_match = TennisMatch(player1, player2, 2, player1_to_start, None)
-        tennis_match.simulate_match(verbose=False)
-        if tennis_match.get_match_winner() == player1:
-            player1_wins += 1
-        else:
-            player2_wins += 1
-
-    print("Player 1 wins:", player1_wins)
-    print("Player 2 wins:", player2_wins)
+    seed = int(seed.strftime("%Y%m%d"))
+    print("Seed:", seed)
+    tennis_match = TennisMatch(player1, player2, 3, True, seed)
+    tennis_match.simulate_match(verbose=True)
+    tennis_match.print_match_statistics()
