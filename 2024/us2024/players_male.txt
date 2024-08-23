@@ -1,0 +1,112 @@
+1	Jannik Sinner	1	1
+2	Novak Djokovic	2	2
+3	Carlos Alcaraz	3	3
+4	Alexander Zverev	4	4
+5	Daniil Medvedev	5	5
+6	Andrey Rublev	6	8
+7	Hubert Hurkacz	7	7
+8	Casper Ruud	8	9
+9	Grigor Dimitrov	9	10
+10	Alex de Minaur	10	6
+11	Stefanos Tsitsipas	11	12
+12	Taylor Fritz	12	11
+13	Ben Shelton	13	14
+14	Tommy Paul	14	13
+15	Holger Rune	15	17
+16	Sebastian Korda	16	22
+17	Ugo Humbert	17	15
+18	Lorenzo Musetti	18	16
+19	Felix Auger-Aliassime	19	18
+20	Frances Tiafoe	20	30
+21	Sebastian Baez	21	19
+22	Alejandro Tabilo	22	20
+23	Karen Khachanov	23	21
+24	Arthur Fils	24	28
+25	Jack Draper	25	26
+26	Nicolas Jarry	26	23
+27	Alexander Bublik	27	24
+28	Alexei Popyrin	28	43
+29	Francisco Cerundolo	29	33
+30	Matteo Arnaldi	30	39
+31	Flavio Cobolli	31	48
+32	Jiri Lehecka	32	29
+Jordan Thompson	33	40
+Tomas Martin Etcheverry	34	32
+Nuno Borges	35	51
+Jan-Lennard Struff	36	37
+Mariano Navone	37	36
+Luciano Darderi	38	35
+Tomas Machac	39	38
+Tallon Griekspoor	40	27
+Zhizhen Zhang	41	34
+Adrian Mannarino	42	25
+Pedro Martinez	43	49
+Matteo Berrettini	44	82
+Gael Monfils	45	31
+Marcos Giron	46	46
+Brandon Nakashima	48	53
+Fabian Marozsan	49	45
+Giovanni Mpetshi Perricard	50	44
+Yoshihito Nishioka	51	86
+Alex Michelsen	52	61
+Miomir Kecmanovic	53	47
+Roberto Carballes Baena	54	54
+Sebastian Ofner	55	50
+Arthur Rinderknech	56	66
+Alejandro Davidovich Fokina	57	41
+Lorenzo Sonego	58	52
+Roman Safiullin	59	67
+Alexander Shevchenko	60	56
+Hugo Gaston	61	81
+Facundo Diaz Acosta	62	77
+Pavel Kotov	63	60
+Jakub Mensik	64	79
+Rinky Hijikata	65	74
+Dusan Lajovic	66	55
+Roberto Bautista Agut	67	75
+Corentin Moutet	68	63
+Thiago Seyboth Wild	69	72
+James Duckworth	70	78
+Fabio Fognini	71	80
+Sumit Nagal	72	68
+Botic van de Zandschulp	73	87
+Thiago Monteiro	74	85
+Aleksandar Kovacevic	75	91
+(WC) Alexandre Muller	76	
+Juncheng Shang	77	89
+Federico Coria	78	69
+Marton Fucsovics	79	83
+Dominik Koepfer	80	62
+Jaume Munar	82	59
+Emil Ruusuvuori	83	70
+Thanasi Kokkinakis	84	88
+Zizou Bergs	85	73
+Christopher O'Connell	86	93
+Borna Coric	87	84
+Taro Daniel	88	90
+Daniel Altmaier	89	71
+David Goffin	90	98
+Max Purcell	91	64
+Luca Nardi	92	76
+Camilo Ugo Carabelli	93	96
+Aleksandar Vukic	94	65
+Adam Walton	96	95
+Arthur Cazaux	97	92
+Laslo Djere	100	57
+Denis Shapovalov	105	27 (PR)
+(WC) Zachary Svajda	107	
+Francisco Comesana	108	100
+Constant Lestienne	110	94
+(WC) Christopher Eubanks	120	
+Albert Ramos-Vinolas	122	97
+Mackenzie McDonald	140	99
+(WC) Stan Wawrinka	178	
+Dominic Stricker	181	94 (PR)
+Daniel Evans	186	58
+(WC) Tristan Schoolkate	195	
+(WC) Dominic Thiem	209	
+(WC) Learner Tien	230	
+Pablo Carreno Busta	299	18 (PR)
+Reilly Opelka	322	33 (PR)
+Soonwoo Kwon	342	80 (PR)
+(WC) Matthew Forbes	1838	
