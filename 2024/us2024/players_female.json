@@ -2,187 +2,187 @@
     "I. SWIATEK": {
         "seed": 1,
         "cost": 27000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. SABALENKA": {
         "seed": 2,
         "cost": 26000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "C. GAUFF": {
         "seed": 3,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "E. RYBAKINA": {
         "seed": 4,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "J. PAOLINI": {
         "seed": 5,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "J. PEGULA": {
         "seed": 6,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "Q. ZHENG": {
         "seed": 7,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "B. KREJCIKOVA": {
         "seed": 8,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "M. SAKKARI": {
         "seed": 9,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "J. OSTAPENKO": {
         "seed": 10,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "D. COLLINS": {
         "seed": 11,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "D. KASATKINA": {
         "seed": 12,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "E. NAVARRO": {
         "seed": 13,
         "cost": 16700,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "M. KEYS": {
         "seed": 14,
         "cost": 16700,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. KALINSKAYA": {
         "seed": 15,
         "cost": 16700,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "L. SAMSONOVA": {
         "seed": 16,
         "cost": 16700,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "D. SHNAIDER": {
         "seed": 17,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "M. KOSTYUK": {
         "seed": 18,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "V. AZARENKA": {
         "seed": 19,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "M. ANDREEVA": {
         "seed": 20,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "B. HADDAD MAIA": {
         "seed": 21,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "L. FERNANDEZ": {
         "seed": 22,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "D. VEKIC": {
         "seed": 23,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. PAVLYUCHENKOVA": {
         "seed": 24,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "P. BADOSA": {
         "seed": 25,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "E. SVITOLINA": {
         "seed": 26,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "C. GARCIA": {
         "seed": 27,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "E. ALEXANDROVA": {
         "seed": 28,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "Y. PUTINTSEVA": {
         "seed": 29,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "K. BOULTER": {
         "seed": 30,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "D. YASTREMSKA": {
         "seed": 31,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "K. RAKHIMOVA": {
@@ -314,13 +314,13 @@
     "E. RADUCANU": {
         "seed": 53,
         "cost": 6650,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "S. KENIN": {
         "seed": 54,
         "cost": 6650,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "S. ROGERS": {
@@ -350,7 +350,7 @@
     "C. WOZNIACKI": {
         "seed": 59,
         "cost": 6650,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "N. HIBINO": {
@@ -404,13 +404,13 @@
     "N. OSAKA": {
         "seed": 68,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "K. MUCHOVA": {
         "seed": 69,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "K. VOLYNETS": {
@@ -464,13 +464,13 @@
     "K. PLISKOVA": {
         "seed": 78,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "B. ANDREESCU": {
         "seed": 79,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "M. BASSOLS RIBERA": {
@@ -524,7 +524,7 @@
     "S. STEPHENS": {
         "seed": 88,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "D. PARRY": {
@@ -542,7 +542,7 @@
     "A. BLINKOVA": {
         "seed": 92,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. BOGDAN": {
@@ -614,7 +614,7 @@
     "A. ANISIMOVA": {
         "seed": 104,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "E. ANDREEVA": {
@@ -720,9 +720,9 @@
         "n_factor": 0
     },
     "E. MERTENS": {
-        "seed": 122,
-        "cost": 5000,
-        "p_factor": 0,
+        "seed": 33,
+        "cost": 6650,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "V. TOMOVA": {

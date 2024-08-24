@@ -9,16 +9,16 @@ config = "m"
 savefile = False
 watchplayer = ""
 outline_player_matches = ""
-num_runs = 300
+num_runs = 100
 verbose = True
 
 # these values should range from 0 to 0.1
 # 0.1 would mean an almost 100% improved performance from regular
 use_p_and_n_factors = True
 
-seed = 20240701
+seed = 20240826
 top_player_boost = 0.02
-match_replays = True # replays the match 5,3 times depending bracket size to get less variance but still give a chance for upsets
+match_replays = False # replays the match 5,3 times depending bracket size to get less variance but still give a chance for upsets
 
 # from online sources
 average_percentage_won_on_serve = 0.64

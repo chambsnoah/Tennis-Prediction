@@ -2,181 +2,181 @@
     "J. SINNER": {
         "seed": 1,
         "cost": 27000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "N. DJOKOVIC": {
         "seed": 2,
         "cost": 26000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "C. ALCARAZ": {
         "seed": 3,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. ZVEREV": {
         "seed": 4,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "D. MEDVEDEV": {
         "seed": 5,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. RUBLEV": {
         "seed": 6,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "H. HURKACZ": {
         "seed": 7,
         "cost": 22500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "C. RUUD": {
         "seed": 8,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "G. DIMITROV": {
         "seed": 9,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. DE MINAUR": {
         "seed": 10,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "S. TSITSIPAS": {
         "seed": 11,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "T. FRITZ": {
         "seed": 12,
         "cost": 18500,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "B. SHELTON": {
         "seed": 13,
         "cost": 16700,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "T. PAUL": {
         "seed": 14,
         "cost": 16700,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "H. RUNE": {
         "seed": 15,
         "cost": 16700,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "S. KORDA": {
         "seed": 16,
         "cost": 16700,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "U. HUMBERT": {
         "seed": 17,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "L. MUSETTI": {
         "seed": 18,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "F. AUGER-ALIASSIME": {
         "seed": 19,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "F. TIAFOE": {
         "seed": 20,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "S. BAEZ": {
         "seed": 21,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. TABILO": {
         "seed": 22,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "K. KHACHANOV": {
         "seed": 23,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. FILS": {
         "seed": 24,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "J. DRAPER": {
         "seed": 25,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "N. JARRY": {
         "seed": 26,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. BUBLIK": {
         "seed": 27,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "A. POPYRIN": {
         "seed": 28,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "F. CERUNDOLO": {
         "seed": 29,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "M. ARNALDI": {
         "seed": 30,
         "cost": 11900,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "F. COBOLLI": {
@@ -188,7 +188,7 @@
     "J. LEHECKA": {
         "seed": 32,
         "cost": 6650,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "J. THOMPSON": {
@@ -248,13 +248,13 @@
     "M. BERRETTINI": {
         "seed": 42,
         "cost": 6650,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "G. MONFILS": {
         "seed": 43,
         "cost": 6650,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "M. GIRON": {
@@ -554,7 +554,7 @@
     "D. SHAPOVALOV": {
         "seed": 93,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "Z. SVAJDA": {
@@ -629,12 +629,6 @@
         "p_factor": 0,
         "n_factor": 0
     },
-    "B. YUNCHAOKETE": {
-        "seed": 106,
-        "cost": 5000,
-        "p_factor": 0,
-        "n_factor": 0
-    },
     "H. GRENIER": {
         "seed": 107,
         "cost": 5000,
@@ -644,7 +638,7 @@
     "S. WAWRINKA": {
         "seed": 108,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "D. STRICKER": {
@@ -692,7 +686,7 @@
     "D. THIEM": {
         "seed": 116,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "C. O'CONNELL": {
@@ -728,7 +722,7 @@
     "R. OPELKA": {
         "seed": 122,
         "cost": 5000,
-        "p_factor": 0,
+        "p_factor": 0.02,
         "n_factor": 0
     },
     "S. KWON": {

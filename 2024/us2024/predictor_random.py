@@ -1,9 +1,9 @@
 import json
 import random
 
-random.seed(20240701)
+random.seed(20240826)
 
-config = "f"
+config = "m"
 
 # if using 100 runs of pointsv2 change values below as needed
 cutoff = 1400
