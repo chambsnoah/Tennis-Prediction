@@ -3,7 +3,7 @@ import random
 
 from tennis import PlayerSimple, TennisMatch
 
-config = "m"
+config = "f"
 
 ### -------- Values that can be changed ---------- ###
 savefile = False
