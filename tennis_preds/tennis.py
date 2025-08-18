@@ -499,19 +499,19 @@ class TennisMatch:
 # tennis_match.simulate_match(verbose=False)
 # tennis_match.print_match_statistics()
 
-# Test simple
-player1_wins = 0
-player2_wins = 0
-for i in range(1000):
-    player1 = PlayerSimple("Player 1", 0.68)
-    player2 = PlayerSimple("Player 2", 0.50)
-    player1_to_start = random.choice([True, False])
-    tennis_match = TennisMatch(player1, player2, 2, player1_to_start, None)
-    tennis_match.simulate_match(verbose=False)
-    if tennis_match.get_match_winner() == player1:
-        player1_wins += 1
-    else:
-        player2_wins += 1
+# Test simple - commented out to prevent JSON corruption in web interface
+# player1_wins = 0
+# player2_wins = 0
+# for i in range(1000):
+#     player1 = PlayerSimple("Player 1", 0.68)
+#     player2 = PlayerSimple("Player 2", 0.50)
+#     player1_to_start = random.choice([True, False])
+#     tennis_match = TennisMatch(player1, player2, 2, player1_to_start, None)
+#     tennis_match.simulate_match(verbose=False)
+#     if tennis_match.get_match_winner() == player1:
+#         player1_wins += 1
+#     else:
+#         player2_wins += 1
 
-print("Player 1 wins:", player1_wins)
-print("Player 2 wins:", player2_wins)
+# print("Player 1 wins:", player1_wins)
+# print("Player 2 wins:", player2_wins)
