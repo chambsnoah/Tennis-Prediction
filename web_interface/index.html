@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tennis Prediction System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-tennis-ball"></i>
+                    <h1>Tennis Prediction System</h1>
+                </div>
+                <nav class="nav-tabs">
+                    <button class="nav-tab active" data-tab="match-prediction">
+                        <i class="fas fa-chart-line"></i>
+                        Match Prediction
+                    </button>
+                    <button class="nav-tab" data-tab="bracket-view">
+                        <i class="fas fa-sitemap"></i>
+                        Tournament Bracket
+                    </button>
+                    <button class="nav-tab" data-tab="player-analysis">
+                        <i class="fas fa-user-chart"></i>
+                        Player Analysis
+                    </button>
+                    <button class="nav-tab" data-tab="optimization">
+                        <i class="fas fa-cogs"></i>
+                        Team Optimization
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Match Prediction Tab -->
+            <div class="tab-content active" id="match-prediction">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-line"></i> Match Prediction</h2>
+                    <p>Simulate matches between players with detailed statistics</p>
+                </div>
+
+                <div class="prediction-container">
+                    <div class="player-selection">
+                        <div class="player-card">
+                            <h3>Player 1</h3>
+                            <select id="player1-select" class="player-select">
+                                <option value="">Select Player 1</option>
+                            </select>
+                            <div class="player-stats" id="player1-stats"></div>
+                        </div>
+
+                        <div class="vs-section">
+                            <div class="vs-circle">VS</div>
+                            <button class="simulate-btn" id="simulate-match">
+                                <i class="fas fa-play"></i>
+                                Simulate Match
+                            </button>
+                        </div>
+
+                        <div class="player-card">
+                            <h3>Player 2</h3>
+                            <select id="player2-select" class="player-select">
+                                <option value="">Select Player 2</option>
+                            </select>
+                            <div class="player-stats" id="player2-stats"></div>
+                        </div>
+                    </div>
+
+                    <div class="simulation-controls">
+                        <div class="control-group">
+                            <label for="sets-to-win">Sets to Win:</label>
+                            <select id="sets-to-win">
+                                <option value="2">Best of 3</option>
+                                <option value="3" selected>Best of 5</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="simulation-count">Simulations:</label>
+                            <select id="simulation-count">
+                                <option value="100">100</option>
+                                <option value="500" selected>500</option>
+                                <option value="1000">1000</option>
+                                <option value="5000">5000</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="tournament-surface">Surface:</label>
+                            <select id="tournament-surface">
+                                <option value="hard">Hard Court</option>
+                                <option value="clay">Clay</option>
+                                <option value="grass" selected>Grass</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="results-section" id="match-results" style="display: none;">
+                        <div class="results-header">
+                            <h3>Match Results</h3>
+                            <div class="win-probability">
+                                <div class="prob-bar">
+                                    <div class="prob-fill" id="prob-fill"></div>
+                                    <div class="prob-labels">
+                                        <span id="player1-prob">50%</span>
+                                        <span id="player2-prob">50%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h4>Match Wins</h4>
+                                <div class="stat-comparison">
+                                    <div class="stat-item">
+                                        <span class="stat-label" id="p1-name">Player 1</span>
+                                        <span class="stat-value" id="p1-wins">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label" id="p2-name">Player 2</span>
+                                        <span class="stat-value" id="p2-wins">0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <h4>Average Points Won</h4>
+                                <div class="stat-comparison">
+                                    <div class="stat-item">
+                                        <span class="stat-value" id="p1-avg-points">0%</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-value" id="p2-avg-points">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <h4>Average Sets Won</h4>
+                                <div class="stat-comparison">
+                                    <div class="stat-item">
+                                        <span class="stat-value" id="p1-avg-sets">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-value" id="p2-avg-sets">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="detailed-stats">
+                            <h4>Detailed Statistics</h4>
+                            <div class="stats-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Statistic</th>
+                                            <th id="detailed-p1-name">Player 1</th>
+                                            <th id="detailed-p2-name">Player 2</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="detailed-stats-body">
+                                        <!-- Populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tournament Bracket Tab -->
+            <div class="tab-content" id="bracket-view">
+                <div class="section-header">
+                    <h2><i class="fas fa-sitemap"></i> Tournament Bracket</h2>
+                    <p>View and analyze tournament brackets</p>
+                </div>
+
+                <div class="tournament-controls">
+                    <div class="control-group">
+                        <label for="tournament-select">Tournament:</label>
+                        <select id="tournament-select">
+                            <option value="wimby2024">Wimbledon 2024</option>
+                            <option value="us2024">US Open 2024</option>
+                            <option value="rg2024">Roland Garros 2024</option>
+                            <option value="au2024">Australian Open 2024</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="gender-select">Division:</label>
+                        <select id="gender-select">
+                            <option value="female">Women's Singles</option>
+                            <option value="male">Men's Singles</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bracket-container">
+                    <div class="bracket-scroll">
+                        <div id="bracket-display">
+                            <!-- Bracket will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Player Analysis Tab -->
+            <div class="tab-content" id="player-analysis">
+                <div class="section-header">
+                    <h2><i class="fas fa-user-chart"></i> Player Analysis</h2>
+                    <p>Analyze individual player statistics and performance</p>
+                </div>
+
+                <div class="analysis-container">
+                    <div class="player-search">
+                        <input type="text" id="player-search" placeholder="Search for a player...">
+                        <div class="search-results" id="search-results"></div>
+                    </div>
+
+                    <div class="player-profile" id="player-profile" style="display: none;">
+                        <div class="profile-header">
+                            <h3 id="profile-name">Player Name</h3>
+                            <div class="profile-badges">
+                                <span class="seed-badge" id="profile-seed">Seed #1</span>
+                                <span class="cost-badge" id="profile-cost">$25,000</span>
+                            </div>
+                        </div>
+
+                        <div class="profile-stats">
+                            <div class="stat-group">
+                                <h4>Performance Factors</h4>
+                                <div class="factor-bars">
+                                    <div class="factor-bar">
+                                        <label>Positive Factor</label>
+                                        <div class="bar">
+                                            <div class="bar-fill" id="p-factor-bar"></div>
+                                            <span id="p-factor-value">0%</span>
+                                        </div>
+                                    </div>
+                                    <div class="factor-bar">
+                                        <label>Negative Factor</label>
+                                        <div class="bar">
+                                            <div class="bar-fill negative" id="n-factor-bar"></div>
+                                            <span id="n-factor-value">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stat-group">
+                                <h4>Tournament History</h4>
+                                <div class="history-grid" id="tournament-history">
+                                    <!-- Tournament history will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Optimization Tab -->
+            <div class="tab-content" id="optimization">
+                <div class="section-header">
+                    <h2><i class="fas fa-cogs"></i> Team Optimization</h2>
+                    <p>Find optimal player combinations using simulated annealing</p>
+                </div>
+
+                <div class="optimization-container">
+                    <div class="optimization-controls">
+                        <div class="control-group">
+                            <label for="opt-tournament">Tournament:</label>
+                            <select id="opt-tournament">
+                                <option value="wimby2024">Wimbledon 2024</option>
+                                <option value="us2024">US Open 2024</option>
+                                <option value="rg2024">Roland Garros 2024</option>
+                                <option value="au2024">Australian Open 2024</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="opt-gender">Division:</label>
+                            <select id="opt-gender">
+                                <option value="female">Women's Singles</option>
+                                <option value="male">Men's Singles</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="budget">Budget:</label>
+                            <input type="number" id="budget" value="100000" min="50000" max="200000" step="5000">
+                        </div>
+                        <div class="control-group">
+                            <label for="team-size">Team Size:</label>
+                            <select id="team-size">
+                                <option value="6">6 Players</option>
+                                <option value="8" selected>8 Players</option>
+                                <option value="10">10 Players</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="optimize-btn" id="run-optimization">
+                        <i class="fas fa-rocket"></i>
+                        Run Optimization
+                    </button>
+
+                    <div class="optimization-results" id="optimization-results" style="display: none;">
+                        <div class="results-summary">
+                            <h3>Optimal Team</h3>
+                            <div class="summary-stats">
+                                <div class="summary-stat">
+                                    <span class="stat-label">Total Score</span>
+                                    <span class="stat-value" id="total-score">0</span>
+                                </div>
+                                <div class="summary-stat">
+                                    <span class="stat-label">Total Cost</span>
+                                    <span class="stat-value" id="total-cost">$0</span>
+                                </div>
+                                <div class="summary-stat">
+                                    <span class="stat-label">Budget Used</span>
+                                    <span class="stat-value" id="budget-used">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="team-roster">
+                            <h4>Team Roster</h4>
+                            <div class="roster-grid" id="roster-grid">
+                                <!-- Team roster will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="loading-spinner">
+                <i class="fas fa-tennis-ball fa-spin"></i>
+                <p>Processing...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="tennis-engine.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
