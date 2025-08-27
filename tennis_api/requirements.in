@@ -1,0 +1,11 @@
+# Core dependencies for tennis_api package
+# Edit this file to change dependencies, then run: pip-compile --generate-hashes requirements.in
+#
+# Both HTTP libraries are required due to dual sync/async architecture:
+# - requests: Used by sync wrapper methods (*_sync) for compatibility with existing sync code
+# - aiohttp: Used by native async methods for performance and concurrent operations
+# - See tennis_api/adapters/http_adapter.py for abstraction layer
+requests>=2.31.0
+aiohttp>=3.8.0
+python-dateutil>=2.8.0
+pytest>=7.0.0
