@@ -29,12 +29,15 @@ class RateLimiter:
         
         Args:
             limits_config: Configuration for API rate limits
-            state_file: File to persist rate limit state
+            state_file: File to persist rate limit state (relative to cache directory)
         """
         if state_file is None:
             state_file = "rate_limiter_state.json"
         
-        self.state_file = Path(state_file)
+        # Always save state files to cache directory
+        cache_dir = Path("cache")
+        cache_dir.mkdir(exist_ok=True)
+        self.state_file = cache_dir / state_file
         
         # Set up logging for this class
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
