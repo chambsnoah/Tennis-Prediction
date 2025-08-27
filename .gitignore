@@ -29,3 +29,8 @@ Thumbs.db
 .qoder
 CLAUDE.md
 context.md
+
+# Cache data files (not source code)
+/cache/
+*.cache
+**/*.cache

@@ -72,13 +72,13 @@ def simulate_matches(tournament_path, gender, player1_name, player2_name,
     player2 = create_player_from_data(player2_name, player2_data, surface)
     
     # Run simulations
-    results = {
-        'player1_wins': 0,
-        'player2_wins': 0,
-        'player1_total_points': 0,
-        'player2_total_points': 0,
-        'player1_total_sets': 0,
-        'player2_total_sets': 0
+    results: dict[str, float] = {
+        'player1_wins': 0.0,
+        'player2_wins': 0.0,
+        'player1_total_points': 0.0,
+        'player2_total_points': 0.0,
+        'player1_total_sets': 0.0,
+        'player2_total_sets': 0.0
     }
     
     for i in range(num_simulations):
@@ -92,7 +92,7 @@ def simulate_matches(tournament_path, gender, player1_name, player2_name,
         else:
             results['player2_wins'] += 1
         
-        results['player1_total_points'] += match.player1_totaL_points_won
+        results['player1_total_points'] += match.player1_total_points_won
         results['player2_total_points'] += match.player2_total_points_won
         results['player1_total_sets'] += match.player1_sets_won
         results['player2_total_sets'] += match.player2_sets_won

@@ -42,7 +42,7 @@ class TennisMatch:
         self.player2_points_won_in_tiebreak_per_set = []
 
         # Total points won by each player
-        self.player1_totaL_points_won = 0
+        self.player1_total_points_won = 0
         self.player2_total_points_won = 0
 
         # Break points
@@ -147,7 +147,7 @@ class TennisMatch:
 
             if self.player1_games_won_per_set[i] >= 6 and self.player2_games_won_per_set[i] >= 6:
                 if in_game and i == num_sets - 1:
-                    print(f" ({self.player1_points_won_in_tiebreak_per_set[i]}-{self.player2_points_won_in_tiebreak_per_set[i]})   | {self.player1.name if self.player1_to_serve == True else self.player2.name} to serve", end="")
+                    print(f" ({self.player1_points_won_in_tiebreak_per_set[i]}-{self.player2_points_won_in_tiebreak_per_set[i]})   | {self.player1.name if self.player1_to_serve else self.player2.name} to serve", end="")
                 else:
                     print(f" ({self.player1_points_won_in_tiebreak_per_set[i]}-{self.player2_points_won_in_tiebreak_per_set[i]})", end="")
             else:
@@ -304,7 +304,7 @@ class TennisMatch:
                         if self.simulate_point(self.player1, self.player2, verbose) == 1:
                             player1_points_won_in_tiebreak += 1
                             self.player1_points_won_in_tiebreak_per_set[-1] += 1
-                            self.player1_totaL_points_won += 1
+                            self.player1_total_points_won += 1
                             if not self.player1_to_serve:
                                 self.player1_return_points_won += 1
                             else:
@@ -352,7 +352,7 @@ class TennisMatch:
                     # Regular game
                     if self.simulate_point(self.player1, self.player2, verbose) == 1:
                         player1_points_won += 1
-                        self.player1_totaL_points_won += 1
+                        self.player1_total_points_won += 1
                         if not self.player1_to_serve:
                             self.player1_return_points_won += 1
                         else:
@@ -419,11 +419,11 @@ class TennisMatch:
         return self.player1 if self.player1_sets_won > self.player2_sets_won else self.player2
     
     def get_player1_points_won(self):
-        player1_percentage = round(self.player1_totaL_points_won / (self.player1_totaL_points_won + self.player2_total_points_won) * 100, 2)
+        player1_percentage = round(self.player1_total_points_won / (self.player1_total_points_won + self.player2_total_points_won) * 100, 2)
         return player1_percentage
     
     def get_player2_points_won(self):
-        player2_percentage = round(self.player2_total_points_won / (self.player1_totaL_points_won + self.player2_total_points_won) * 100, 2)
+        player2_percentage = round(self.player2_total_points_won / (self.player1_total_points_won + self.player2_total_points_won) * 100, 2)
         return player2_percentage
     
     def print_match_statistics(self):
@@ -435,7 +435,7 @@ class TennisMatch:
         # Statistics table
         print(f"{self.player1.name} | {self.player2.name}")
 
-        if type(self.player1) == Player:
+        if isinstance(self.player1, Player):
             print(f"Double faults: {self.player1_double_faults} | {self.player2_double_faults}")
             
             player1_first_serve_percentage = round(self.player1_first_serves_in / self.player1_first_serves_played * 100, 2)
@@ -456,8 +456,8 @@ class TennisMatch:
 
         print(f"Receiving points won: {self.player1_return_points_won} | {self.player2_return_points_won}")
 
-        print(f"Total points won: {self.player1_totaL_points_won} | {self.player2_total_points_won}")
-        player1_percentage = round(self.player1_totaL_points_won / (self.player1_totaL_points_won + self.player2_total_points_won) * 100, 2)
+        print(f"Total points won: {self.player1_total_points_won} | {self.player2_total_points_won}")
+        player1_percentage = round(self.player1_total_points_won / (self.player1_total_points_won + self.player2_total_points_won) * 100, 2)
         print(f"Points won percentage: {player1_percentage}% | {100 - player1_percentage}%")
 
         print(f"Total games won: {sum(self.player1_games_won_per_set)} | {sum(self.player2_games_won_per_set)}")
