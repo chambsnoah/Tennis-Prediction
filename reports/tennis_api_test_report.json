@@ -1,0 +1,20 @@
+{
+  "summary": {
+    "total_tests": 14,
+    "passed": 14,
+    "failed": 0,
+    "success_rate": 100.0,
+    "live_requests_made": 0,
+    "live_api_enabled": false
+  },
+  "test_breakdown": {
+    "mock_tests": 14,
+    "live_api_tests": 0
+  },
+  "errors": [],
+  "timestamp": "2025-08-26T16:48:23.539171",
+  "recommendations": [
+    "Enable live API testing with valid credentials for full validation",
+    "API integration appears ready for production use."
+  ]
+}
