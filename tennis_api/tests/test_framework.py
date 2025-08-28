@@ -506,6 +506,52 @@ class APITestFramework:
         except Exception as e:
             print(f"Failed to save test report: {e}")
 
+    def cleanup(self):
+        """Cleanup any open sessions"""
+        # Close sync sessions
+        if hasattr(self, 'live_client') and self.live_client:
+            try:
+                self.live_client.close()
+            except Exception:
+                pass
+        
+        if hasattr(self, 'mock_client') and self.mock_client:
+            try:
+                self.mock_client.close()
+            except Exception:
+                pass
+        
+        # Close async sessions - only if not in an async context
+        try:
+            import asyncio
+            # Check if we're already in an async context
+            try:
+                asyncio.get_running_loop()
+                # We're in an async context - cannot use asyncio.run()
+                # The async sessions will be cleaned up by the garbage collector
+                # This is the "Exception ignored in _ProactorBasePipeTransport.__del__"
+                # warning we see - it's harmless on Windows
+                pass
+            except RuntimeError:
+                # No running loop - safe to use asyncio.run() for cleanup
+                if hasattr(self, 'live_client') and self.live_client and hasattr(self.live_client, 'close_async'):
+                    try:
+                        asyncio.run(self.live_client.close_async())
+                    except Exception:
+                        pass
+                
+                if hasattr(self, 'mock_client') and self.mock_client and hasattr(self.mock_client, 'close_async'):
+                    try:
+                        asyncio.run(self.mock_client.close_async())
+                    except Exception:
+                        pass
+        except Exception:
+            # If anything goes wrong with async cleanup, just skip it
+            pass
+
+    def __del__(self):
+        """Destructor to ensure cleanup"""
+        self.cleanup()
 
 def run_api_tests(use_live_apis: bool = False, max_live_requests: int = 3) -> Dict:
     """
