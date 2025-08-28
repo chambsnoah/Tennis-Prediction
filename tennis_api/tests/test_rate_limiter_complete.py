@@ -25,9 +25,17 @@ def test_rate_limiter_basic():
     """Test basic rate limiter functionality"""
     print("=== Testing Rate Limiter Basic Functionality ===")
     
+    state_file = "test_basic_rate_limiter_state.json"
+    
+    # Clean up any existing state file to start fresh
+    try:
+        Path(state_file).unlink(missing_ok=True)
+    except:
+        pass
+    
     # Create test rate limiter with low limits
     test_limits = {
-        'test_api': {
+        'basic_test_api': {
             'requests_per_minute': 3,
             'requests_per_hour': 10,
             'requests_per_day': 50,
@@ -35,56 +43,106 @@ def test_rate_limiter_basic():
         }
     }
     
-    limiter = RateLimiter(limits_config=test_limits, state_file="test_rate_limiter_state.json")
-    
-    # Test availability check
-    availability = limiter.check_availability('test_api', 'normal')
-    print(f"Initial availability: {availability}")
-    assert availability['available'] is True, "Should be available initially"
-    
-    # Test acquiring requests
-    print("Testing request acquisition...")
-    for i in range(3):
-        result = limiter.acquire('test_api', 'normal')
-        print(f"Request {i+1}: {result}")
-        assert result is True, f"Request {i+1} should succeed"
-    
-    # Fourth request should fail (minute limit exceeded)
-    result = limiter.acquire('test_api', 'normal')
-    print(f"Request 4 (should fail): {result}")
-    assert result is False, "Request 4 should fail due to minute limit"
-    
-    # Check availability after limit exceeded
-    availability = limiter.check_availability('test_api', 'normal')
-    print(f"Availability after limit exceeded: {availability}")
-    assert availability['available'] is False, "Should not be available after limit exceeded"
-    
-    print("✅ Basic rate limiter functionality works correctly\n")
+    limiter = None
+    try:
+        limiter = RateLimiter(limits_config=test_limits, state_file=state_file)
+        
+        # Test availability check
+        availability = limiter.check_availability('basic_test_api', 'normal')
+        print(f"Initial availability: {availability}")
+        assert availability['available'] is True, "Should be available initially"
+        
+        # Test acquiring requests
+        print("Testing request acquisition...")
+        for i in range(3):
+            result = limiter.acquire('basic_test_api', 'normal')
+            print(f"Request {i+1}: {result}")
+            assert result is True, f"Request {i+1} should succeed"
+        
+        # Fourth request should fail (minute limit exceeded)
+        result = limiter.acquire('basic_test_api', 'normal')
+        print(f"Request 4 (should fail): {result}")
+        assert result is False, "Request 4 should fail due to minute limit"
+        
+        # Check availability after limit exceeded
+        availability = limiter.check_availability('basic_test_api', 'normal')
+        print(f"Availability after limit exceeded: {availability}")
+        assert availability['available'] is False, "Should not be available after limit exceeded"
+        
+        print("✅ Basic rate limiter functionality works correctly\n")
+        
+    finally:
+        # Clean up the test state file in multiple locations
+        if limiter:
+            try:
+                limiter._save_state()
+            except:
+                pass
+        
+        # Clean up both potential locations of state file
+        try:
+            Path(state_file).unlink(missing_ok=True)
+        except:
+            pass
+        try:
+            (Path("cache") / state_file).unlink(missing_ok=True)
+        except:
+            pass
 
 
 def test_rate_limiter_priority():
     """Test priority-based rate limiting"""
     print("=== Testing Rate Limiter Priority System ===")
     
-    limiter = RateLimiter()
+    # Use isolated state file to avoid interference with other tests
+    state_file = "test_priority_rate_limiter_state.json"
     
-    # Test different priority levels
-    priorities = ['critical', 'high', 'normal', 'low', 'background']
+    # Clean up any existing state file
+    try:
+        Path(state_file).unlink(missing_ok=True)
+    except:
+        pass
     
-    for priority in priorities:
-        availability = limiter.check_availability('rapidapi_tennis_live', priority)
-        priority_factor = availability.get('priority_factor', 0)
-        print(f"Priority '{priority}': factor = {priority_factor}")
+    try:
+        limiter = RateLimiter(state_file=state_file)
         
-        expected_factor = limiter.priority_weights.get(priority, 0.6)
-        assert abs(priority_factor - expected_factor) < 0.001, f"Priority factor mismatch for {priority}"
-    
-    print("✅ Priority system works correctly\n")
+        # Test different priority levels
+        priorities = ['critical', 'high', 'normal', 'low', 'background']
+        
+        for priority in priorities:
+            availability = limiter.check_availability('rapidapi_tennis_live', priority)
+            priority_factor = availability.get('priority_factor', 0)
+            print(f"Priority '{priority}': factor = {priority_factor}")
+            
+            expected_factor = limiter.priority_weights.get(priority, 0.6)
+            assert abs(priority_factor - expected_factor) < 0.001, f"Priority factor mismatch for {priority}"
+        
+        print("✅ Priority system works correctly\n")
+        
+    finally:
+        # Clean up the test state file
+        try:
+            Path(state_file).unlink(missing_ok=True)
+        except:
+            pass
 
 
 async def test_rate_limiter_async():
     """Test async rate limiting functionality"""
     print("=== Testing Async Rate Limiting ===")
+    
+    state_file = "test_async_rate_limiter_state.json"
+    
+    # Force clean up any existing state file to start fresh
+    cache_path = Path("cache") / state_file
+    try:
+        cache_path.unlink(missing_ok=True)
+    except:
+        pass
+    try:
+        Path(state_file).unlink(missing_ok=True)
+    except:
+        pass
     
     # Create rate limiter with very low limits for testing
     test_limits = {
@@ -98,7 +156,7 @@ async def test_rate_limiter_async():
     
     limiter = None
     try:
-        limiter = RateLimiter(limits_config=test_limits, state_file="test_async_rate_limiter_state.json")
+        limiter = RateLimiter(limits_config=test_limits, state_file=state_file)
         
         # Acquire two requests (should succeed)
         result1 = await limiter.acquire_async('async_test_api', 'high', max_wait=2)
@@ -120,12 +178,22 @@ async def test_rate_limiter_async():
         print("✅ Async rate limiting works correctly\n")
         
     finally:
-        # Cleanup - save state before test completion
+        # Cleanup - save state and remove test file in both locations
         if limiter:
             try:
                 limiter._save_state()
             except:
                 pass
+        
+        # Clean up the test state file in both locations
+        try:
+            Path(state_file).unlink(missing_ok=True)
+        except:
+            pass
+        try:
+            (Path("cache") / state_file).unlink(missing_ok=True)
+        except:
+            pass
 
 
 def test_rate_limiter_state_persistence():
@@ -163,60 +231,94 @@ def test_rate_limiter_usage_stats():
     """Test usage statistics functionality"""
     print("=== Testing Usage Statistics ===")
     
-    limiter = RateLimiter()
+    # Use isolated state file to avoid interference with other tests
+    state_file = "test_usage_stats_rate_limiter_state.json"
     
-    # Make some requests
-    for i in range(3):
-        limiter.acquire('rapidapi_tennis_live', 'normal')
+    # Clean up any existing state file
+    try:
+        Path(state_file).unlink(missing_ok=True)
+    except:
+        pass
     
-    # Get stats for specific API
-    stats = limiter.get_usage_stats('rapidapi_tennis_live')
-    print(f"API stats: {json.dumps(stats, indent=2, default=str)}")
-    
-    assert 'current_usage' in stats, "Stats should include current usage"
-    assert 'limits' in stats, "Stats should include limits"
-    assert 'usage_percentages' in stats, "Stats should include usage percentages"
-    assert stats['current_usage']['minute'] >= 3, "Should have recorded the requests"
-    
-    # Get stats for all APIs
-    all_stats = limiter.get_usage_stats()
-    print(f"All API stats keys: {list(all_stats.keys())}")
-    
-    assert 'rapidapi_tennis_live' in all_stats, "Should include stats for used API"
-    
-    print("✅ Usage statistics work correctly\n")
+    try:
+        limiter = RateLimiter(state_file=state_file)
+        
+        # Make some requests
+        for i in range(3):
+            limiter.acquire('rapidapi_tennis_live', 'normal')
+        
+        # Get stats for specific API
+        stats = limiter.get_usage_stats('rapidapi_tennis_live')
+        print(f"API stats: {json.dumps(stats, indent=2, default=str)}")
+        
+        assert 'current_usage' in stats, "Stats should include current usage"
+        assert 'limits' in stats, "Stats should include limits"
+        assert 'usage_percentages' in stats, "Stats should include usage percentages"
+        assert stats['current_usage']['minute'] >= 3, "Should have recorded the requests"
+        
+        # Get stats for all APIs
+        all_stats = limiter.get_usage_stats()
+        print(f"All API stats keys: {list(all_stats.keys())}")
+        
+        assert 'rapidapi_tennis_live' in all_stats, "Should include stats for used API"
+        
+        print("✅ Usage statistics work correctly\n")
+        
+    finally:
+        # Clean up the test state file
+        try:
+            Path(state_file).unlink(missing_ok=True)
+        except:
+            pass
 
 
 def test_rate_limiter_edge_cases():
     """Test edge cases and error handling"""
     print("=== Testing Edge Cases ===")
     
-    limiter = RateLimiter()
+    # Use isolated state file to avoid interference with other tests
+    state_file = "test_edge_cases_rate_limiter_state.json"
     
-    # Test unknown API
-    availability = limiter.check_availability('unknown_api', 'normal')
-    print(f"Unknown API availability: {availability}")
-    assert availability['available'] is False, "Unknown API should not be available"
+    # Clean up any existing state file
+    try:
+        Path(state_file).unlink(missing_ok=True)
+    except:
+        pass
     
-    result = limiter.acquire('unknown_api', 'normal')
-    print(f"Unknown API acquire: {result}")
-    assert result is False, "Unknown API acquire should fail"
-    
-    # Test invalid priority
-    availability = limiter.check_availability('rapidapi_tennis_live', 'invalid_priority')
-    print(f"Invalid priority availability: {availability}")
-    assert 'priority_factor' in availability, "Should handle invalid priority gracefully"
-    
-    # Test recommended delay
-    delay = limiter.get_recommended_delay('rapidapi_tennis_live', 'normal')
-    print(f"Recommended delay: {delay}s")
-    assert delay >= 0, "Delay should be non-negative"
-    
-    delay_unknown = limiter.get_recommended_delay('unknown_api', 'normal')
-    print(f"Recommended delay for unknown API: {delay_unknown}s")
-    assert delay_unknown == 1.0, "Should return default delay for unknown API"
-    
-    print("✅ Edge cases handled correctly\n")
+    try:
+        limiter = RateLimiter(state_file=state_file)
+        
+        # Test unknown API
+        availability = limiter.check_availability('unknown_api', 'normal')
+        print(f"Unknown API availability: {availability}")
+        assert availability['available'] is False, "Unknown API should not be available"
+        
+        result = limiter.acquire('unknown_api', 'normal')
+        print(f"Unknown API acquire: {result}")
+        assert result is False, "Unknown API acquire should fail"
+        
+        # Test invalid priority
+        availability = limiter.check_availability('rapidapi_tennis_live', 'invalid_priority')
+        print(f"Invalid priority availability: {availability}")
+        assert 'priority_factor' in availability, "Should handle invalid priority gracefully"
+        
+        # Test recommended delay
+        delay = limiter.get_recommended_delay('rapidapi_tennis_live', 'normal')
+        print(f"Recommended delay: {delay}s")
+        assert delay >= 0, "Delay should be non-negative"
+        
+        delay_unknown = limiter.get_recommended_delay('unknown_api', 'normal')
+        print(f"Recommended delay for unknown API: {delay_unknown}s")
+        assert delay_unknown == 1.0, "Should return default delay for unknown API"
+        
+        print("✅ Edge cases handled correctly\n")
+        
+    finally:
+        # Clean up the test state file
+        try:
+            Path(state_file).unlink(missing_ok=True)
+        except:
+            pass
 
 
 def test_rate_limiter_thread_safety():
@@ -224,6 +326,20 @@ def test_rate_limiter_thread_safety():
     print("=== Testing Thread Safety ===")
     
     import threading
+    
+    # Use isolated state file to avoid interference with other tests
+    state_file = "test_thread_safety_rate_limiter_state.json"
+    
+    # Force clean up any existing state file to start fresh
+    cache_path = Path("cache") / state_file
+    try:
+        cache_path.unlink(missing_ok=True)
+    except:
+        pass
+    try:
+        Path(state_file).unlink(missing_ok=True)
+    except:
+        pass
     
     # Create rate limiter with reasonable limits
     test_limits = {
@@ -235,41 +351,53 @@ def test_rate_limiter_thread_safety():
         }
     }
     
-    limiter = RateLimiter(limits_config=test_limits)
-    
-    success_count = [0]  # Use list to modify from inner function
-    total_requests = 100
-    
-    def make_requests():
+    try:
+        limiter = RateLimiter(limits_config=test_limits, state_file=state_file)
+        
+        success_count = [0]  # Use list to modify from inner function
+        total_requests = 100
+        
+        def make_requests():
+            for _ in range(10):
+                if limiter.acquire('thread_test_api', 'normal'):
+                    success_count[0] += 1
+        
+        # Create multiple threads
+        threads = []
         for _ in range(10):
-            if limiter.acquire('thread_test_api', 'normal'):
-                success_count[0] += 1
-    
-    # Create multiple threads
-    threads = []
-    for _ in range(10):
-        thread = threading.Thread(target=make_requests)
-        threads.append(thread)
-    
-    # Start all threads
-    for thread in threads:
-        thread.start()
-    
-    # Wait for all threads to complete
-    for thread in threads:
-        thread.join()
-    
-    print(f"Successful requests: {success_count[0]}/{total_requests}")
-    
-    # Verify that we didn't exceed the minute limit
-    stats = limiter.get_usage_stats('thread_test_api')
-    actual_usage = stats['current_usage']['minute']
-    
-    print(f"Actual usage recorded: {actual_usage}")
-    assert actual_usage == success_count[0], "Usage count should match successful requests"
-    assert actual_usage <= 50, "Should not exceed minute limit"
-    
-    print("✅ Thread safety works correctly\n")
+            thread = threading.Thread(target=make_requests)
+            threads.append(thread)
+        
+        # Start all threads
+        for thread in threads:
+            thread.start()
+        
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+        
+        print(f"Successful requests: {success_count[0]}/{total_requests}")
+        
+        # Verify that we didn't exceed the minute limit
+        stats = limiter.get_usage_stats('thread_test_api')
+        actual_usage = stats['current_usage']['minute']
+        
+        print(f"Actual usage recorded: {actual_usage}")
+        assert actual_usage == success_count[0], "Usage count should match successful requests"
+        assert actual_usage <= 50, "Should not exceed minute limit"
+        
+        print("✅ Thread safety works correctly\n")
+        
+    finally:
+        # Clean up the test state file in both locations
+        try:
+            Path(state_file).unlink(missing_ok=True)
+        except:
+            pass
+        try:
+            (Path("cache") / state_file).unlink(missing_ok=True)
+        except:
+            pass
 
 
 def test_api_config_loading():
@@ -295,22 +423,39 @@ def test_type_annotations():
     """Test that type annotations are working correctly"""
     print("=== Testing Type Annotations ===")
     
-    limiter = RateLimiter()
+    # Use isolated state file to avoid interference with other tests
+    state_file = "test_type_annotations_rate_limiter_state.json"
     
-    # Test return types
-    availability = limiter.check_availability('rapidapi_tennis_live', 'normal')
-    assert isinstance(availability, dict), "check_availability should return dict"
+    # Clean up any existing state file
+    try:
+        Path(state_file).unlink(missing_ok=True)
+    except:
+        pass
     
-    result = limiter.acquire('rapidapi_tennis_live', 'normal')  
-    assert isinstance(result, bool), "acquire should return bool"
-    
-    stats = limiter.get_usage_stats('rapidapi_tennis_live')
-    assert isinstance(stats, dict), "get_usage_stats should return dict"
-    
-    delay = limiter.get_recommended_delay('rapidapi_tennis_live', 'normal')
-    assert isinstance(delay, (int, float)), "get_recommended_delay should return number"
-    
-    print("✅ Type annotations work correctly\n")
+    try:
+        limiter = RateLimiter(state_file=state_file)
+        
+        # Test return types
+        availability = limiter.check_availability('rapidapi_tennis_live', 'normal')
+        assert isinstance(availability, dict), "check_availability should return dict"
+        
+        result = limiter.acquire('rapidapi_tennis_live', 'normal')  
+        assert isinstance(result, bool), "acquire should return bool"
+        
+        stats = limiter.get_usage_stats('rapidapi_tennis_live')
+        assert isinstance(stats, dict), "get_usage_stats should return dict"
+        
+        delay = limiter.get_recommended_delay('rapidapi_tennis_live', 'normal')
+        assert isinstance(delay, (int, float)), "get_recommended_delay should return number"
+        
+        print("✅ Type annotations work correctly\n")
+        
+    finally:
+        # Clean up the test state file
+        try:
+            Path(state_file).unlink(missing_ok=True)
+        except:
+            pass
 
 
 async def main():

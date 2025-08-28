@@ -508,41 +508,48 @@ class APITestFramework:
 
     def cleanup(self):
         """Cleanup any open sessions"""
-        # Close sync sessions
-        if hasattr(self, 'live_client') and self.live_client:
-            try:
-                self.live_client.close()
-            except Exception:
-                pass
-        
-        if hasattr(self, 'mock_client') and self.mock_client:
-            try:
-                self.mock_client.close()
-            except Exception:
-                pass
-        
-        # Close async sessions - only if not in an async context
-        try:
-            import asyncio
-            # Check if we're already in an async context
-            try:
-                asyncio.get_running_loop()
-                # We're in an async context - cannot use asyncio.run()
-                # The async sessions will be cleaned up by the garbage collector
-                # This is the "Exception ignored in _ProactorBasePipeTransport.__del__"
-                # warning we see - it's harmless on Windows
-                pass
-            except RuntimeError:
-                # No running loop - safe to use asyncio.run() for cleanup
-                if hasattr(self, 'live_client') and self.live_client and hasattr(self.live_client, 'close_async'):
+        # Close sync sessions using iteration to avoid duplication
+        client_attrs = ['live_client', 'mock_client']
+        for attr_name in client_attrs:
+            if hasattr(self, attr_name):
+                client = getattr(self, attr_name)
+                if client:
                     try:
-                        asyncio.run(self.live_client.close_async())
+                        client.close()
                     except Exception:
                         pass
-                
-                if hasattr(self, 'mock_client') and self.mock_client and hasattr(self.mock_client, 'close_async'):
+                    # Set to None to make operation idempotent and avoid double-close
+                    setattr(self, attr_name, None)
+        
+        # Close async sessions - gather coroutines when possible
+        try:
+            import asyncio
+            
+            # Build list of close_async coroutines from remaining clients
+            close_coros = []
+            
+            for attr_name in client_attrs:
+                if hasattr(self, attr_name):
+                    client = getattr(self, attr_name)
+                    if client and hasattr(client, 'close_async'):
+                        close_coros.append(client.close_async())
+            
+            # Only proceed if we have coroutines to run
+            if close_coros:
+                try:
+                    # Check if we're already in an async context
+                    asyncio.get_running_loop()
+                    # We're in an async context - cannot use asyncio.run()
+                    # Schedule cleanup to run on the current loop
+                    async def cleanup_async():
+                        await asyncio.gather(*close_coros, return_exceptions=True)
+                    asyncio.create_task(cleanup_async())
+                except RuntimeError:
+                    # No running loop - safe to use asyncio.run() for cleanup
                     try:
-                        asyncio.run(self.mock_client.close_async())
+                        async def run_cleanup():
+                            await asyncio.gather(*close_coros, return_exceptions=True)
+                        asyncio.run(run_cleanup())
                     except Exception:
                         pass
         except Exception:

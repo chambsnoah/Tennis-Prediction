@@ -9,28 +9,38 @@ both requests and aiohttp behind a common interface.
 import asyncio
 import sys
 from pathlib import Path
+from unittest.mock import Mock, AsyncMock, patch
 
 # Add tennis_api to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tennis_api.adapters.http_adapter import UnifiedHTTPClient, get, get_async
+from tennis_api.adapters.http_adapter import UnifiedHTTPClient, get, get_async, HTTPResponse
 
 
 def test_sync_adapter():
     """Test synchronous HTTP adapter using requests"""
     print("=== Testing Sync HTTP Adapter (requests) ===")
     
-    # Test with a mock endpoint (should fail gracefully)
+    # Mock the requests session to avoid network calls
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.headers = {'content-type': 'application/json'}
+    mock_response.content = b'{"test": "data"}'
+    mock_response.text = '{"test": "data"}'
+    
     client = UnifiedHTTPClient(timeout=5)
     
-    try:
+    with patch.object(client.sync_adapter.session, 'request', return_value=mock_response):
         response = client.get("https://httpbin.org/json")
         print(f"✓ Sync request successful: Status {response.status_code}")
         print(f"  Response type: {type(response.json())}")
         if response.ok:
             print("  ✓ Response indicates success")
-    except Exception as e:
-        print(f"  Expected error with test endpoint: {e}")
+        
+        # Assert response properties
+        assert response.status_code == 200
+        assert response.ok
+        assert response.json()["test"] == "data"
     
     client.close()
     print("✓ Sync adapter test completed")
@@ -45,30 +55,58 @@ async def test_async_adapter():
     
     # Test with async client
     async with UnifiedHTTPClient(timeout=5) as client:
-        try:
+        # Mock the aiohttp session.request method directly
+        with patch.object(client.async_adapter, 'request') as mock_request:
+            # Create a proper HTTPResponse object
+            mock_response = HTTPResponse(
+                status_code=200,
+                headers={'content-type': 'application/json'},
+                content=b'{"test": "async_data"}',
+                text='{"test": "async_data"}'
+            )
+            
+            # Configure the mock to return our response
+            mock_request.return_value = mock_response
+            
             response = await client.get_async("https://httpbin.org/json")
             print(f"✓ Async request successful: Status {response.status_code}")
             print(f"  Response type: {type(response.json())}")
             if response.ok:
                 print("  ✓ Response indicates success")
-        except Exception as e:
-            print(f"  Expected error with test endpoint: {e}")
+            
+            # Assert response properties
+            assert response.status_code == 200
+            assert response.ok
+            assert response.json()["test"] == "async_data"
     
     print("✓ Async adapter test completed")
-    
-    # Assert that the test completed (no assertion needed for async context manager)
 
 
 def test_convenience_functions():
     """Test convenience functions"""
     print("\n=== Testing Convenience Functions ===")
     
-    # Test sync convenience function
-    try:
+    # Mock the UnifiedHTTPClient for convenience function testing
+    with patch('tennis_api.adapters.http_adapter.UnifiedHTTPClient') as mock_client_class:
+        mock_client = Mock()
+        mock_response = HTTPResponse(
+            status_code=200,
+            headers={'content-type': 'application/json'},
+            content=b'{"test": "convenience_data"}',
+            text='{"test": "convenience_data"}'
+        )
+        mock_client.get.return_value = mock_response
+        mock_client.__enter__ = Mock(return_value=mock_client)
+        mock_client.__exit__ = Mock(return_value=None)
+        mock_client_class.return_value = mock_client
+        
         response = get("https://httpbin.org/json", timeout=5)
         print(f"✓ Sync convenience function: Status {response.status_code}")
-    except Exception as e:
-        print(f"  Expected error with convenience function: {e}")
+        
+        # Assert response properties
+        assert response.status_code == 200
+        assert response.ok
+        assert response.json()["test"] == "convenience_data"
     
     print("✓ Convenience functions test completed")
     
@@ -80,12 +118,27 @@ async def test_async_convenience_functions():
     """Test async convenience functions"""
     print("\n=== Testing Async Convenience Functions ===")
     
-    # Test async convenience function
-    try:
+    # Mock the UnifiedHTTPClient for async convenience function testing
+    with patch('tennis_api.adapters.http_adapter.UnifiedHTTPClient') as mock_client_class:
+        mock_client = AsyncMock()
+        mock_response = HTTPResponse(
+            status_code=200,
+            headers={'content-type': 'application/json'},
+            content=b'{"test": "async_convenience_data"}',
+            text='{"test": "async_convenience_data"}'
+        )
+        mock_client.get_async.return_value = mock_response
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client_class.return_value = mock_client
+        
         response = await get_async("https://httpbin.org/json")
         print(f"✓ Async convenience function: Status {response.status_code}")
-    except Exception as e:
-        print(f"  Expected error with async convenience function: {e}")
+        
+        # Assert response properties
+        assert response.status_code == 200
+        assert response.ok
+        assert response.json()["test"] == "async_convenience_data"
     
     print("✓ Async convenience functions test completed")
     

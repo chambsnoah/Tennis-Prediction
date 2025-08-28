@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 # Direct import to avoid dependency issues
 from tennis_api.cache.rate_limiter import RateLimiter
 
-def test_rate_limiter_basic():
+def test_rate_limiter_simple_basic():
     """Test basic rate limiter functionality"""
     print("Testing Rate Limiter Basic Functionality...")
     
@@ -66,7 +66,7 @@ def test_rate_limiter_basic():
 
 if __name__ == "__main__":
     try:
-        test_rate_limiter_basic()
+        test_rate_limiter_simple_basic()
         print("\n🎉 Rate limiter is working correctly!")
     except Exception as e:
         print(f"\n❌ Error testing rate limiter: {e}")
