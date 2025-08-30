@@ -14,10 +14,11 @@ A Python project for simulating and predicting tennis match outcomes using playe
   - Simulates full tennis matches, including sets, games, tiebreaks, and service alternation.
   - Tracks detailed statistics: double faults, break points, tiebreaks, service/return points, and more.
 
-- **API Integration:**  
+- **API Integration:**
   - Real-time tennis data integration with caching and rate limiting.
-  - Multiple API provider support with fallback mechanisms.
-  - Automatic data extraction and processing.
+  - Multiple data sources: TennisAPI1, ATP-WTA-ITF API, Jeff Sackmann's tennis_atp repository, Tennis Abstract.
+  - Comprehensive historical data from 1968-present.
+  - Automatic data extraction and processing from APIs, Git repositories, and web sources.
 
 - **Web Interface:**  
   - Interactive web application for match simulation and team optimization.
