@@ -1,0 +1,139 @@
+{
+  "summary": {
+    "total_matches_tested": 200,
+    "phase1_accuracy": 36.5,
+    "phase2_accuracy": 38.5,
+    "accuracy_improvement": 2.0,
+    "accuracy_improvement_percentage": 5.47945205479452,
+    "meets_15_20_percent_target": false
+  },
+  "detailed_comparison": {
+    "phase1_accuracy": 36.5,
+    "phase2_accuracy": 38.5,
+    "accuracy_improvement": 2.0,
+    "accuracy_improvement_percentage": 5.47945205479452,
+    "phase1_high_conf_accuracy": 0.0,
+    "phase2_high_conf_accuracy": 0.0,
+    "high_conf_improvement": 0.0,
+    "phase1_score_accuracy": 0.0,
+    "phase2_score_accuracy": 100.0,
+    "phase1_upset_accuracy": 0.0,
+    "phase2_upset_accuracy": 0.0,
+    "total_matches_tested": 200,
+    "comparison_timestamp": "2025-08-28T22:49:55.020362"
+  },
+  "phase1_results": {
+    "metrics": {
+      "total_predictions": 200,
+      "correct_predictions": 73,
+      "accuracy_percentage": 36.5,
+      "high_confidence_predictions": 0,
+      "high_confidence_correct": 0,
+      "high_confidence_accuracy": 0.0,
+      "score_predictions": 0,
+      "correct_score_predictions": 0,
+      "score_accuracy_percentage": 0.0,
+      "upset_predictions": 0,
+      "correct_upset_predictions": 0,
+      "upset_accuracy_percentage": 0.0,
+      "brier_score": 0.0
+    },
+    "sample_predictions": [
+      {
+        "predicted_winner": 2,
+        "win_probability": 0.45,
+        "confidence": 0.09999999999999998,
+        "method": "ranking_based"
+      },
+      {
+        "predicted_winner": 2,
+        "win_probability": 0.485,
+        "confidence": 0.030000000000000027,
+        "method": "ranking_based"
+      },
+      {
+        "predicted_winner": 2,
+        "win_probability": 0.46499999999999997,
+        "confidence": 0.07000000000000006,
+        "method": "ranking_based"
+      },
+      {
+        "predicted_winner": 2,
+        "win_probability": 0.495,
+        "confidence": 0.010000000000000009,
+        "method": "ranking_based"
+      },
+      {
+        "predicted_winner": 2,
+        "win_probability": 0.495,
+        "confidence": 0.010000000000000009,
+        "method": "ranking_based"
+      }
+    ]
+  },
+  "phase2_results": {
+    "metrics": {
+      "total_predictions": 200,
+      "correct_predictions": 77,
+      "accuracy_percentage": 38.5,
+      "high_confidence_predictions": 0,
+      "high_confidence_correct": 0,
+      "high_confidence_accuracy": 0.0,
+      "score_predictions": 200,
+      "correct_score_predictions": 200,
+      "score_accuracy_percentage": 100.0,
+      "upset_predictions": 0,
+      "correct_upset_predictions": 0,
+      "upset_accuracy_percentage": 0.0,
+      "brier_score": 0.0
+    },
+    "sample_predictions": [
+      {
+        "match": "Novak Djokovic vs Casper Ruud",
+        "predicted_winner": 1,
+        "actual_winner": 1,
+        "confidence": 0.7,
+        "is_correct": true
+      },
+      {
+        "match": "Carlos Alcaraz vs Alexander Zverev",
+        "predicted_winner": 1,
+        "actual_winner": 1,
+        "confidence": 0.7,
+        "is_correct": true
+      },
+      {
+        "match": "Daniil Medvedev vs Taylor Fritz",
+        "predicted_winner": 1,
+        "actual_winner": 1,
+        "confidence": 0.7,
+        "is_correct": true
+      },
+      {
+        "match": "Alexander Zverev vs Jannik Sinner",
+        "predicted_winner": 1,
+        "actual_winner": 2,
+        "confidence": 0.7,
+        "is_correct": false
+      },
+      {
+        "match": "Stefanos Tsitsipas vs Felix Auger-Aliassime",
+        "predicted_winner": 1,
+        "actual_winner": 1,
+        "confidence": 0.7,
+        "is_correct": true
+      }
+    ]
+  },
+  "methodology": {
+    "phase1_method": "Simple ranking-based prediction",
+    "phase2_method": "AI-enhanced prediction with ML models and feature engineering",
+    "test_data": "Historical match results with player rankings and tournament data",
+    "validation_approach": "Direct comparison of prediction accuracy on identical match scenarios"
+  },
+  "recommendations": [
+    "Consider additional ML model training or feature engineering",
+    "Review Phase 2 implementation for potential issues"
+  ],
+  "generated_at": "2025-08-28T22:49:55.020362"
+}
