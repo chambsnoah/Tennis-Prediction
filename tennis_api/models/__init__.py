@@ -10,6 +10,8 @@ from typing import List
 
 # Explicit imports to satisfy linters while keeping lazy loading for performance
 from .player_stats import PlayerStats, SurfaceStats, ServeStatistics, ReturnStatistics
+from .enhanced_player import PlayerEnhanced, PhysicalCondition, MentalState, ContextualFactors
+from .ai_player import PlayerAI, MLModel, PerformanceContext
 from .tournament_data import TournamentDraw, Match
 from .match_data import MatchResult, HeadToHeadRecord
 
@@ -19,6 +21,13 @@ _EXPORTS = {
     "SurfaceStats": (".player_stats", "SurfaceStats"),
     "ServeStatistics": (".player_stats", "ServeStatistics"),
     "ReturnStatistics": (".player_stats", "ReturnStatistics"),
+    "PlayerEnhanced": (".enhanced_player", "PlayerEnhanced"),
+    "PhysicalCondition": (".enhanced_player", "PhysicalCondition"),
+    "MentalState": (".enhanced_player", "MentalState"),
+    "ContextualFactors": (".enhanced_player", "ContextualFactors"),
+    "PlayerAI": (".ai_player", "PlayerAI"),
+    "MLModel": (".ai_player", "MLModel"),
+    "PerformanceContext": (".ai_player", "PerformanceContext"),
     "TournamentDraw": (".tournament_data", "TournamentDraw"),
     "Match": (".tournament_data", "Match"),
     "MatchResult": (".match_data", "MatchResult"),
@@ -30,6 +39,13 @@ __all__: List[str] = [
     "SurfaceStats", 
     "ServeStatistics",
     "ReturnStatistics",
+    "PlayerEnhanced",
+    "PhysicalCondition",
+    "MentalState",
+    "ContextualFactors",
+    "PlayerAI",
+    "MLModel",
+    "PerformanceContext",
     "TournamentDraw",
     "Match",
     "MatchResult",

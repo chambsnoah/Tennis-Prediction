@@ -24,11 +24,6 @@ Thumbs.db
 *.swo
 *.tmp
 *.temp
-.clinerules
-.cursor
-.qoder
-CLAUDE.md
-context.md
 
 # Cache data files (not source code)
 /cache/
