@@ -68,11 +68,17 @@
   - Vendor-specific contractual items: comply with published rate limits, attribution requirements, and any paid subscription/overage fees.
   - Contact / permission process: for bulk or commercial use, request a data license from the ATP/WTA data team via their official contacts; document correspondence and agreements.
 
-- Tennis Abstract (and similar independent data projects)
+- Tennis Abstract (https://tennisabstract.com/)
   - Terms & licensing: Tennis Abstract is a privately run site; its data and pages are subject to its owner’s terms. Do not assume open reuse.
   - Forbidden / restricted actions: explicit scraping, bulk download, caching, or redistribution without consent is prohibited unless permission is granted.
   - Contact / permission process: reach out to the site owner (contact via site contact form or email) to request reuse rights or a data extract; include proposed use, distribution, and attribution plan.
   - Special note: for Match Charting Project and community datasets, check contributor licenses and attribute sources as required.
+
+- Jeff Sackmann ATP Data (https://github.com/JeffSackmann/tennis_atp)
+  - Terms & licensing: Open-source tennis data repository maintained by Jeff Sackmann. Generally available for research and analysis purposes.
+  - Usage guidelines: Attribute the source when using data. Repository includes comprehensive match data, player rankings, and tournament results.
+  - Data scope: Historical ATP match data from 1968-present, including scores, player information, tournament details, and advanced statistics.
+  - Update frequency: Repository is periodically updated with new tournament data.
 
 - API providers (example vendors: Sportradar, Opta, Tennis-Data, other commercial APIs)
   - Terms & licensing: always follow the provider's Developer Terms and Service Agreement (each vendor publishes their own T&Cs and developer docs). Example vendor pages:
