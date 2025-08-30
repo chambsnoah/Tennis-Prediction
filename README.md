@@ -2,6 +2,8 @@
 
 A Python project for simulating and predicting tennis match outcomes using player statistics. The project supports both detailed and simplified player models, includes real-time API integration, and can simulate matches for various tournaments and years.
 
+**🚀 Phase 2 Development Active** - Enhanced ML-driven predictions with multi-source data integration.
+
 ---
 
 ## Features
