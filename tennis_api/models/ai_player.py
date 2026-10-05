@@ -264,8 +264,6 @@ class PlayerAI(PlayerEnhanced):
     
     def __post_init__(self):
         """Initialize AI models after object creation"""
-        super().__post_init__ if hasattr(super(), '__post_init__') else lambda: None)()
-        
         # Initialize training data structures
         for model_name in ['serve', 'return', 'mental', 'outcome', 'score', 'adaptation']:
             if model_name not in self.training_data:

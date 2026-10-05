@@ -16,7 +16,6 @@ _EXPORTS = {
     "ScorePredictor": (".prediction_models", "ScorePredictor"),
     "UpsetDetector": (".prediction_models", "UpsetDetector"),
     "PredictionEnsemble": (".ensemble", "PredictionEnsemble"),
-    "ModelTrainer": (".training", "ModelTrainer"),
 }
 
 __all__: List[str] = [
@@ -27,7 +26,6 @@ __all__: List[str] = [
     "ScorePredictor",
     "UpsetDetector",
     "PredictionEnsemble",
-    "ModelTrainer",
 ]
 
 

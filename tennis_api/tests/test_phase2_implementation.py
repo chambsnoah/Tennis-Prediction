@@ -6,21 +6,16 @@ feature engineering pipeline, and enhanced match simulation.
 """
 
 import pytest
-import sys
-from pathlib import Path
 from typing import Dict, List, Any
 import json
 
-# Add tennis_api to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from models.enhanced_player import PlayerEnhanced, PhysicalCondition, MentalState, ContextualFactors
-from models.ai_player import PlayerAI, PerformanceContext, MLModel
-from models.player_stats import PlayerStats, ServeStatistics, ReturnStatistics
-from ml.feature_engineering import FeatureExtractor, FeatureConfig
-from ml.prediction_models import OutcomePredictor, ScorePredictor, UpsetDetector
-from ml.ensemble import PredictionEnsemble
-from simulation.enhanced_match_engine import EnhancedMatchEngine
+from tennis_api.models.enhanced_player import PlayerEnhanced, PhysicalCondition, MentalState, ContextualFactors
+from tennis_api.models.ai_player import PlayerAI, PerformanceContext, MLModel
+from tennis_api.models.player_stats import PlayerStats, ServeStatistics, ReturnStatistics
+from tennis_api.ml.feature_engineering import FeatureExtractor, FeatureConfig
+from tennis_api.ml.prediction_models import OutcomePredictor, ScorePredictor, UpsetDetector
+from tennis_api.ml.ensemble import PredictionEnsemble
+from tennis_api.simulation.enhanced_match_engine import EnhancedMatchEngine, PointOutcome
 
 
 class TestEnhancedPlayerModels:
@@ -175,7 +170,7 @@ class TestFeatureEngineering:
         assert 'player1_recent_win_rate' in features
         assert 'win_rate_difference' in features
         
-        assert features['form_advantage'] == 0.4  # 1.2 - 0.8
+        assert features['form_advantage'] == pytest.approx(0.4)  # 1.2 - 0.8
         assert features['player1_recent_win_rate'] == 0.8  # 4/5 wins
         assert features['player2_recent_win_rate'] == 0.4  # 2/5 wins
         
@@ -206,7 +201,7 @@ class TestFeatureEngineering:
         assert features['surface_type'] == 1  # clay encoding
         assert features['player1_surface_match'] == 1.0  # prefers clay
         assert features['player2_surface_match'] == 0.0  # prefers hard
-        assert features['surface_win_rate_diff'] == 0.2  # 0.8 - 0.6
+        assert features['surface_win_rate_diff'] == pytest.approx(0.2)  # 0.8 - 0.6
 
 
 class TestMLModels:
@@ -351,11 +346,11 @@ class TestEnhancedMatchEngine:
             winner, outcome = engine.simulate_point()
             assert winner in [1, 2]
             assert outcome in [
-                engine.PointOutcome.ACE,
-                engine.PointOutcome.DOUBLE_FAULT,
-                engine.PointOutcome.WINNER,
-                engine.PointOutcome.UNFORCED_ERROR,
-                engine.PointOutcome.REGULAR_PLAY
+                PointOutcome.ACE,
+                PointOutcome.DOUBLE_FAULT,
+                PointOutcome.WINNER,
+                PointOutcome.UNFORCED_ERROR,
+                PointOutcome.REGULAR_PLAY
             ]
             
     def test_match_simulation(self):
