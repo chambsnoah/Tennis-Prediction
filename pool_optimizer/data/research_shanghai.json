@@ -1,0 +1,263 @@
+{
+ "_meta": "Shanghai 2026 research sweep, 2026-10-05; one contract block per agent scope",
+ "seeds_1_8": {
+  "elo_delta": {
+   "Zverev": 5,
+   "Alcaraz": 10,
+   "Shelton": -25,
+   "Auger-Aliassime": -25,
+   "Fils": 5,
+   "Medvedev": 25,
+   "Cobolli": -25,
+   "Tiafoe": -10
+  },
+  "injury_risk": {
+   "Alcaraz": 0.03,
+   "Shelton": 0.03,
+   "Auger-Aliassime": 0.02,
+   "Fils": 0.02,
+   "Medvedev": 0.02,
+   "Tiafoe": 0.01
+  },
+  "h2h": [],
+  "notes": {
+   "Zverev": "DC W, Laver Cup 2-1, Beijing QF L to Djokovic 4-6 6-4 6-4; healthy, chasing YE No.1",
+   "Alcaraz": "Laver Cup W over Fritz; Tokyo final Oct 6 vs Lehecka; right-arm sleeve since wrist return, 'feeling good'",
+   "Shelton": "0-2 Davis Cup, withdrew Laver Cup + Tokyo ('took a toll on my body'); no match since Sep 19; Mensik leads H2H 3-2",
+   "Auger-Aliassime": "USO heatstroke; Beijing R1 L to Khachanov; nothing past R16 since Wimbledon; humidity risk",
+   "Fils": "Tokyo QF (beat Tiafoe, L Vacherot in 3); says physically fine",
+   "Medvedev": "Hangzhou title + Beijing SF; heavy load 8-9 matches in 12 days; 9-2 vs Struff",
+   "Cobolli": "Beijing R1 L 3-6 2-6 to #84 Safiullin; L Laver Cup singles to Tien",
+   "Tiafoe": "Tokyo 1-1, looked fatigued vs Fils"
+  },
+  "unverified": [
+   "Djokovic-Medvedev Beijing SF result (Oct 5)",
+   "Alcaraz-Lehecka Tokyo final (Oct 6)",
+   "Shelton specific injury"
+  ]
+ },
+ "seeds_9_16": {
+  "elo_delta": {
+   "Jódar": -25,
+   "Djokovic": 40,
+   "Fritz": -30,
+   "de Minaur": 30,
+   "Menšík": -5,
+   "Tien": 0,
+   "Paul": -40,
+   "Nakashima": -15
+  },
+  "injury_risk": {
+   "Djokovic": 0.06,
+   "Fritz": 0.06,
+   "de Minaur": 0.02,
+   "Paul": 0.05
+  },
+  "h2h": [],
+  "notes": {
+   "Jódar": "crushed 1-6 3-6 by Vallejo Tokyo R1, travel fatigue; R3 Lehecka (Tokyo finalist)",
+   "Djokovic": "Beijing 4-0 incl. Zverev; MTOs R1/R2 (shoulder, ribs); Shanghai participation UNCONFIRMED (decide by Oct 7)",
+   "Fritz": "Tokyo R1 L to Munar, physically hampered/treated; knee tendinitis history",
+   "de Minaur": "DC 2-0, beat Zverev Laver Cup, Beijing final Oct 6; heavy load",
+   "Menšík": "Beijing R2 L 3-6 3-6 to Cerúndolo (his R3)",
+   "Tien": "healthy, mixed; soft section on form",
+   "Paul": "USO elbow injury, skipped Laver/DC; Tokyo R1 L 1-6 2-6 to Tabilo",
+   "Nakashima": "Tokyo R1 L 3-6 2-6 Humbert"
+  },
+  "doubtful": {
+   "Djokovic": "undecided on Shanghai, undisclosed health issue",
+   "Hurkacz": "retired Beijing SF Oct 5, groin"
+  },
+  "unverified": [
+   "Djokovic Shanghai participation",
+   "Hurkacz status",
+   "Fritz body part",
+   "Paul elbow healed"
+  ]
+ },
+ "seeds_17_32": {
+  "elo_delta": {
+   "Khachanov": 20,
+   "Musetti": -60,
+   "Lehečka": 50,
+   "Blockx": -5,
+   "Ruud": -30,
+   "Vacherot": 15,
+   "Michelsen": 5,
+   "Davidovich Fokina": 15,
+   "Bublik": -20,
+   "Rublev": 25,
+   "Darderi": -10,
+   "Cerúndolo": 10,
+   "Etcheverry": -25,
+   "Tabilo": 0,
+   "Humbert": 10,
+   "Buse": -20
+  },
+  "injury_risk": {
+   "Musetti": 0.15,
+   "Lehečka": 0.01,
+   "Blockx": 0.03,
+   "Ruud": 0.03,
+   "Vacherot": 0.01,
+   "Davidovich Fokina": 0.03,
+   "Rublev": 0.01,
+   "Buse": 0.02
+  },
+  "h2h": [
+   [
+    "Musetti",
+    "Djokovic",
+    -25
+   ],
+   [
+    "Cerúndolo",
+    "Menšík",
+    30
+   ],
+   [
+    "Davidovich Fokina",
+    "Tiafoe",
+    -20
+   ]
+  ],
+  "notes": {
+   "Khachanov": "Beijing QF, beat FAA 6-3 6-3; healthy",
+   "Musetti": "racquet-hand ring-finger fracture Sep 30, Shanghai doubtful; USO heat collapse",
+   "Lehečka": "6-0 since USO (beat Shelton, Tien, Vacherot); Tokyo final Oct 6",
+   "Blockx": "USO QF retirement; Tokyo close loss, no visible issue",
+   "Ruud": "back held, form poor (Tokyo R1 L Darderi)",
+   "Vacherot": "defending champ; Tokyo SF",
+   "Davidovich Fokina": "back healed, won Chengdu",
+   "Rublev": "Hangzhou F, Beijing QF",
+   "Cerúndolo": "Beijing QF, 3-0 vs Mensik",
+   "Etcheverry": "0-2 since USO"
+  },
+  "doubtful": {
+   "Musetti": "finger fracture, Shanghai start unconfirmed"
+  },
+  "unverified": [
+   "Musetti participation",
+   "Tokyo/Beijing finals Oct 6",
+   "Ruud back details"
+  ]
+ },
+ "dark_horses": {
+  "elo_delta": {
+   "Bu": 45,
+   "Munar": 40,
+   "Vallejo": 35,
+   "Hurkacz": 35,
+   "Shapovalov": 25,
+   "Tsitsipas": 20,
+   "Molčan": 15,
+   "Géa": 10,
+   "Struff": 10,
+   "Berrettini": 10,
+   "Halys": 10,
+   "Faria": 10,
+   "Majchrzak": 10,
+   "Carreño Busta": 5,
+   "Tirante": -20,
+   "Van de Zandschulp": -20,
+   "Van Assche": -15,
+   "Medjedović": -15,
+   "Norrie": -10,
+   "Fery": -10,
+   "Duckworth": -10,
+   "Rune": -40
+  },
+  "injury_risk": {
+   "Hurkacz": 0.12,
+   "Shapovalov": 0.1,
+   "Čilić": 0.06,
+   "Rune": 0.05,
+   "Djokovic": 0.04,
+   "Tirante": 0.03,
+   "Ruud": 0.03
+  },
+  "h2h": [],
+  "top_nf_shortlist": [
+   "Bu",
+   "Tsitsipas",
+   "Vallejo",
+   "Munar",
+   "Hurkacz"
+  ],
+  "qualifiers": "none decided (final qualifying round 6 Oct); in-form alive: Jacquet, Safiullin, Basilashvili, L. Harris, Müller, M. Zheng, Mochizuki",
+  "notes": {
+   "Bu": "home WC; Hangzhou QF, beat JM Cerúndolo, took set off Djokovic; R1 Van Assche then cold Ruud",
+   "Tsitsipas": "4-1 Tokyo from qualifying; R2 Darderi",
+   "Vallejo": "Tokyo QF from qualifying, beat Jódar; R2 cold Paul",
+   "Munar": "Tokyo SF from qualifying, beat Fritz; took set off Alcaraz; R2 Davidovich Fokina",
+   "Hurkacz": "Chengdu F + Beijing SF but retired Oct 5 groin; may withdraw",
+   "Shapovalov": "retired Tokyo QF Oct 4, hip + ankle",
+   "Tirante": "cooling: L Struff 1-6 4-6, Chengdu WD",
+   "Rune": "Achilles comeback, lost 55 min in Tokyo"
+  },
+  "field": {
+   "withdrawals_pre_draw": [
+    "Sinner",
+    "Fonseca",
+    "Rinderknech",
+    "Collignon",
+    "Burruchaga",
+    "Quinn",
+    "Moutet",
+    "Korda"
+   ],
+   "beijing_sf": "Djokovic d. Medvedev (Oct 5); final Djokovic vs de Minaur Oct 6"
+  }
+ },
+ "odds_withdrawals": {
+  "market_source": "OddsPortal ATP Shanghai outrights (single unnamed book, fetched 2026-10-05, overround 150%); avg of proportional + power (k=1.161) normalisation. Kalshi/Polymarket/Smarkets: no 2026 outright market.",
+  "market": {
+   "Alcaraz": 0.3225,
+   "Zverev": 0.1081,
+   "Shelton": 0.0678,
+   "Fils": 0.0511,
+   "Djokovic": 0.0437,
+   "Fritz": 0.0339,
+   "Medvedev": 0.0276,
+   "Tien": 0.0242,
+   "de Minaur": 0.0215,
+   "Tiafoe": 0.0215,
+   "Lehečka": 0.0181,
+   "Jódar": 0.0181,
+   "Auger-Aliassime": 0.0148,
+   "Menšík": 0.0148,
+   "Cobolli": 0.0148,
+   "Khachanov": 0.0117,
+   "Paul": 0.0117,
+   "Rublev": 0.0117,
+   "Hurkacz": 0.0117,
+   "Musetti": 0.0117
+  },
+  "injury_risk": {
+   "Hurkacz": 0.1,
+   "Shapovalov": 0.1,
+   "Paul": 0.05,
+   "Shelton": 0.04,
+   "Djokovic": 0.03
+  },
+  "elo_delta_not_merged": {
+   "Medvedev": 25,
+   "Lehečka": 20,
+   "de Minaur": 15,
+   "Davidovich Fokina": 15,
+   "Djokovic": 10,
+   "Vacherot": 10,
+   "Paul": -25,
+   "Fritz": -10
+  },
+  "withdrawals": [],
+  "doubtful": {
+   "Hurkacz": "retired Beijing SF groin",
+   "Shapovalov": "retired Tokyo QF hip/thigh",
+   "Shelton": "no match since Sep 19 (DC)",
+   "Paul": "elbow"
+  },
+  "schedule": "main draw Wed Oct 7 - Sun Oct 18; seeds start Oct 9-10; qualifying final round Oct 6",
+  "weather": "Oct 7-11 24-26C 60-75% RH; Oct 12-13 27-29C ~83% RH; Oct 15-18 ~23C drier"
+ }
+}

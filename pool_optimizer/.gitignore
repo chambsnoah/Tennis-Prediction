@@ -1,0 +1,11 @@
+# The pool's private material stays local: commissioner workbooks (77 poolers'
+# names, picks, banks), rules PDF, draw PDFs, rival dossiers, run logs.
+data/*.xlsx
+data/*.xlsm
+data/*.pdf
+INTEL.md
+PLAYBOOK.md
+CLAUDE.md
+AGENTS.md
+reports/
+.venv/

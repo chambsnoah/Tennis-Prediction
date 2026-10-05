@@ -1,0 +1,178 @@
+{
+  "_source": "research agents, 2026-08-26, pre-draw",
+  "seeds_1_8": {
+    "elo_delta": {
+      "Zverev": 15,
+      "Alcaraz": 45,
+      "Auger-Aliassime": -15,
+      "Djokovic": 40,
+      "Cobolli": 35,
+      "de Minaur": -5,
+      "Medvedev": 0,
+      "Shelton": 45
+    },
+    "injury_risk": {
+      "Alcaraz": 0.07,
+      "Auger-Aliassime": 0.05,
+      "Djokovic": 0.09,
+      "Cobolli": 0.03,
+      "Shelton": 0.04,
+      "Zverev": 0.03
+    },
+    "new_withdrawals": [
+      "Fonseca"
+    ]
+  },
+  "dark_horses": {
+    "elo_delta": {
+      "Tirante": 85,
+      "Damm": 70,
+      "Atmane": 45,
+      "Fery": 40,
+      "Tsitsipas": 35,
+      "Buse": 25,
+      "Berrettini": 20,
+      "Shapovalov": 18,
+      "Landaluce": 18,
+      "Michelsen": 15,
+      "Khachanov": 10,
+      "Struff": 10,
+      "Hurkacz": 8,
+      "Halys": -5,
+      "Moutet": -5,
+      "Borges": -10,
+      "Merida": -15,
+      "Munar": -20,
+      "Navone": -30,
+      "Monfils": -25
+    },
+    "injury_risk": {
+      "Tirante": 0.03,
+      "Damm": 0.02,
+      "Atmane": 0.03,
+      "Fery": 0.02,
+      "Tsitsipas": 0.04,
+      "Berrettini": 0.12,
+      "Shapovalov": 0.05,
+      "Struff": 0.06,
+      "Hurkacz": 0.1,
+      "Monfils": 0.11
+    },
+    "shortlist": [
+      "Tirante",
+      "Damm",
+      "Atmane",
+      "Fery",
+      "Tsitsipas"
+    ],
+    "in_qualifying_NOT_main_draw": [
+      "Virtanen",
+      "Mochizuki",
+      "O'Connell",
+      "Basilashvili",
+      "Pellegrino",
+      "Basavareddy"
+    ],
+    "promoted_into_seeds": {
+      "Norrie": 30,
+      "Arnaldi": 31,
+      "Bergs": 32
+    },
+    "unverified_fitness": [
+      "Berrettini",
+      "Hurkacz"
+    ]
+  },
+  "h2h_matrix": [
+    {
+      "a": "Fritz",
+      "b": "Zverev",
+      "a_wins": 10,
+      "b_wins": 5,
+      "hard_a": 10,
+      "hard_b": 5,
+      "tilt_a": 50,
+      "note": "7-match Fritz streak, clear matchup problem"
+    },
+    {
+      "a": "Alcaraz",
+      "b": "Djokovic",
+      "a_wins": 5,
+      "b_wins": 5,
+      "hard_a": 2,
+      "hard_b": 2,
+      "tilt_a": 0,
+      "note": "dead even on hard"
+    },
+    {
+      "a": "Alcaraz",
+      "b": "Zverev",
+      "a_wins": 7,
+      "b_wins": 3,
+      "hard_a": 4,
+      "hard_b": 2,
+      "tilt_a": 20,
+      "note": "Alcaraz edge, recent AO win"
+    },
+    {
+      "a": "Alcaraz",
+      "b": "Paul",
+      "a_wins": 6,
+      "b_wins": 2,
+      "hard_a": 3,
+      "hard_b": 2,
+      "tilt_a": 15,
+      "note": "moderate Alcaraz edge"
+    },
+    {
+      "a": "Tirante",
+      "b": "Djokovic",
+      "a_wins": 1,
+      "b_wins": 0,
+      "hard_a": 1,
+      "hard_b": 0,
+      "tilt_a": 40,
+      "note": "Cincinnati 2026; Djokovic ill — damped"
+    },
+    {
+      "a": "Djokovic",
+      "b": "Shelton",
+      "a_wins": 1,
+      "b_wins": 0,
+      "hard_a": 1,
+      "hard_b": 0,
+      "tilt_a": 0,
+      "note": "single meeting, USO 2023"
+    }
+  ],
+  "conditions": {
+    "court_speed": "medium-fast Laykold, favors aggressive baseline play",
+    "heat": "late-Aug NYC heat/humidity; Djokovic confirmed heat-sensitive condition (-40 applied)",
+    "schedule": "15-day format, main draw 30 Aug - 13 Sep"
+  },
+  "seeds_9_32": {
+    "elo_delta": {
+      "Jodar": 35,
+      "Fils": 25,
+      "Fritz": 30,
+      "Tiafoe": 50,
+      "Tien": 10,
+      "Lehecka": 10,
+      "Ruud": -40,
+      "Musetti": -35,
+      "Mensik": 20,
+      "Bublik": -20,
+      "Nakashima": 30,
+      "Rublev": -20,
+      "Paul": 15,
+      "Vacherot": -45
+    },
+    "key_notes": {
+      "Jodar": "surge real, 2 five-set wins at RG, hard=weakest surface, USO debut",
+      "Fils": "Cincy champ but Slam career 11-9, USO best 2R, back+hip stress fractures",
+      "Tiafoe": "Cincy final 2wks after hand surgery, hip flared in final, 2 USO semis",
+      "Ruud": "retired Cincy opener w/ back, no recovery confirmed",
+      "Nakashima": "Montreal final + Cincy SF, actually seed 16 not 31"
+    }
+  }
+}
