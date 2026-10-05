@@ -2,6 +2,15 @@
 
 A Python project for simulating and predicting tennis match outcomes using player statistics. The project supports both detailed and simplified player models, includes real-time API integration, and can simulate matches for various tournaments and years.
 
+## 2026 ATP Pool Rules
+
+The [auditable 2026 rules specification](docs/pool/2026-rules.md) records the
+published rules, source fingerprints, and explicit best-guess assumptions for
+issue #4. Development can use these provisional decisions with
+`require_resolved(operation, allow_provisional=True)`; strict mode still requires
+commissioner confirmation. The existing web team optimizer remains a legacy
+budget workflow, not a validated 2026 pool optimizer.
+
 ---
 
 ## Features

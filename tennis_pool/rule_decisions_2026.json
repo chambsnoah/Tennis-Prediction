@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "register_version": "2026-provisional-2",
+  "assumption_source": "User authorized best-guess interpretations on 2026-10-04T23:13:35Z; these are engineering assumptions, not commissioner responses.",
+  "rules_source": {
+    "version": "2026 PDF, eight pages",
+    "sha256": "d411c9e436bd64c9ecce679eee0a3027f47773404d76ecab2d1346939c938384"
+  },
+  "decisions": {
+    "unused_substitutes": {
+      "reference": "p1-2 rules 2, 3, 6",
+      "question": "Do unactivated substitutes consume band banks or player uses, and when?",
+      "status": "provisional",
+      "decision": "Unused substitutes consume neither band quota nor player uses. Validate their potential activation against the five-use cap and remaining bank when selecting them.",
+      "rationale": "Alternatives are insurance rather than an additional five scoring selections.",
+      "confirmation": null
+    },
+    "activated_substitutes": {
+      "reference": "p2 rules 3, 6; p5 example",
+      "question": "Which primary/substitute band and use debits apply on activation, are original debits refunded, and when are limits checked?",
+      "status": "provisional",
+      "decision": "Debit primaries at accepted submission. On valid activation, atomically refund the withdrawn primary's event use and band debit and charge the substitute's event use and actual-band debit. Recheck limits before committing. A withdrawn primary with no valid replacement retains its selection debits but scores zero. Reprocessing an activation must not debit twice.",
+      "rationale": "The example replaces a selection rather than adding a sixth selection; retaining no-replacement debits prevents retrospective quota recovery.",
+      "confirmation": null
+    },
+    "substitute_bands": {
+      "reference": "p2 rule 6; p5 example",
+      "question": "Must a substitute share its primary's band, including unseeded versus seeds 17-32?",
+      "status": "provisional",
+      "decision": "Require each substitute to share its primary's selection-bank category: 1-4, 5-8, 9-16, 17-32, or unseeded. Unseeded and 17-32 are separate for this check. Do not impose one-per-band on voluntary primaries.",
+      "rationale": "All published example pairs share a category; same-band pairing preserves the seasonal budget during replacement.",
+      "confirmation": null
+    },
+    "overlapping_picks": {
+      "reference": "p2 rule 6",
+      "question": "May substitutes overlap primaries or other pairs, and can one player score twice?",
+      "status": "provisional",
+      "decision": "Require five distinct primaries and prohibit any substitute from also being a primary. One player can occupy at most one scoring slot per event.",
+      "rationale": "Distinct selections prevent double scoring and ambiguous pair activation.",
+      "confirmation": null
+    },
+    "duplicate_substitutes": {
+      "reference": "p2 rule 6",
+      "question": "Can two primaries share an alternative, and what happens when both withdraw?",
+      "status": "provisional",
+      "decision": "Require distinct supplied substitutes; reject duplicate alternatives rather than assigning priority between their primaries.",
+      "rationale": "Unique alternatives make simultaneous withdrawals deterministic without double scoring.",
+      "confirmation": null
+    },
+    "simultaneous_withdrawals": {
+      "reference": "p2 rule 6",
+      "question": "Are simultaneous activations atomic or ordered, and how are quota/use conflicts resolved?",
+      "status": "provisional",
+      "decision": "Evaluate eligible pairs from the same pre-activation state and apply valid transfers in one atomic transaction. Invalid pairs keep the withdrawn primary and zero score. Reject an inconsistent aggregate ledger instead of resolving it by slot order. Same-band, unique substitutes should make valid transfers conflict-free.",
+      "rationale": "An atomic snapshot avoids results depending on withdrawal ingestion order.",
+      "confirmation": null
+    },
+    "replacement_eligibility": {
+      "reference": "p2 rule 6; p5 example",
+      "question": "Which first-match/bye and declaration/receipt timestamps control activation, and may the alternative already have played?",
+      "status": "provisional",
+      "decision": "Only alternatives supplied before the submission deadline may activate. Use the official primary withdrawal timestamp, which must precede the primary's first started match or first walkover advancement. A bye alone does not end eligibility. A predeclared substitute may already have played and receives its full event score; later receipt of withdrawal evidence does not change the cutoff. Missing cutoff evidence blocks activation.",
+      "rationale": "The PDF uses the player's first match, not tournament start; a fixed predeclared alternative is not hindsight selection.",
+      "confirmation": null
+    },
+    "substitute_withdrawal": {
+      "reference": "p2 rule 6",
+      "question": "If the alternative withdraws, is a chain or later replacement allowed, or does the slot score zero?",
+      "status": "provisional",
+      "decision": "Allow only the single predeclared paired substitute, with no chains or new post-deadline picks. If it also withdraws before participating, do not activate it; retain the original selection debits and score the slot zero. If it has already participated, retain its earned terminal-round points and bonuses.",
+      "rationale": "The rules provide one alternative per primary, not an open-ended replacement list.",
+      "confirmation": null
+    },
+    "walkovers": {
+      "reference": "p2 rule 6; p3-4 rules 11-12",
+      "question": "How do walkovers affect advancement points, bonuses, and first-match replacement eligibility?",
+      "status": "provisional",
+      "decision": "Walkover advancement contributes to the eventual terminal-round result but earns no upset bonus because no match was played. The first official walkover advancement ends replacement eligibility for the advancing primary. Byes earn no bonuses and do not end eligibility. A pre-first-participation withdrawal without replacement scores zero.",
+      "rationale": "Terminal progress and actually defeating a better opponent are different scoring concepts.",
+      "confirmation": null
+    },
+    "mixed_bonus_order": {
+      "reference": "p4 rule 12 footnote",
+      "question": "How are seeds 17-32 ordered against unseeded ATP ranks, including tied or missing ranks?",
+      "status": "provisional",
+      "decision": "Within Other, all seeds 17-32 outrank unseeded players; compare seeds by ascending seed number and unseeded players by ascending ATP rank on the first tournament day. Equal ranks earn no better-opponent bonus. Missing ranks block comparisons that require those ranks; do not substitute a guessed rank.",
+      "rationale": "Matches the reference scoring code's ordering while avoiding arithmetic rank offsets and fabricated ranks.",
+      "confirmation": null
+    },
+    "random_accounting": {
+      "reference": "p1-2 rules 2-5; p7-8 rule 16",
+      "question": "Do random assignments debit actual-band banks and five uses, and can a five-use player be sampled?",
+      "status": "provisional",
+      "decision": "Random assignments obey the same five-use cap and debit each sampled player's actual selection-bank category, not the intended pre-fallback slot. Exclude players already at five uses. Unseeded selections still consume a player use. Apply the resulting roster debits atomically.",
+      "rationale": "The random procedure explicitly consults remaining banks and should not bypass seasonal limits.",
+      "confirmation": null
+    },
+    "random_fallback": {
+      "reference": "p7-8 rule 16",
+      "question": "How do cascading exhausted bands, collisions, duplicate exclusion, and sampling order work?",
+      "status": "provisional",
+      "decision": "Process published slots from strongest band to weakest. Sample uniformly without replacement among legal players in the intended category. If no quota or eligible candidate remains, repeatedly descend to the next lower existing category, ending at unseeded. Reserve actual-band quota after every sample so colliding fallback slots cannot overspend. If five distinct legal players cannot be assigned, return an explicit allocation failure rather than violating caps or silently returning a partial roster.",
+      "rationale": "Extends the stated downward fallback consistently when several bands or candidates are exhausted.",
+      "confirmation": null
+    },
+    "partial_submissions": {
+      "reference": "p1 rule 1; p2 rules 5-6",
+      "question": "Are incomplete/invalid primary lists and partial substitute lists accepted, rejected, or randomly completed?",
+      "status": "provisional",
+      "decision": "Accept only five distinct eligible legal primaries. Allow zero to five paired alternatives because alternatives are optional, but every supplied pair must be valid. Reject an invalid submission for correction before the deadline; if no valid submission arrives by the deadline, treat it as a missed submission and use the published random-assignment policy. Never silently complete a voluntary roster.",
+      "rationale": "Enforces the five-player requirement without turning encouraged substitutes into mandatory selections.",
+      "confirmation": null
+    },
+    "submission_bonus": {
+      "reference": "p2 rule 4",
+      "question": "Do late, corrected, or replacement spreadsheet attachments count toward the seven-submission bonus?",
+      "status": "provisional",
+      "decision": "Count at most one qualifying submission per event, based on the final accepted pre-deadline submission being an attached completed spreadsheet. Pre-deadline corrections qualify; late attachments and automatically assigned rosters do not. Award 250 season points once upon reaching seven qualifying events.",
+      "rationale": "Rewards timely use of the spreadsheet without duplicate-event or late-submission credit.",
+      "confirmation": null
+    },
+    "ties_payouts": {
+      "reference": "p6-7 rules 14-15",
+      "question": "Which ranks/prizes are shared across ties and eligibility boundaries, and what schedule, rounding, and sixth prize apply?",
+      "status": "provisional",
+      "decision": "Rank only prize-eligible entries for event payouts. Tied entries equally share the sum of prizes for the positions they occupy, including zero-prize positions. Use printed event schedules for exactly 40, 60, or 80 participants; require an explicit configured schedule for other counts. Refund the season top-five stakes and include sixth-place $25 only in the 60/80 schedules, then distribute the residual by 57.5/27.5/10/5 percent rather than rounded example totals. Build the season position-prize schedule before pooling ties, including ties spanning fifth/sixth. Round in cents using largest remainders and stable anonymized entry IDs to resolve equal remainders. Reject an underfunded prize schedule.",
+      "rationale": "Pooling occupied positions is standard tie handling; the printed residual formula is more reproducible than approximate example payouts.",
+      "confirmation": null
+    },
+    "semifinal_points": {
+      "reference": "p3 rule 11; p5 example",
+      "question": "Confirm 90/45 semifinal-loss points from the table/example instead of 140/70 from the prose.",
+      "status": "provisional",
+      "decision": "Use 90 Grand Slam and 45 Masters points for a semifinal loss; treat 140/70 in the prose as a typo describing finalist points.",
+      "rationale": "The scoring table, worked example, and reference implementation agree on 90/45.",
+      "confirmation": null
+    },
+    "canada_event": {
+      "reference": "p1 rules 1-2; p3 rule 11; p7 rule 16",
+      "question": "Confirm the Canadian event identity/venue where the PDF alternates Toronto and Montreal.",
+      "status": "provisional",
+      "decision": "Treat Toronto and Montreal references as aliases for the single ATP Canadian Masters event with stable ID canada. Use M7 scoring and the Masters bank regardless of venue; obtain actual venue and dates from event data instead of inferring them from this PDF.",
+      "rationale": "Both names denote the same Canadian tour stop for pool accounting, not two events.",
+      "confirmation": null
+    }
+  }
+}
