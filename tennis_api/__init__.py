@@ -13,6 +13,7 @@ Components:
 """
 
 import importlib
+from importlib.metadata import PackageNotFoundError, version
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -33,15 +34,8 @@ _EXPORTS = {
 
 # Dynamic version detection
 try:
-    from importlib.metadata import version
-    __version__ = version("tennis-api")
-except ImportError:
-    try:
-        import pkg_resources
-        __version__ = pkg_resources.get_distribution("tennis-api").version
-    except Exception:
-        __version__ = "0.0.0"
-except Exception:
+    __version__ = version("tennis-prediction")
+except PackageNotFoundError:
     __version__ = "0.0.0"
 
 # Explicit exports for static analysis

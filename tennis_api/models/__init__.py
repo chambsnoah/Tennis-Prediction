@@ -6,14 +6,15 @@ tournament information, and match data retrieved from various tennis APIs.
 """
 
 from importlib import import_module
-from typing import List
+from typing import List, TYPE_CHECKING
 
-# Explicit imports to satisfy linters while keeping lazy loading for performance
-from .player_stats import PlayerStats, SurfaceStats, ServeStatistics, ReturnStatistics
-from .enhanced_player import PlayerEnhanced, PhysicalCondition, MentalState, ContextualFactors
-from .ai_player import PlayerAI, MLModel, PerformanceContext
-from .tournament_data import TournamentDraw, Match
-from .match_data import MatchResult, HeadToHeadRecord
+# Keep optional ML dependencies out of the runtime model import graph.
+if TYPE_CHECKING:
+    from .player_stats import PlayerStats, SurfaceStats, ServeStatistics, ReturnStatistics
+    from .enhanced_player import PlayerEnhanced, PhysicalCondition, MentalState, ContextualFactors
+    from .ai_player import PlayerAI, MLModel, PerformanceContext
+    from .tournament_data import TournamentDraw, Match
+    from .match_data import MatchResult, HeadToHeadRecord
 
 # Lazy export map: name -> (module, attr)
 _EXPORTS = {

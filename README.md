@@ -65,10 +65,19 @@ budget workflow, not a validated 2026 pool optimizer.
 
 ## Requirements
 
-- Python 3.7+
-- Core simulation: No external dependencies (uses only Python standard library)
-- API features: `pip install -r tennis_api/requirements.txt`
-- Web interface: `pip install -r web_interface/requirements.txt`
+- Supported interpreters: Python 3.11, 3.12, and 3.13.
+- Install [uv](https://docs.astral.sh/uv/getting-started/installation/) 0.12.23.
+- From the repository root, install all features and development tools:
+
+```bash
+uv sync --locked --python 3.13 --all-extras --group dev
+```
+
+`pyproject.toml` is the dependency source of truth; `uv.lock` pins the resolved
+versions and artifact hashes for every supported interpreter. The old nested
+requirements files and dependency helpers have been replaced by this workflow.
+See [dependency management](docs/DEPENDENCIES.md) for feature-only installs,
+lock updates, and clean-environment validation.
 
 ---
 
@@ -113,8 +122,7 @@ print(f"Player 1 wins: {player1_wins}, Player 2 wins: {player2_wins}")
 Start the web application for interactive simulations:
 
 ```bash
-cd web_interface
-python server.py
+uv run --locked --extra web python -m web_interface.server
 ```
 
 Then open your browser to `http://localhost:5000` for:
@@ -140,12 +148,6 @@ print(f"Serve win %: {stats.serve_win_pct}")
 ### 5. Running Tests
 
 ```bash
-# Quick verification
-python scripts/simple_verify.py
-
-# Full test suite
-python scripts/run_full_tests.py
-
-# Cache system validation
-python scripts/validate_cache_edge_cases.py
+# Full project test suite (from the repository root)
+uv run --locked --all-extras --group dev python -m pytest
 ```

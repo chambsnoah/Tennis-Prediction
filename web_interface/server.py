@@ -13,17 +13,20 @@ from flask import Flask, request, jsonify, send_from_directory
 app = Flask(__name__)
 
 # Get the project root directory
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.abspath(os.environ.get(
+    'TENNIS_DATA_ROOT', os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+))
+WEB_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 @app.route('/')
 def serve_index():
     """Serve the main HTML file"""
-    return send_from_directory('.', 'index.html')
+    return send_from_directory(WEB_ROOT, 'index.html')
 
 @app.route('/<path:filename>')
 def serve_static(filename):
     """Serve static files (CSS, JS, etc.)"""
-    return send_from_directory('.', filename)
+    return send_from_directory(WEB_ROOT, filename)
 
 @app.route('/api/tournaments')
 def get_tournaments():
@@ -108,7 +111,7 @@ def simulate_match():
         
         # Call the match_simulator.py script
         cmd = [
-            sys.executable, 'match_simulator.py',
+            sys.executable, os.path.join(WEB_ROOT, 'match_simulator.py'),
             tournament_path, gender, player1_name, player2_name,
             '--sets', str(sets_to_win),
             '--simulations', str(num_simulations),
@@ -152,7 +155,7 @@ def optimize_team():
         
         # Call the team_optimizer.py script
         cmd = [
-            sys.executable, 'team_optimizer.py',
+            sys.executable, os.path.join(WEB_ROOT, 'team_optimizer.py'),
             tournament_path, gender,
             '--budget', str(budget),
             '--team-size', str(team_size)

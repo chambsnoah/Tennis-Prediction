@@ -16,7 +16,8 @@ import statistics
 
 from .prediction_models import OutcomePredictor, ScorePredictor, UpsetDetector, PredictionResult, ModelType
 from .feature_engineering import FeatureExtractor, FeatureConfig
-from ..models.enhanced_player import PlayerEnhanced, PerformanceContext
+from ..models.enhanced_player import PlayerEnhanced
+from ..models.ai_player import PerformanceContext
 
 
 class EnsembleMethod(Enum):

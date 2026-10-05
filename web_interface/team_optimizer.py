@@ -15,6 +15,8 @@ import argparse
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
+DATA_ROOT = os.path.abspath(os.environ.get('TENNIS_DATA_ROOT', project_root))
+
 def evaluate_combination(combination, points, costs):
     """Evaluate a team combination - from existing predictor_annealing.py"""
     total_points = sum(points[player] for player in combination)
@@ -75,7 +77,7 @@ def optimize_team(tournament_path, gender, budget=100000, team_size=8):
     """Optimize team selection for a tournament"""
     
     # Determine file paths
-    base_path = os.path.join(project_root, tournament_path)
+    base_path = os.path.join(DATA_ROOT, tournament_path)
     player_points_file = os.path.join(base_path, f'player_points_{gender}.json')
     players_file = os.path.join(base_path, f'players_{gender}.json')
     
