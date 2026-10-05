@@ -13,7 +13,9 @@ from flask import Flask, request, jsonify, send_from_directory
 app = Flask(__name__)
 
 # Get the project root directory
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.abspath(os.environ.get(
+    'TENNIS_DATA_ROOT', os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+))
 WEB_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 @app.route('/')

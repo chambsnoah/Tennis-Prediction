@@ -7,6 +7,9 @@ Python 3.11, 3.12, and 3.13 are supported. Use uv 0.12.23, matching the
 Run every command below from the repository root.
 The isolated build backend is pinned to setuptools 83.0.0 in `build-system`;
 update that pin deliberately when upgrading build tooling.
+On macOS, the ML extra also requires the native OpenMP runtime for XGBoost:
+install it with `brew install libomp` before selecting `ml` or `--all-extras`.
+Python dependency locks do not provision system libraries.
 
 `pyproject.toml` declares the package, direct dependencies, optional feature
 extras, and development tools. `uv.lock` is the single generated universal lock:
@@ -35,6 +38,15 @@ scikit-learn, and the boosted-tree implementations used by the existing modules.
 `excel` supplies openpyxl for .xlsx/.xlsm workbooks; workbook adapters remain
 future work. `web` supplies Flask. `dev` supplies test and build
 tools and is not a runtime requirement.
+
+Web wheels do not bundle tournament or participant data. Set `TENNIS_DATA_ROOT`
+to an absolute directory containing the `2023/` and/or `2024/` tournament folders;
+the server and its subprocess wrappers use the same root. For editable checkout
+installs it defaults to the repository root. For example:
+
+```bash
+TENNIS_DATA_ROOT=/path/to/tournament-data uv run --locked --extra web python -m web_interface.server
+```
 
 `uv sync` reconciles `.venv` exactly, removing unselected extras. Always include
 all desired extras when syncing. `--locked` fails if metadata and lock disagree,
@@ -74,9 +86,15 @@ uv run --locked --all-extras --group dev python scripts/validate_installations.p
 ```
 
 This creates fifteen temporary, non-editable wheel environments, checks their
-imports in isolated mode from outside the checkout, and runs the full suite on
-each supported interpreter. Environments are deleted afterward. Downloads and
+imports in isolated mode from outside the checkout, verifies that project
+modules originate inside the installed environment, and exercises the web data
+routes and subprocesses using temporary synthetic fixtures. Separately, it runs
+the checkout test suite on each supported interpreter; that suite is not an
+installed-artifact test because legacy tests adjust import paths. Environments
+are deleted afterward. Downloads and
 builds may use uv's artifact cache; no existing site-packages are reused.
+The project wheel is explicitly rebuilt so a cached local wheel cannot hide
+source changes made without modifying package metadata.
 
 For each supported interpreter, sync the runtime, each optional extra, and the
 complete development installation into a fresh environment. Set

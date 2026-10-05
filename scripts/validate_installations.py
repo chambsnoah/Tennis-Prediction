@@ -21,18 +21,20 @@ def validate_installations(uv):
                     options += ["--extra", feature]
                 print(f"Checking Python {version}: {feature}", flush=True)
                 subprocess.run(
-                    [uv, "sync", "--locked", "--no-editable", "--python", version, *options],
+                    [uv, "sync", "--locked", "--no-editable", "--reinstall-package",
+                     "tennis-prediction", "--quiet", "--python", version, *options],
                     cwd=root,
                     env={**os.environ, "UV_PROJECT_ENVIRONMENT": str(environment)},
                     check=True,
                 )
                 python = environment / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
                 subprocess.run(
-                    [str(python), "-I", str(root / "scripts/check_install.py"), feature],
+                    [str(python), "-I", str(root / "scripts/check_install.py"), feature, "--require-wheel"],
                     cwd=environment,
                     check=True,
                 )
                 if feature == "all":
+                    print(f"Running checkout test suite on Python {version}", flush=True)
                     subprocess.run([str(python), "-m", "pytest", "-q"], cwd=root, check=True)
 
 

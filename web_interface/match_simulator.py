@@ -17,6 +17,8 @@ sys.path.append(os.path.join(project_root, 'tennis_preds'))
 
 from tennis_preds.tennis import Player, PlayerSimple, TennisMatch
 
+DATA_ROOT = os.path.abspath(os.environ.get('TENNIS_DATA_ROOT', project_root))
+
 def create_player_from_data(name, player_data, surface='grass'):
     """Create a Player object from tournament data with surface adjustments"""
     # Base serving statistics
@@ -56,7 +58,7 @@ def simulate_matches(tournament_path, gender, player1_name, player2_name,
     """Run multiple match simulations and return aggregated results"""
     
     # Load player data
-    players_file = os.path.join(project_root, tournament_path, f'players_{gender}.json')
+    players_file = os.path.join(DATA_ROOT, tournament_path, f'players_{gender}.json')
     
     with open(players_file, 'r') as f:
         players_data = json.load(f)
