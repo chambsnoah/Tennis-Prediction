@@ -32,12 +32,16 @@ class TennisAPIClient:
     Unified client for tennis APIs with fallback mechanisms and data aggregation
     """
     
-    def __init__(self, config: Optional[APIConfig] = None):
+    def __init__(self, config: Optional[APIConfig] = None, *,
+                 cache_manager: Optional[CacheManager] = None,
+                 rate_limiter: Optional[RateLimiter] = None):
         """
         Initialize unified tennis API client
         
         Args:
             config: API configuration, if None will load from environment
+            cache_manager: Optional cache with an explicitly selected storage directory
+            rate_limiter: Optional limiter with an explicitly selected state file
         """
         if config is None:
             config = get_api_config()
@@ -45,9 +49,9 @@ class TennisAPIClient:
         self.config = config
         
         # Initialize cache and rate limiting
-        self.cache_manager = CacheManager()
+        self.cache_manager = cache_manager if cache_manager is not None else CacheManager()
         self.memory_cache = MemoryCache()
-        self.rate_limiter = RateLimiter()
+        self.rate_limiter = rate_limiter if rate_limiter is not None else RateLimiter()
         
         # Initialize API clients
         self.clients = {}

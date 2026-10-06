@@ -8,6 +8,7 @@ import json
 import warnings
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 
 SUBSTITUTION_DECISIONS = (
@@ -34,7 +35,7 @@ REGISTER_PATH = Path(__file__).with_name("rule_decisions_2026.json")
 class UnresolvedRulesError(ValueError):
     """A requested operation depends on rules awaiting commissioner evidence."""
 
-    def __init__(self, operation, blockers, register_version):
+    def __init__(self, operation: str, blockers: dict[str, str], register_version: str) -> None:
         self.operation = operation
         self.blockers = blockers
         self.register_version = register_version
@@ -49,7 +50,7 @@ class ProvisionalRulesWarning(UserWarning):
     """An operation is proceeding with unconfirmed engineering assumptions."""
 
 
-def load_register(path=None):
+def load_register(path: str | Path | None = None) -> dict[str, Any]:
     """Read and validate the entire register, including confirmation provenance."""
     with Path(path or REGISTER_PATH).open(encoding="utf-8") as source:
         register = json.load(source)
@@ -101,7 +102,9 @@ def load_register(path=None):
     return register
 
 
-def require_resolved(operation, path=None, *, allow_provisional=False):
+def require_resolved(
+    operation: str, path: str | Path | None = None, *, allow_provisional: bool = False
+) -> dict[str, Any]:
     """Return the validated register or raise with affected IDs and questions.
 
     An explicit path permits a version-pinned local register. It does not

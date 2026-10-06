@@ -9,10 +9,13 @@ comprehensive validation.
 import json
 import time
 from datetime import datetime
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Dict, List, Optional, Any
 
+from ..cache.cache_manager import CacheManager
+from ..cache.rate_limiter import RateLimiter
 from ..clients.tennis_api_client import TennisAPIClient
-from ..clients.base_client import APIException
 from ..config.api_config import get_api_config
 from ..config.test_config import TestConfig, MOCK_PLAYER_DATA, MOCK_TOURNAMENT_DATA
 from ..models.player_stats import PlayerStats
@@ -48,26 +51,27 @@ class APITestFramework:
         # Initialize clients
         self.mock_client: Optional[TennisAPIClient] = None
         self.live_client: Optional[TennisAPIClient] = None
-        self._setup_clients()
+        self._temporary_directory = TemporaryDirectory(prefix="tennis-api-tests-")
+        self.work_dir = Path(self._temporary_directory.name)
+        try:
+            self._setup_clients()
+        except Exception:
+            self.cleanup()
+            raise
     
     def _setup_clients(self):
         """Setup test clients"""
-        try:
-            # Mock client for safe testing
-            mock_config = TestConfig.get_mock_config()
-            self.mock_client = TennisAPIClient(mock_config)
-            
-            # Live client only if enabled and API key available
-            if self.use_live_apis:
-                try:
-                    live_config = get_api_config()
-                    self.live_client = TennisAPIClient(live_config)
-                except Exception as e:
-                    print(f"Warning: Could not initialize live client: {e}")
-                    self.use_live_apis = False
-                    
-        except Exception as e:
-            raise Exception(f"Failed to setup test clients: {e}")
+        self.mock_client = TennisAPIClient(
+            TestConfig.get_mock_config(),
+            cache_manager=CacheManager(cache_dir=str(self.work_dir / "mock-cache")),
+            rate_limiter=RateLimiter(state_file=str(self.work_dir / "mock-limiter.json")),
+        )
+        if self.use_live_apis:
+            self.live_client = TennisAPIClient(
+                get_api_config(),
+                cache_manager=CacheManager(cache_dir=str(self.work_dir / "live-cache")),
+                rate_limiter=RateLimiter(state_file=str(self.work_dir / "live-limiter.json")),
+            )
     
     def run_all_tests(self) -> Dict[str, Any]:
         """Run comprehensive test suite"""
@@ -97,6 +101,12 @@ class APITestFramework:
                 print(f"OK {category_name} completed")
             except Exception as e:
                 print(f"FAIL {category_name} failed: {e}")
+                self.test_results['total_tests'] += 1
+                self.test_results['failed_tests'] += 1
+                if category_name == 'Live API Tests':
+                    self.test_results['live_api_tests'] += 1
+                else:
+                    self.test_results['mock_tests'] += 1
                 self.test_results['errors'].append(f"{category_name}: {e}")
         
         # Generate final report
@@ -205,7 +215,7 @@ class APITestFramework:
         """Test cache manager functionality"""
         from ..cache.cache_manager import CacheManager
         
-        cache = CacheManager()
+        cache = CacheManager(cache_dir=str(self.work_dir / "cache-manager"))
         
         # Test basic caching
         test_data = {"test": "data"}
@@ -242,7 +252,7 @@ class APITestFramework:
         from ..cache.cache_manager import CacheManager
         from datetime import timedelta
         
-        cache = CacheManager()
+        cache = CacheManager(cache_dir=str(self.work_dir / "ttl-cache"))
         
         # Set very short TTL for testing
         cache.update_ttl_config("test_type", timedelta(seconds=1))
@@ -276,7 +286,7 @@ class APITestFramework:
             }
         }
         
-        rate_limiter = RateLimiter(test_limits)
+        rate_limiter = RateLimiter(test_limits, state_file=str(self.work_dir / "basic-limiter.json"))
         
         # Test acquisition
         result = rate_limiter.acquire('test_api', 'normal')
@@ -290,7 +300,7 @@ class APITestFramework:
         """Test rate limiter priority handling"""
         from ..cache.rate_limiter import RateLimiter
         
-        rate_limiter = RateLimiter()
+        rate_limiter = RateLimiter(state_file=str(self.work_dir / "priority-limiter.json"))
         
         # Test different priorities using a valid API name
         high_availability = rate_limiter.check_availability('rapidapi_tennis_live', 'high')
@@ -340,11 +350,10 @@ class APITestFramework:
     def _test_live_apis(self):
         """Test live API integration (limited requests)"""
         if not self.use_live_apis or self.live_client is None:
-            print("Live API testing disabled - skipping to avoid hanging")
-            return
+            raise RuntimeError("Live client not initialized")
         
         print(f"Warning: Making limited live API requests ({self.max_live_requests} max)")
-        print("Note: These tests may be skipped if they take too long (likely due to API issues)")
+        print("Timeouts and API errors are test failures")
         
         # Use shorter timeout for live tests since they're more likely to hang
         self._run_test("Live Rankings", self._test_live_rankings, is_live=True, timeout_seconds=15)
@@ -358,45 +367,33 @@ class APITestFramework:
         if self.live_client is None:
             raise Exception("Live client not initialized")
         
-        try:
-            rankings = self.live_client.get_rankings_sync('atp')
-            self.live_requests_made += 1
-            
-            assert isinstance(rankings, dict), "Rankings response not a dictionary"
-            print(f"OK Live rankings API working (made {self.live_requests_made} live requests)")
-            
-        except APIException as e:
-            print(f"Live rankings API failed (expected): {e}")
-            # This is expected with mock endpoints
-        except Exception as e:
-            raise Exception(f"Unexpected error in live rankings test: {e}")
+        self.live_requests_made += 1
+        # This counts high-level attempts; provider fallback can make more than
+        # one HTTP request. The marked live pytest test uses raw endpoints.
+        rankings = self.live_client.get_rankings_sync('atp')
+        assert isinstance(rankings, dict), "Rankings response not a dictionary"
+        assert rankings.get('rankings'), "Rankings response contains no players"
     
     def _test_live_player_stats(self):
         """Test live player stats API (1 request)"""
         if self.live_requests_made >= self.max_live_requests:
-            print("Skipping live player stats test - request limit reached")
-            return
+            raise RuntimeError("Live request limit reached")
         
         if self.live_client is None:
             raise Exception("Live client not initialized")
         
-        try:
-            # Use a well-known player name
-            stats = self.live_client.get_player_stats_sync("Novak Djokovic")
-            self.live_requests_made += 1
-            
-            assert isinstance(stats, PlayerStats), "Player stats not returned as PlayerStats object"
-            assert stats.name is not None, "Player name not set"
-            print(f"OK Live player stats API working (made {self.live_requests_made} live requests)")
-            
-        except APIException as e:
-            print(f"Live player stats API failed (expected): {e}")
-            # This is expected with mock endpoints
-        except Exception as e:
-            raise Exception(f"Unexpected error in live player stats test: {e}")
+        self.live_requests_made += 1
+        stats = self.live_client.get_player_stats_sync("Novak Djokovic")
+        assert isinstance(stats, PlayerStats), "Player stats not returned as PlayerStats object"
+        assert stats.name == "Novak Djokovic", "Unexpected player name"
+        assert stats.nationality != "Unknown", "Player stats contain only fallback defaults"
     
     def _run_test(self, test_name: str, test_function, is_live: bool = False, timeout_seconds: int = 30):
-        """Run individual test with error handling and timeout protection"""
+        """Record failures, including reported timeouts and elapsed overruns.
+
+        The elapsed check does not interrupt a hung function; network clients
+        must enforce their own request deadlines.
+        """
         self.test_results['total_tests'] += 1
         
         if is_live:
@@ -404,34 +401,27 @@ class APITestFramework:
         else:
             self.test_results['mock_tests'] += 1
         
-        start_time = time.time()
+        if is_live and self.live_requests_made >= self.max_live_requests:
+            self.test_results['skipped_tests'] += 1
+            print(f"  SKIP {test_name}: Live request limit reached")
+            return
+
+        start_time = time.monotonic()
         
         try:
-            # Simple timeout protection - if test takes too long, skip it
             test_function()
-            
-            elapsed = time.time() - start_time
+            elapsed = time.monotonic() - start_time
             if elapsed > timeout_seconds:
-                print(f"  WARNING {test_name} took {elapsed:.1f}s (may indicate hanging)")
+                raise TimeoutError(f"Exceeded {timeout_seconds}s deadline ({elapsed:.1f}s)")
             
             self.test_results['passed_tests'] += 1
             print(f"  OK {test_name}")
             
-        except TimeoutError as e:
-            self.test_results['skipped_tests'] += 1
-            print(f"  SKIP {test_name}: {e}")
-            
         except Exception as e:
-            elapsed = time.time() - start_time
-            if elapsed > timeout_seconds:
-                # Treat as timeout
-                self.test_results['skipped_tests'] += 1
-                print(f"  SKIP {test_name}: Took too long ({elapsed:.1f}s), likely hanging")
-            else:
-                self.test_results['failed_tests'] += 1
-                error_msg = f"{test_name}: {str(e)}"
-                self.test_results['errors'].append(error_msg)
-                print(f"  FAIL {test_name}: {e}")
+            self.test_results['failed_tests'] += 1
+            error_msg = f"{test_name}: {str(e)}"
+            self.test_results['errors'].append(error_msg)
+            print(f"  FAIL {test_name}: {e}")
     
     def _generate_test_report(self) -> Dict[str, Any]:
         """Generate comprehensive test report"""
@@ -443,6 +433,12 @@ class APITestFramework:
                 'total_tests': self.test_results['total_tests'],
                 'passed': self.test_results['passed_tests'],
                 'failed': self.test_results['failed_tests'],
+                'skipped': self.test_results['skipped_tests'],
+                'all_passed': (
+                    self.test_results['total_tests'] > 0
+                    and self.test_results['passed_tests'] == self.test_results['total_tests']
+                    and not self.test_results['errors']
+                ),
                 'success_rate': round(success_rate, 2),
                 'live_requests_made': self.live_requests_made,
                 'live_api_enabled': self.use_live_apis
@@ -490,71 +486,64 @@ class APITestFramework:
         if self.live_requests_made > 0:
             recommendations.append(f"Live API requests used: {self.live_requests_made}. Monitor rate limits.")
         
-        if self.test_results['passed_tests'] / max(1, self.test_results['total_tests']) < 0.8:
-            recommendations.append("Success rate below 80%. Review implementation before production use.")
-        else:
-            recommendations.append("API integration appears ready for production use.")
-        
         return recommendations
     
     def save_report(self, report: Dict, filename: str = "tennis_api_test_report.json"):
         """Save test report to file"""
-        try:
-            with open(filename, 'w') as f:
-                json.dump(report, f, indent=2)
-            print(f"\nTest report saved to {filename}")
-        except Exception as e:
-            print(f"Failed to save test report: {e}")
+        with open(filename, 'w') as f:
+            json.dump(report, f, indent=2)
+        print(f"\nTest report saved to {filename}")
 
     def cleanup(self):
-        """Cleanup any open sessions"""
-        # Close sync sessions using iteration to avoid duplication
+        """Attempt every close; return an awaitable task if called on an active loop."""
+        import asyncio
+
         client_attrs = ['live_client', 'mock_client']
-        for attr_name in client_attrs:
-            if hasattr(self, attr_name):
-                client = getattr(self, attr_name)
-                if client:
-                    try:
-                        client.close()
-                    except Exception:
-                        pass
-                    # Set to None to make operation idempotent and avoid double-close
-                    setattr(self, attr_name, None)
-        
-        # Close async sessions - gather coroutines when possible
-        try:
-            import asyncio
-            
-            # Build list of close_async coroutines from remaining clients
-            close_coros = []
-            
-            for attr_name in client_attrs:
-                if hasattr(self, attr_name):
-                    client = getattr(self, attr_name)
-                    if client and hasattr(client, 'close_async'):
-                        close_coros.append(client.close_async())
-            
-            # Only proceed if we have coroutines to run
-            if close_coros:
+        clients = [getattr(self, name, None) for name in client_attrs]
+        if not any(client is not None for client in clients) and getattr(self, '_temporary_directory', None) is None:
+            return
+        for name in client_attrs:
+            setattr(self, name, None)
+        errors = []
+        for client in clients:
+            if client is not None:
                 try:
-                    # Check if we're already in an async context
-                    asyncio.get_running_loop()
-                    # We're in an async context - cannot use asyncio.run()
-                    # Schedule cleanup to run on the current loop
-                    async def cleanup_async():
-                        await asyncio.gather(*close_coros, return_exceptions=True)
-                    asyncio.create_task(cleanup_async())
-                except RuntimeError:
-                    # No running loop - safe to use asyncio.run() for cleanup
+                    client.close()
+                except Exception as error:
+                    errors.append(error)
+
+        async def close_async_clients():
+            cancellation = None
+            try:
+                for client in clients:
+                    if client is not None:
+                        try:
+                            await client.close_async()
+                        except asyncio.CancelledError as error:
+                            cancellation = error
+                        except Exception as error:
+                            errors.append(error)
+            finally:
+                temporary_directory = getattr(self, '_temporary_directory', None)
+                if temporary_directory is not None:
                     try:
-                        async def run_cleanup():
-                            await asyncio.gather(*close_coros, return_exceptions=True)
-                        asyncio.run(run_cleanup())
-                    except Exception:
-                        pass
-        except Exception:
-            # If anything goes wrong with async cleanup, just skip it
-            pass
+                        temporary_directory.cleanup()
+                        self._temporary_directory = None
+                    except Exception as error:
+                        errors.append(error)
+            if cancellation is not None:
+                if errors:
+                    cancellation.add_note(f"Additional cleanup errors: {errors!r}")
+                raise cancellation
+            if errors:
+                raise ExceptionGroup("Test framework cleanup failed", errors)
+
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(close_async_clients())
+        else:
+            return loop.create_task(close_async_clients())
 
     def __del__(self):
         """Destructor to ensure cleanup"""
@@ -572,6 +561,14 @@ def run_api_tests(use_live_apis: bool = False, max_live_requests: int = 3) -> Di
         Test report dictionary
     """
     framework = APITestFramework(use_live_apis, max_live_requests)
-    report = framework.run_all_tests()
-    framework.save_report(report)
-    return report
+    try:
+        report = framework.run_all_tests()
+    except BaseException as error:
+        try:
+            framework.cleanup()
+        except Exception as cleanup_error:
+            error.add_note(f"Additional cleanup failure: {cleanup_error!r}")
+        raise
+    else:
+        framework.cleanup()
+        return report
