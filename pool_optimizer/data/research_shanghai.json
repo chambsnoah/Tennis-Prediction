@@ -259,5 +259,11 @@
   },
   "schedule": "main draw Wed Oct 7 - Sun Oct 18; seeds start Oct 9-10; qualifying final round Oct 6",
   "weather": "Oct 7-11 24-26C 60-75% RH; Oct 12-13 27-29C ~83% RH; Oct 15-18 ~23C drier"
+ },
+ "oct6_update": {
+  "Alcaraz": "won Tokyo d. Lehecka 7-6(4) 6-4",
+  "de Minaur": "retired Beijing final at 6-7 1-0 down, groin -> hazard 0.10",
+  "Djokovic": "won Beijing (de Minaur ret.), abdomen treated again -> hazard 0.07; Shanghai entry still unconfirmed",
+  "Medvedev": "disqualified in Beijing SF vs Djokovic (reason not reported)"
  }
 }

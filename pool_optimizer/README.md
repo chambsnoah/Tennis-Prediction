@@ -55,6 +55,12 @@ This README covers the code; the playbook covers the process.
 .venv/bin/python run_analysis.py analyze --draw-json data/shanghai_draw_2026.json \
     --tournament Shanghai --quota 1,1,1,2
 
+# fill the commissioner's entry form (keeps its Excel dropdowns intact);
+# alternates pair by row with the picks; --verify-excel recalcs it in Excel (macOS)
+.venv/bin/python fill_entry_form.py data/ChoixShanghai.xlsx --name "Noah Chamberland" \
+    --picks Alcaraz Tiafoe Tien Khachanov Cerúndolo \
+    --alts Zverev Fils Nakashima Rublev Lehečka --verify-excel
+
 # merge research-agent JSON into the overrides, then recalibrate
 .venv/bin/python -m pool.merge_research data/research_shanghai.json
 
