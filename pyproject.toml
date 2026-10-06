@@ -35,6 +35,9 @@ dev = [
     "pytest>=8.3,<10",
     "pytest-asyncio>=1.0,<2",
     "build>=1.2,<2",
+    "ruff>=0.15,<0.16",
+    "mypy>=1.19,<2",
+    "pip-audit>=2.9,<3",
 ]
 
 [tool.setuptools.packages.find]
@@ -47,3 +50,18 @@ web_interface = ["*.html", "*.js", "*.css"]
 
 [tool.uv]
 required-version = "==0.12.23"
+
+[tool.ruff]
+target-version = "py311"
+extend-exclude = ["2023", "2024", "build", "dist", ".kilo", ".kilocode"]
+
+[tool.ruff.lint]
+# Establish fatal syntax/control-flow checks without a legacy style rewrite.
+select = ["E9", "F63", "F7", "F82", "F821"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["tennis_pool", "pool_optimizer/pool/scoring.py"]
+strict = true
+warn_unused_ignores = true
+exclude = ["/tests/"]

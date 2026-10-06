@@ -151,3 +151,28 @@ print(f"Serve win %: {stats.serve_win_pct}")
 # Full project test suite (from the repository root)
 uv run --locked --all-extras --group dev python -m pytest
 ```
+
+Tests run with a fresh temporary working directory, isolated caches and quota
+state, synthetic data, and blocked network access. Collection covers API,
+models, core simulation, pool rules/scoring, workbook ingestion, and web routes.
+Live provider contracts are skipped unless explicitly requested with
+`--live`; these require `RAPID_API_APPLICATION_KEY` in the environment and may
+consume provider quota. Ordinary tests never read your checkout's `.env`.
+
+The CI workflow tests Python 3.11-3.13 and blocks on each failure, fatal Ruff
+lint checks, strict mypy checks for pool rules and scoring, a locked dependency
+audit (including optional features and development tools), and a redacted
+Gitleaks history scan. Legacy runner scripts delegate to pytest and propagate
+its exit status; a partial pass is not a release or prediction-quality claim.
+Type coverage can expand as canonical contracts and model modules land.
+
+```bash
+uv run --locked ruff check .
+uv run --locked mypy
+uv export --locked --all-extras --group dev --no-emit-project --no-hashes --no-annotate --no-header --output-file /tmp/tennis-audit.txt
+uv run --locked pip-audit --strict --disable-pip --no-deps -r /tmp/tennis-audit.txt
+```
+
+Chronological model smoke evaluation will join these gates when the
+backtesting harness in issue #12 is implemented; no accuracy threshold is
+claimed by the current CI.

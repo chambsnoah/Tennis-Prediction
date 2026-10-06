@@ -1,223 +1,93 @@
-"""
-Simple Tennis API Integration Test
+"""Offline client wiring and explicitly opted-in live endpoint checks."""
 
-A minimal test script to validate the tennis API integration with
-very careful rate limit management and comprehensive error handling.
-"""
-
-import sys
 import os
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from pathlib import Path
+import subprocess
+import sys
 
-# Add the project root to Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pytest
 
-try:
-    from tennis_api.tests.test_framework import run_api_tests
-    from tennis_api.clients.tennis_api_client import TennisAPIClient
-    from tennis_api.config.api_config import get_api_config
-    from tennis_api.config.test_config import TestConfig
-except ImportError as e:
-    print(f"Import error: {e}")
-    print("Make sure you're running this from the tennis project directory")
-    sys.exit(1)
+from tennis_api.cache.cache_manager import CacheManager
+from tennis_api.cache.rate_limiter import RateLimiter
+from tennis_api.clients.tennis_api_client import TennisAPIClient
+from tennis_api.config.api_config import get_api_config
+from tennis_api.config.test_config import TestConfig
+from tennis_api.tests.test_framework import run_api_tests
 
 
-def test_basic_functionality():
-    """Test basic functionality without making live API calls"""
-    print("=== Basic Functionality Test ===")
-    
-    # Test 1: Configuration loading
-    print("1. Testing configuration loading...")
+def test_basic_functionality(tmp_path):
     config = TestConfig.get_mock_config()
-    print(f"OK Mock configuration loaded successfully")
-    print(f"  API Key: {config.rapid_api_key[:20]}...")
-    print(f"  Live API URL: {config.tennis_live_api.base_url if config.tennis_live_api else 'Not configured'}")
-    
-    # Test 2: Client initialization
-    print("\n2. Testing client initialization...")
-    client = TennisAPIClient(config)
-    print(f"OK Tennis API client initialized")
-    print(f"  Number of sub-clients: {len(client.clients)}")
-    print(f"  Available clients: {list(client.clients.keys())}")
-    
-    # Test 3: Cache system
-    print("\n3. Testing cache system...")
-    cache_stats = client.cache_manager.get_cache_size()
-    print(f"OK Cache system working")
-    print(f"  Cache files: {cache_stats['total_files']}")
-    print(f"  Cache size: {cache_stats['total_size_mb']} MB")
-    
-    # Test 4: Rate limiter
-    print("\n4. Testing rate limiter...")
-    rate_stats = client.rate_limiter.get_usage_stats()
-    print(f"OK Rate limiter working")
-    print(f"  Configured APIs: {len(rate_stats)}")
-    
-    print("\nOK All basic functionality tests passed!")
-    
-    # Use assertions instead of return values
-    assert len(client.clients) > 0, "Client should have at least one sub-client"
-    assert cache_stats['total_files'] >= 0, "Cache stats should be valid"
-    assert len(rate_stats) >= 0, "Rate limiter stats should be available"
+    cache = CacheManager(cache_dir=str(tmp_path / "cache"))
+    limiter = RateLimiter(state_file=str(tmp_path / "rate_limiter_state.json"))
+    with TennisAPIClient(config, cache_manager=cache, rate_limiter=limiter) as client:
+        assert client.clients
+        assert client.cache_manager is cache
+        assert client.rate_limiter is limiter
+        assert client.cache_manager.get_cache_size()["total_files"] == 0
+        assert isinstance(client.rate_limiter.get_usage_stats(), dict)
+        for subclient in client.clients.values():
+            assert subclient.cache_manager is cache
+            assert subclient.rate_limiter is limiter
 
 
-def test_with_minimal_api_calls():
-    """Test with minimal API calls if enabled via environment variable"""
-    print("\n=== Minimal API Integration Test ===")
-    
-    # Check if live API testing is enabled via environment variable
-    use_live_apis = os.environ.get('USE_LIVE_APIS', '').lower() in ('true', '1', 'yes')
-    
-    if not use_live_apis:
-        print("Skipping live API tests (USE_LIVE_APIS not set to true).")
-        print("To enable live API testing, set environment variable: USE_LIVE_APIS=true")
-        print("This will make a very small number of API calls to test connectivity.")
-        print("Estimated API usage: 2-3 requests maximum")
-        # Skip the test but don't fail it
-        import pytest
-        pytest.skip("Live API testing disabled (set USE_LIVE_APIS=true to enable)")
-        return
-    
-    try:
-        # Load real configuration
-        print("\nLoading real API configuration...")
-        config = get_api_config()
-        print(f"OK Real API configuration loaded")
-        print(f"  API Key: {config.rapid_api_key[:10]}...{config.rapid_api_key[-4:]}")
-        
-        # Initialize client with real config
-        print("\nInitializing client with real configuration...")
-        client = TennisAPIClient(config)
-        print(f"OK Client initialized with real APIs")
-        
-        # Test 1: Rankings (1 API call)
-        print("\nTest 1: ATP Rankings (1 API call)")
-        try:
-            rankings = client.get_rankings_sync('atp')
-            print(f"OK ATP rankings retrieved successfully")
-            if isinstance(rankings, dict) and 'rankings' in rankings:
-                print(f"  Top player: {rankings['rankings'][0].get('name', 'Unknown')}")
-            else:
-                print(f"  Response type: {type(rankings)}")
-        except Exception as e:
-            print(f"FAIL ATP rankings failed: {e}")
-            print("  This is expected if the API endpoints are not yet configured correctly")
-        
-        # Test 2: Player stats (1 API call)
-        print("\nTest 2: Player Statistics (1 API call)")
-        try:
-            player_stats = client.get_player_stats_sync("Novak Djokovic")
-            print(f"OK Player stats retrieved successfully")
-            print(f"  Player name: {player_stats.name}")
-            print(f"  Ranking: {player_stats.current_ranking}")
-            print(f"  Recent form factor: {player_stats.recent_form_factor}")
-        except Exception as e:
-            print(f"FAIL Player stats failed: {e}")
-            print("  This is expected if the API endpoints are not yet configured correctly")
-        
-        # Get client statistics
-        print("\nAPI Usage Statistics:")
-        stats = client.get_client_stats()
-        for client_name, client_stats in stats['client_stats'].items():
-            print(f"  {client_name}:")
-            print(f"    Requests made: {client_stats['requests_made']}")
-            print(f"    Cache hits: {client_stats['cache_hits']}")
-            print(f"    Errors: {client_stats['errors']}")
-        
-        print("\nOK Live API integration test completed!")
-        
-        # Use assertions instead of return values
-        assert len(stats['client_stats']) > 0, "Should have client statistics"
-        
-    except Exception as e:
-        print(f"\nFAIL Live API integration test failed: {e}")
-        print("This may indicate configuration issues or API connectivity problems.")
-        # Re-raise the exception to fail the test properly
-        raise
+def test_offline_framework():
+    report = run_api_tests(use_live_apis=False, max_live_requests=0)
+    assert report["summary"]["total_tests"] > 0
+    assert report["summary"]["failed"] == 0, report["errors"]
+    assert report["summary"]["all_passed"] is True
 
 
-def main():
-    """Main test function"""
-    print("Tennis API Integration Test")
-    print("=" * 40)
-    
-    # Test 1: Basic functionality (no API calls)
-    basic_success = test_basic_functionality()
-    
-    if not basic_success:
-        print("\nBasic tests failed. Please fix issues before proceeding.")
-        return False
-    
-    # Test 2: Comprehensive test framework
-    print("\n=== Comprehensive Test Framework ===")
-    print("Note: This test suite includes timeout protection to prevent hanging")
-    try:
-        # Run comprehensive tests with mock APIs only and timeout protection
-        print("Running comprehensive tests (mock APIs only, max 60 seconds)...")
-        start_time = time.time()
-        
-        try:
-            # Use ThreadPoolExecutor to run tests with timeout protection
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(run_api_tests, use_live_apis=False, max_live_requests=0)
-                report = future.result(timeout=60)  # 60 second timeout
-        except FuturesTimeoutError:
-            elapsed = time.time() - start_time
-            print(f"FAIL Tests timed out after {elapsed:.1f} seconds")
-            print("ERROR The test framework is hanging - this indicates a serious issue")
-            print("       that needs to be investigated (likely async/sync conflicts)")
-            raise TimeoutError(f"API tests hung for more than 60 seconds (elapsed: {elapsed:.1f}s)")
-        
-        elapsed = time.time() - start_time
-        print(f"Comprehensive tests completed in {elapsed:.1f} seconds")
-        
-        if elapsed > 60:
-            print("WARNING: Tests took longer than expected - there may be hanging issues")
-        
-        if report['summary']['success_rate'] >= 80:
-            print(f"OK Comprehensive tests passed ({report['summary']['success_rate']}% success rate)")
-        else:
-            print(f"WARNING Comprehensive tests had issues ({report['summary']['success_rate']}% success rate)")
-            
-    except Exception as e:
-        print(f"FAIL Comprehensive test framework failed: {e}")
-        print("This could indicate hanging or other issues in the test framework")
-    
-    # Test 3: Optional live API testing
-    live_success = test_with_minimal_api_calls()
-    
-    # Final summary
-    print("\n" + "=" * 40)
-    print("FINAL TEST SUMMARY")
-    print("=" * 40)
-    print(f"Basic Functionality: {'OK PASS' if basic_success else 'FAIL FAIL'}")
-    print(f"Live API Testing: {'OK PASS' if live_success else 'FAIL FAIL'}")
-    
-    if basic_success and live_success:
-        print("\n>> Tennis API integration is ready for use!")
-        print("\nNext steps:")
-        print("- Integrate with existing tennis prediction system")
-        print("- Create API-based extractors")
-        print("- Test with real tournament data")
-    else:
-        print("\nWARNING Some tests failed. Please review the errors above.")
-        print("\nTroubleshooting:")
-        print("- Check API credentials in .env file")
-        print("- Verify internet connectivity")
-        print("- Review error messages for specific issues")
-    
-    return basic_success and live_success
+@pytest.mark.live
+def test_with_minimal_api_calls(tmp_path):
+    """Requires --live and an environment credential; makes two endpoint calls."""
+    if not os.environ.get("RAPID_API_APPLICATION_KEY"):
+        pytest.skip("RAPID_API_APPLICATION_KEY is required for live API testing")
+
+    config = get_api_config()
+    for endpoint in config.get_all_configs().values():
+        endpoint.max_retries = 0
+        endpoint.timeout = 10
+
+    cache = CacheManager(cache_dir=str(tmp_path / "cache"))
+    limits = {
+        endpoint.name: {
+            f"requests_per_{period}": getattr(endpoint.rate_limit, f"per_{period}")
+            for period in ("minute", "hour", "day", "month")
+        }
+        for endpoint in config.get_all_configs().values()
+    }
+    limiter = RateLimiter(limits_config=limits, state_file=str(tmp_path / "rate_limiter_state.json"))
+    with TennisAPIClient(config, cache_manager=cache, rate_limiter=limiter) as client:
+        # High-level methods can fall back across providers or synthesize model
+        # defaults. Validate uncached endpoint payloads, not those defaults.
+        response = client.clients["rankings"].get_data_sync(
+            "current_rankings", tour="atp", use_cache=False, priority="high"
+        )
+        assert isinstance(response, dict)
+        rankings = response.get("rankings") or response.get("players")
+        assert isinstance(rankings, list) and rankings, "Missing live rankings"
+        assert isinstance(rankings[0], dict)
+        assert rankings[0].get("name"), "Missing ranked player name"
+        assert int(rankings[0].get("ranking", rankings[0].get("rank", 0))) > 0
+
+        response = client.clients["live"].get_data_sync(
+            "player_search", params={"name": "Novak Djokovic"},
+            use_cache=False, priority="high",
+        )
+        assert isinstance(response, dict)
+        players = response.get("players")
+        assert isinstance(players, list) and players, "Missing live player search results"
+        assert any(player.get("id") and player.get("name") for player in players)
+
+
+def main(argv=None):
+    args = sys.argv[1:] if argv is None else argv
+    root = Path(__file__).resolve().parents[2]
+    return subprocess.run(
+        [sys.executable, "-m", "pytest", *(args or [str(Path(__file__).resolve())])],
+        cwd=root,
+    ).returncode
 
 
 if __name__ == "__main__":
-    try:
-        success = main()
-        sys.exit(0 if success else 1)
-    except KeyboardInterrupt:
-        print("\n\nTest interrupted by user.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n\nUnexpected error: {e}")
-        sys.exit(1)
+    sys.exit(main())
