@@ -51,9 +51,14 @@ def test_coverage_is_a_plan_not_an_invented_measurement(policy):
     assert coverage["verified_match_count"] is None
     assert coverage["verified_statistics_coverage"] is None
     assert coverage["missing_statistics"] == "preserve_null_never_fabricate"
-    assert coverage["date_precision"] == "event_date_not_exact_match_start"
     assert coverage["historical_availability"] == "not_proven_by_current_snapshot"
     assert coverage["excluded_match_files"] == ["qual_chall", "futures", "doubles"]
+
+
+def test_unknown_source_timing_is_separate_from_conservative_cutoff_policy(policy):
+    assert policy["coverage"]["date_precision"] is None
+    assert policy["coverage"]["feature_cutoff_policy"] == "prior_event_until_timing_verified"
+    assert policy["permissions"]["allowed_actions"]["automated_ingestion"] is False
 
 
 def test_frozen_season_partitions_are_exhaustive_ordered_and_disjoint(policy):

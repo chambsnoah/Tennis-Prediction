@@ -33,6 +33,7 @@ All sources below were checked on **2026-10-07**; only GitHub public metadata/RE
 - Future #10 must measure dates, outcomes, scores, surfaces, rankings and available serve/return components per season/event/field. Do not promise advanced statistics for every match or infer zero from missing statistics.
 - Derive return metrics only from validated opponent-service components when available; document denominators, missingness and transformations. Treat winners/unforced errors, shot-level charts and website ratings as separate, unapproved additions, not assumed candidate columns.
 - Verify whether dates represent tournament starts or individual matches before constructing features. Preserve date precision and unknown timing; never invent match-start/end timestamps. Prefer prior-tournament cutoffs when same-event chronology or publication time is unproven.
+- The JSON's observed `date_precision` is `null` until verified; its separate `feature_cutoff_policy` is a conservative project rule, not a claim about upstream date semantics.
 - Revised historical snapshots do not prove what information was available before a past match. Record availability provenance; quarantine unclear cases rather than leak later rankings/statistics backward. S3 section 5 and S5 section 12 disclaim accuracy warranties, not substitute for validation.
 
 ## Conditional License And Use-Case Gate

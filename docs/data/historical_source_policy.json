@@ -45,7 +45,8 @@
     "verified_match_count": null,
     "verified_statistics_coverage": null,
     "missing_statistics": "preserve_null_never_fabricate",
-    "date_precision": "event_date_not_exact_match_start",
+    "date_precision": null,
+    "feature_cutoff_policy": "prior_event_until_timing_verified",
     "historical_availability": "not_proven_by_current_snapshot",
     "excluded_match_files": ["qual_chall", "futures", "doubles"]
   },
