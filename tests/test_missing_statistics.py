@@ -24,6 +24,7 @@ from tennis_api.integration import (
     PlayerSimpleEnhanced,
 )
 from tennis_api.extractors.api_extractor import APIPlayerExtractor
+from tennis_api.simulation.enhanced_match_engine import EnhancedMatchEngine
 
 
 @pytest.mark.parametrize("model", [ServeStatistics, ReturnStatistics])
@@ -342,3 +343,55 @@ def test_legacy_saved_ensemble_requires_retraining(tmp_path):
     (tmp_path / "legacy_ensemble.json").write_text(json.dumps({"is_trained": True}))
     with pytest.raises(ValueError, match="retrain"):
         PredictionEnsemble().load_ensemble(path)
+
+
+def test_partial_retraining_preserves_preprocessing_used_by_other_models(monkeypatch):
+    ensemble = PredictionEnsemble(
+        feature_config=FeatureConfig(use_feature_selection=False)
+    )
+
+    def train_outcome(vectors, targets, names):
+        ensemble.outcome_predictor.is_trained = True
+        return {}
+
+    received = []
+
+    def train_score(vectors, targets, names):
+        received.extend(vectors)
+        return {}
+
+    monkeypatch.setattr(ensemble.outcome_predictor, "train", train_outcome)
+    monkeypatch.setattr(ensemble.score_predictor, "train", train_score)
+    ensemble.train_ensemble(
+        {"features": [[0.0], [10.0]], "feature_names": ["value"], "outcomes": [0, 1]}
+    )
+    ensemble.train_ensemble(
+        {
+            "features": [[100.0], [200.0]],
+            "feature_names": ["value"],
+            "scores": {"winner_sets": [2, 2]},
+        }
+    )
+    assert ensemble.feature_extractor.imputation_values == {"value": 5.0}
+    assert received == [[19.0], [39.0]]
+
+
+def test_simulation_prediction_adapter_forwards_available_observations():
+    stats = PlayerStats(
+        "Synthetic A",
+        serve_stats=ServeStatistics(
+            first_serve_win_percentage=0.75,
+            second_serve_win_percentage=0.5,
+            aces_per_match=0.0,
+        ),
+        return_stats=ReturnStatistics(
+            first_serve_return_points_won=0.25, break_points_converted=0.0
+        ),
+    )
+    player = PlayerEnhanced("Synthetic A", api_stats=stats)
+    data = EnhancedMatchEngine()._prepare_player_data(player)
+    features = FeatureExtractor().extract_statistical_features(data, data)
+    assert features["player1_aces_per_match"] == 0.0
+    assert features["player1_return_first_serve"] == 0.25
+    assert features["player1_break_points"] == 0.0
+    assert np.isfinite(list(features.values())).all()

@@ -180,7 +180,19 @@ class PredictionEnsemble:
         
         # Fit feature transformers
         outcomes = training_data.get('outcomes', [])
-        self.feature_extractor.fit_transformers(feature_rows, outcomes)
+        scores = training_data.get('scores', {})
+        upsets = training_data.get('upsets', [])
+        # Models left trained by a partial update still require the old pipeline.
+        reuse_preprocessing = (
+            (self.outcome_predictor.is_trained and not outcomes)
+            or (self.score_predictor.is_trained and not scores)
+            or (self.upset_detector.is_trained and not upsets)
+        )
+        if reuse_preprocessing:
+            if not self.feature_extractor.is_fitted:
+                raise ValueError("Trained models require fitted missing-value preprocessing")
+        else:
+            self.feature_extractor.fit_transformers(feature_rows, outcomes)
         feature_vectors = [self.feature_extractor.transform_features(row) for row in feature_rows]
         feature_names = self.feature_extractor.feature_names
         
@@ -195,7 +207,6 @@ class PredictionEnsemble:
             self.model_performances['outcome'] = outcome_metrics
         
         # Train score predictor
-        scores = training_data.get('scores', {})
         if scores:
             score_metrics = self.score_predictor.train(
                 feature_vectors, scores, feature_names
@@ -204,7 +215,6 @@ class PredictionEnsemble:
             self.model_performances['score'] = score_metrics
         
         # Train upset detector
-        upsets = training_data.get('upsets', [])
         if upsets:
             upset_metrics = self.upset_detector.train(
                 feature_vectors, upsets, feature_names
