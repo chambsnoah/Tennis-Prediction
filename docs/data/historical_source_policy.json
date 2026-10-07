@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "policy_version": "2026-10-07.1",
+  "reviewed_on": "2026-10-07",
+  "issue": 9,
+  "source": {
+    "id": "jeff_sackmann_tennis_atp",
+    "repository": "https://github.com/JeffSackmann/tennis_atp",
+    "selection": "provisional_candidate",
+    "access_status": "unavailable_http_404",
+    "revision": null,
+    "terms_url": null,
+    "license": null,
+    "license_url": null,
+    "terms_verified": false,
+    "attribution": {
+      "creator": "Jeff Sackmann",
+      "source_url_required": true,
+      "license_link_required_if_verified": true,
+      "changes_must_be_indicated": true
+    }
+  },
+  "permissions": {
+    "status": "blocked_source_and_permission_review",
+    "approvals": [],
+    "allowed_actions": {
+      "automated_ingestion": false,
+      "publication": false,
+      "paid_prize_pool_use": false
+    },
+    "private_cache_is_not_permission": true,
+    "confidential_evidence_location": "external_private_storage",
+    "required_review": [
+      "source_access_and_pinned_revision",
+      "current_terms_and_license_scope",
+      "paid_prize_pool_and_commercial_use",
+      "local_caching_and_retention",
+      "raw_and_derived_data_redistribution",
+      "model_and_report_publication"
+    ]
+  },
+  "coverage": {
+    "cohort": "ATP men's tour-level singles",
+    "planned_seasons": [2000, 2025],
+    "verified_match_count": null,
+    "verified_statistics_coverage": null,
+    "missing_statistics": "preserve_null_never_fabricate",
+    "date_precision": null,
+    "feature_cutoff_policy": "prior_event_until_timing_verified",
+    "historical_availability": "not_proven_by_current_snapshot",
+    "excluded_match_files": ["qual_chall", "futures", "doubles"]
+  },
+  "evaluation": {
+    "frozen_on": "2026-10-07",
+    "train_seasons": [2000, 2022],
+    "validation_seasons": [2023, 2024],
+    "holdout_seasons": [2025, 2025],
+    "shadow_seasons": [2026, 2026],
+    "shadow_predictions": "post_approval_pre_outcome_only",
+    "holdout_used_for_selection": false,
+    "split_key": "event_start_season",
+    "ambiguous_boundary_records": "quarantine"
+  },
+  "retrieval": {
+    "implemented": false,
+    "requires_permission_preflight": true,
+    "revision_strategy": "explicit_reviewed_commit_only",
+    "match_file_template": "atp_matches_{season}.csv",
+    "player_file": "atp_players.csv",
+    "ranking_file_templates": ["atp_rankings_{decade}s.csv", "atp_rankings_current.csv"],
+    "manifest_required_fields": [
+      "source_revision", "policy_version", "relative_path", "retrieved_at_utc",
+      "sha256", "byte_count", "terms_reference", "permission_reference"
+    ]
+  },
+  "workbook_privacy": {
+    "review_status": "not_reviewed",
+    "publication_allowed": false,
+    "fixture_strategy": "generated_synthetic_only",
+    "excluded_from_public_artifacts": [
+      "participant_names", "contact_details", "selections", "quotas", "usage",
+      "payments", "payouts", "hidden_sheets", "comments", "external_links",
+      "document_metadata", "macros", "confidential_permission_evidence"
+    ]
+  },
+  "alternatives": [
+    {"id": "tennis_abstract_website", "status": "not_approved", "automated_ingestion_allowed": false},
+    {"id": "official_atp", "status": "not_approved", "automated_ingestion_allowed": false},
+    {"id": "commercial_api", "status": "not_approved", "automated_ingestion_allowed": false}
+  ]
+}

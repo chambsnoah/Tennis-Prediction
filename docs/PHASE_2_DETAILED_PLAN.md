@@ -1,6 +1,11 @@
 # Phase 2: Enhanced Intelligence & Analytics - Detailed Implementation Plan
 
 ## 🎯 Overview
+The issue #9 [historical source policy](data/HISTORICAL_SOURCE_POLICY.md) and
+[versioned decision record](data/historical_source_policy.json) supersede this
+older plan's source permissions and season split. Historical ATP ingestion and
+publication are blocked pending source access, verified terms and use-case review.
+
 **Duration:** 3-4 months | **Goal:** Transform from statistical models to ML-driven predictions with advanced analytics
 
 **Key Objectives:**
@@ -50,7 +55,7 @@
 **Priority:** High | **Effort:** 2 weeks | **Dependencies:** Database infrastructure
 
 **Objectives:**
-- Collect and process 5+ years of historical match data (2015-2024)
+- Plan historical ATP singles coverage for 2000-2025; verify actual coverage only after permission-gated ingestion
 - Implement data validation and cleaning pipeline
 - Create feature engineering module for ML models
 - Set up automated data refresh mechanisms
@@ -75,10 +80,10 @@
   - Special note: for Match Charting Project and community datasets, check contributor licenses and attribute sources as required.
 
 - Jeff Sackmann ATP Data (https://github.com/JeffSackmann/tennis_atp)
-  - Terms & licensing: Open-source tennis data repository maintained by Jeff Sackmann. Generally available for research and analysis purposes.
-  - Usage guidelines: Attribute the source when using data. Repository includes comprehensive match data, player rankings, and tournament results.
-  - Data scope: Historical ATP match data from 1968-present, including scores, player information, tournament details, and advanced statistics.
-  - Update frequency: Repository is periodically updated with new tournament data.
+  - Selection: Provisional candidate only; the repository returned HTTP 404 during the 2026-10-07 review. No source revision or current terms could be verified.
+  - Terms & licensing: Public availability is not unrestricted permission. Do not infer rights for paid-prize pool support, commercial use, caching or redistribution from older descriptions.
+  - Required follow-up: Verify a pinned revision and its terms, record attribution and restrictions, and obtain any required permission before ingestion or publication. See the issue #9 policy.
+  - Data scope: Planned 2000-2025 ATP singles coverage is not a measured completeness or statistics-coverage claim.
 
 - API providers (example vendors: Sportradar, Opta, Tennis-Data, other commercial APIs)
   - Terms & licensing: always follow the provider's Developer Terms and Service Agreement (each vendor publishes their own T&Cs and developer docs). Example vendor pages:
@@ -89,12 +94,12 @@
   - Contact / permission process: sign official API contract or commercial license. For paid vendors, coordinate with procurement/legal.
 
 Data permissions and contract storage
-- Store signed permissions, contracts, and vendor correspondence under `legal/ops/data-permissions/` in the repository (or in the company's secure contract storage if repo is public). Each file should include: vendor name, contact, contract reference, allowed use cases, rate limits, attribution requirements, and expiration/renewal dates.
+- Store signed permissions, contracts, and vendor correspondence in external private storage, never in public issues or this repository. Public records contain only non-confidential scope/status references; no participant data or confidential agreements.
 
 Pre-ingestion checklist (MANDATORY before any automated ingestion)
 - [ ] Verify T&Cs for the data source and record the location of the applicable Terms document
 - [ ] Confirm whether scraping is permitted; if not, obtain API access or written permission
-- [ ] Obtain and store written permission or signed contract (if required) in `legal/ops/data-permissions/`
+- [ ] Obtain and store required written permission or signed contract in external private storage; record only a non-confidential reference
 - [ ] Note rate limits, attribution rules, caching restrictions, and overage fees in vendor record
 - [ ] Get legal sign-off for commercial or public redistribution of the data
 
@@ -181,7 +186,7 @@ Calibration & reliability checks:
 
 Time-aware validation and holdout:
 - All validation must be time-aware (rolling-origin / expanding-window CV). Do not use random shuffles that mix future data into training.
-- Reserve a chronological holdout set consisting of all matches from calendar year 2024 (or the most recent season) to simulate production performance. The holdout must not be used for model selection or hyperparameter tuning.
+- Freeze the issue #9 split before model development: train 2000-2022, validation 2023-2024, untouched holdout 2025, and 2026 prospective shadow evaluation only. Assign whole events by event-start season; quarantine ambiguous year-boundary dates. The holdout must not be used for model selection or hyperparameter tuning, or move automatically to the most recent season.
 - Document the exact pre-match cutoff timestamps used to construct train/validation/holdout splits.
 
 Latency & production constraints:
@@ -194,14 +199,14 @@ A/B testing and statistical significance:
 - Track secondary metrics (calibration, latency, error modes) and ensure no regression beyond pre-approved tolerances.
 
 Reporting & artifacts:
-- For every candidate model version, produce a Model Evaluation Report that includes: primary/secondary metric values, calibration metrics (ECE/MCE), reliability plots, time-split CV results, 2024 holdout performance, latency percentiles, feature importance, and any post-hoc calibration applied.
+- For every candidate model version, produce a Model Evaluation Report that includes: primary/secondary metric values, calibration metrics (ECE/MCE), reliability plots, time-split CV results, frozen 2025 holdout performance, latency percentiles, feature importance, and any post-hoc calibration applied.
 - Store evaluation reports and related artifacts under `tennis_ml/reports/models/<model_version>/`.
 
 Updated Success Criteria (additions)
 - [ ] Primary metric (log loss) improved relative to Phase 1 baseline by the documented target
 - [ ] Brier score reported and not regressed vs baseline
 - [ ] ECE and MCE within accepted thresholds (or remediation plan documented)
-- [ ] Time-aware CV performed and 2024 holdout reserved and evaluated
+- [ ] Time-aware CV performed and frozen 2025 holdout reserved and evaluated
 - [ ] Inference latency percentiles (p50/p95) measured and within target bounds
 - [ ] A/B test results reported with 95% CI and p < 0.05 (or documented rationale if alternative thresholds used)
 
