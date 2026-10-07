@@ -162,8 +162,8 @@ class PredictionEnsemble:
         features = training_data['features']
         feature_names = training_data.get('feature_names', [])
         
-        # Convert feature dictionaries to vectors
-        feature_vectors = []
+        # Extract once, then use the same fitted preprocessing for all models.
+        feature_rows = []
         for feature_dict in features:
             if isinstance(feature_dict, dict):
                 # Extract features in consistent order
@@ -172,14 +172,29 @@ class PredictionEnsemble:
                     feature_dict.get('player2', {}),
                     feature_dict.get('context', {})
                 )
-                feature_vectors.append(list(vector.values()))
+                feature_rows.append(vector)
             else:
-                feature_vectors.append(feature_dict)
+                if not feature_names or len(feature_names) != len(feature_dict):
+                    raise ValueError("Vector training data requires matching feature_names")
+                feature_rows.append(dict(zip(feature_names, feature_dict)))
         
         # Fit feature transformers
         outcomes = training_data.get('outcomes', [])
-        if outcomes:
-            self.feature_extractor.fit_transformers(features, outcomes)
+        scores = training_data.get('scores', {})
+        upsets = training_data.get('upsets', [])
+        # Models left trained by a partial update still require the old pipeline.
+        reuse_preprocessing = (
+            (self.outcome_predictor.is_trained and not outcomes)
+            or (self.score_predictor.is_trained and not scores)
+            or (self.upset_detector.is_trained and not upsets)
+        )
+        if reuse_preprocessing:
+            if not self.feature_extractor.is_fitted:
+                raise ValueError("Trained models require fitted missing-value preprocessing")
+        else:
+            self.feature_extractor.fit_transformers(feature_rows, outcomes)
+        feature_vectors = [self.feature_extractor.transform_features(row) for row in feature_rows]
+        feature_names = self.feature_extractor.feature_names
         
         training_results = {}
         
@@ -192,7 +207,6 @@ class PredictionEnsemble:
             self.model_performances['outcome'] = outcome_metrics
         
         # Train score predictor
-        scores = training_data.get('scores', {})
         if scores:
             score_metrics = self.score_predictor.train(
                 feature_vectors, scores, feature_names
@@ -201,7 +215,6 @@ class PredictionEnsemble:
             self.model_performances['score'] = score_metrics
         
         # Train upset detector
-        upsets = training_data.get('upsets', [])
         if upsets:
             upset_metrics = self.upset_detector.train(
                 feature_vectors, upsets, feature_names
@@ -228,6 +241,9 @@ class PredictionEnsemble:
         Returns:
             ComprehensivePrediction with all prediction components
         """
+        if (any(model.is_trained for model in (self.outcome_predictor, self.score_predictor, self.upset_detector))
+                and not self.feature_extractor.is_fitted):
+            raise ValueError("Trained models require fitted missing-value preprocessing")
         # Extract features
         features_dict = self.feature_extractor.extract_all_features(
             player1_data, player2_data, match_context
@@ -321,7 +337,10 @@ class PredictionEnsemble:
             prediction_timestamp=datetime.now(),
             models_used=list(predictions.keys()),
             feature_importance=feature_importance,
-            explanation=ensemble_result['explanation'],
+            explanation={**ensemble_result['explanation'],
+                         'missing_features': self.feature_extractor.missing_features.copy(),
+                         'imputation_policy': self.feature_extractor.config.handle_missing_values
+                         if self.feature_extractor.is_fitted else None},
             prediction_risk=risk_assessment['risk_level'],
             reliability_score=risk_assessment['reliability']
         )
@@ -533,7 +552,10 @@ class PredictionEnsemble:
         }
     
     def save_ensemble(self, file_path: str) -> None:
-        """Save the entire ensemble to file"""
+        """Save models and fitted preprocessing; joblib artifacts must be trusted."""
+        import joblib
+
+        joblib.dump(self.feature_extractor, f"{file_path}_features.joblib")
         # Save individual models
         self.outcome_predictor.save_model(f"{file_path}_outcome.joblib")
         
@@ -543,6 +565,7 @@ class PredictionEnsemble:
             'model_performances': self.model_performances,
             'is_trained': self.is_trained,
             'feature_names': self.feature_extractor.feature_names,
+            'preprocessing_version': 1,
             'ensemble_statistics': self.get_ensemble_statistics()
         }
         
@@ -550,20 +573,22 @@ class PredictionEnsemble:
             json.dump(ensemble_data, f, indent=2)
     
     def load_ensemble(self, file_path: str) -> None:
-        """Load the entire ensemble from file"""
+        """Load trusted local artifacts; legacy missingness policies need retraining."""
+        import joblib
+
+        with open(f"{file_path}_ensemble.json", 'r') as f:
+            ensemble_data = json.load(f)
+        if ensemble_data.get('preprocessing_version') != 1:
+            raise ValueError("Legacy ensemble lacks fitted missing-value policy; retrain before use")
+        extractor = joblib.load(f"{file_path}_features.joblib")
+        if not isinstance(extractor, FeatureExtractor) or (ensemble_data.get('is_trained') and not extractor.is_fitted):
+            raise ValueError("Trained ensemble requires fitted feature preprocessing")
+        self.feature_extractor = extractor
         # Load individual models
         try:
             self.outcome_predictor.load_model(f"{file_path}_outcome.joblib")
         except FileNotFoundError:
             print("Warning: Outcome model file not found")
         
-        # Load ensemble metadata
-        try:
-            with open(f"{file_path}_ensemble.json", 'r') as f:
-                ensemble_data = json.load(f)
-            
-            self.model_performances = ensemble_data.get('model_performances', {})
-            self.is_trained = ensemble_data.get('is_trained', False)
-            
-        except FileNotFoundError:
-            print("Warning: Ensemble metadata file not found")
+        self.model_performances = ensemble_data.get('model_performances', {})
+        self.is_trained = ensemble_data.get('is_trained', False)

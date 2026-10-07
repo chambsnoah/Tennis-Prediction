@@ -183,10 +183,8 @@ class EnhancedMatchEngine:
         
         # Add API stats if available
         if player.api_stats:
-            data['serve_stats'] = {
-                'first_serve_win_percentage': player.api_stats.serve_stats.first_serve_win_percentage,
-                'second_serve_win_percentage': player.api_stats.serve_stats.second_serve_win_percentage
-            }
+            data['serve_stats'] = player.api_stats.serve_stats.to_dict()
+            data['return_stats'] = player.api_stats.return_stats.to_dict()
             data['recent_matches'] = player.api_stats.recent_matches
         
         return data

@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Any, Tuple
 import json
 import math
 import random
+import warnings
 from enum import Enum
 
 from .player_stats import PlayerStats, ServeStatistics, ReturnStatistics, SurfaceStats
@@ -276,6 +277,10 @@ class PlayerEnhanced:
             base_percentage = self.api_stats.serve_stats.first_serve_win_percentage
         else:
             base_percentage = 0.65  # Default
+        if base_percentage is None:
+            warnings.warn("Missing first-serve win observation; using a legacy simulation assumption (0.65)",
+                          RuntimeWarning, stacklevel=2)
+            base_percentage = 0.65
         
         # Apply surface adjustment
         surface_factor = self.get_surface_multiplier(surface)

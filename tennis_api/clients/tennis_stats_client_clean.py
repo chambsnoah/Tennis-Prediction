@@ -264,25 +264,10 @@ class TennisStatsAPIClient(BaseAPIClient):
             plays = player_info.get('plays', 'Right')
             
             # Serve statistics
-            serve_data = overall_stats.get('serve', {})
-            serve_stats = ServeStatistics(
-                first_serve_percentage=serve_data.get('first_serve_pct', 0.6),
-                first_serve_win_percentage=serve_data.get('first_serve_win_pct', 0.7),
-                second_serve_win_percentage=serve_data.get('second_serve_win_pct', 0.5),
-                aces_per_match=serve_data.get('aces_per_match', 5.0),
-                double_faults_per_match=serve_data.get('double_faults_per_match', 2.0),
-                service_games_won_percentage=serve_data.get('service_games_won_pct', 0.8)
-            )
+            serve_stats = ServeStatistics.from_dict(overall_stats.get('serve') or {})
             
             # Return statistics
-            return_data = overall_stats.get('return', {})
-            return_stats = ReturnStatistics(
-                first_serve_return_points_won=return_data.get('first_serve_return_won', 0.3),
-                second_serve_return_points_won=return_data.get('second_serve_return_won', 0.5),
-                break_points_converted=return_data.get('break_points_converted', 0.4),
-                return_games_won_percentage=return_data.get('return_games_won_pct', 0.2),
-                return_winners_per_match=return_data.get('return_winners_per_match', 8.0)
-            )
+            return_stats = ReturnStatistics.from_dict(overall_stats.get('return') or {})
             
             # Recent form from matches
             recent_form = []

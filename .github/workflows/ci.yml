@@ -42,6 +42,7 @@ jobs:
       - run: uv sync --locked --group dev
       - run: uv run --locked ruff check .
       - run: uv run --locked mypy
+      - run: uv run --locked mypy --strict --follow-imports=skip tennis_api/models/player_stats.py
 
   dependency-audit:
     runs-on: ubuntu-latest

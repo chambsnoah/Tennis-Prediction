@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, Optional, Any
 import json
 import asyncio
+import warnings
 
 # Add tennis_preds to path for importing existing classes
 sys.path.append(str(Path(__file__).parent.parent))
@@ -77,6 +78,12 @@ class PlayerEnhanced(TennisPlayer):
             second_serve_pct = 0.95  # Assume high second serve percentage
             first_serve_win = api_stats.serve_stats.first_serve_win_percentage
             second_serve_win = api_stats.serve_stats.second_serve_win_percentage
+            if any(value is None for value in (first_serve_pct, first_serve_win, second_serve_win)):
+                warnings.warn("Incomplete serve observations; using explicit legacy simulation assumptions",
+                              RuntimeWarning, stacklevel=2)
+                first_serve_pct = first_serve_pct if first_serve_pct is not None else kwargs.get('first_serve_percentage', 0.6)
+                first_serve_win = first_serve_win if first_serve_win is not None else kwargs.get('first_serve_win_percentage', 0.7)
+                second_serve_win = second_serve_win if second_serve_win is not None else kwargs.get('second_serve_win_percentage', 0.5)
             
             # Apply surface and form adjustments
             surface_multiplier = api_stats.get_surface_multiplier(surface)
@@ -197,8 +204,8 @@ class PlayerEnhanced(TennisPlayer):
             'age': self.age,
             'surface_performance': self.surface_performance,
             'recent_form': self.recent_form_factor,
-            'serve_percentage': self.first_serve_win_percentage,
-            'return_percentage': self.api_stats.return_stats.first_serve_return_points_won if self.api_stats else 0.35,
+            'serve_percentage': self.api_stats.serve_stats.first_serve_win_percentage if self.api_stats else None,
+            'return_percentage': self.api_stats.return_stats.first_serve_return_points_won if self.api_stats else None,
             'injury_status': self.injury_status,
             'api_enhanced': True,
             'last_updated': self.last_updated.isoformat() if self.last_updated else None
@@ -215,6 +222,13 @@ class PlayerSimpleEnhanced(TennisPlayerSimple):
             first_serve_pct = api_stats.serve_stats.first_serve_percentage
             first_serve_win = api_stats.serve_stats.first_serve_win_percentage
             second_serve_win = api_stats.serve_stats.second_serve_win_percentage
+
+            if any(value is None for value in (first_serve_pct, first_serve_win, second_serve_win)):
+                warnings.warn("Incomplete serve observations; using explicit legacy simulation assumptions",
+                              RuntimeWarning, stacklevel=2)
+                first_serve_pct = first_serve_pct if first_serve_pct is not None else 0.6
+                first_serve_win = first_serve_win if first_serve_win is not None else 0.7
+                second_serve_win = second_serve_win if second_serve_win is not None else 0.5
             
             # Calculate overall serve percentage
             overall_serve_pct = (first_serve_pct * first_serve_win + 
