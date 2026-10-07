@@ -14,6 +14,9 @@ from datetime import datetime, timedelta
 from enum import Enum
 import json
 import math
+import warnings
+
+from ..models.player_stats import ServeStatistics, ReturnStatistics
 
 # Optional ML imports with fallbacks
 try:
@@ -65,7 +68,7 @@ class FeatureConfig:
     
     # Scaling
     scaling_method: str = "standard"  # standard, minmax, none
-    handle_missing_values: str = "median"  # median, mean, zero, drop
+    handle_missing_values: str = "median"  # median, mean, zero; drop rejects incomplete rows
     
     # Temporal windows
     recent_matches_window: int = 10
@@ -86,6 +89,9 @@ class FeatureExtractor:
         self.scalers: Dict[str, Any] = {}
         self.feature_selector: Optional[Any] = None
         self.feature_names: List[str] = []
+        self.input_feature_names: List[str] = []
+        self.imputation_values: Dict[str, float] = {}
+        self.missing_features: List[str] = []
         self.is_fitted: bool = False
         
         # Initialize scalers based on config
@@ -192,32 +198,29 @@ class FeatureExtractor:
         """Extract tennis-specific statistical features"""
         features = {}
         
-        # Serve statistics
-        player1_serve = player1_data.get('serve_stats', {})
-        player2_serve = player2_data.get('serve_stats', {})
-        
-        features['player1_first_serve_win'] = player1_serve.get('first_serve_win_percentage', 0.7)
-        features['player1_second_serve_win'] = player1_serve.get('second_serve_win_percentage', 0.5)
-        features['player1_aces_per_match'] = player1_serve.get('aces_per_match', 5.0)
-        
-        features['player2_first_serve_win'] = player2_serve.get('first_serve_win_percentage', 0.7)
-        features['player2_second_serve_win'] = player2_serve.get('second_serve_win_percentage', 0.5)
-        features['player2_aces_per_match'] = player2_serve.get('aces_per_match', 5.0)
+        for number, player in enumerate((player1_data, player2_data), start=1):
+            serve = ServeStatistics.from_dict(player.get('serve_stats') or {})
+            observations = {
+                'first_serve_win': serve.first_serve_win_percentage,
+                'second_serve_win': serve.second_serve_win_percentage,
+                'aces_per_match': serve.aces_per_match,
+            }
+            for name, value in observations.items():
+                features[f'player{number}_{name}'] = float(value) if value is not None else np.nan
         
         # Serve advantages
         features['first_serve_advantage'] = features['player1_first_serve_win'] - features['player2_first_serve_win']
         features['second_serve_advantage'] = features['player1_second_serve_win'] - features['player2_second_serve_win']
         
-        # Return statistics
-        player1_return = player1_data.get('return_stats', {})
-        player2_return = player2_data.get('return_stats', {})
-        
-        features['player1_return_first_serve'] = player1_return.get('first_serve_return_points_won', 0.3)
-        features['player1_break_points'] = player1_return.get('break_points_converted', 0.4)
-        
-        features['player2_return_first_serve'] = player2_return.get('first_serve_return_points_won', 0.3)
-        features['player2_break_points'] = player2_return.get('break_points_converted', 0.4)
-        
+        for number, player in enumerate((player1_data, player2_data), start=1):
+            returns = ReturnStatistics.from_dict(player.get('return_stats') or {})
+            observations = {
+                'return_first_serve': returns.first_serve_return_points_won,
+                'break_points': returns.break_points_converted,
+            }
+            for name, value in observations.items():
+                features[f'player{number}_{name}'] = float(value) if value is not None else np.nan
+
         # Return advantages
         features['return_advantage'] = features['player1_return_first_serve'] - features['player2_return_first_serve']
         features['break_point_advantage'] = features['player1_break_points'] - features['player2_break_points']
@@ -269,18 +272,25 @@ class FeatureExtractor:
         """Fit scaling and feature selection transformers"""
         if not feature_data:
             return
+        self.is_fitted = False
+        self.feature_selector = None
         
         # Convert to DataFrame for easier handling
         df = pd.DataFrame(feature_data)
-        self.feature_names = list(df.columns)
-        
-        # Handle missing values
-        if self.config.handle_missing_values == "median":
-            df = df.fillna(df.median())
-        elif self.config.handle_missing_values == "mean":
-            df = df.fillna(df.mean())
-        elif self.config.handle_missing_values == "zero":
-            df = df.fillna(0)
+        self.input_feature_names = list(df.columns)
+        self.feature_names = self.input_feature_names.copy()
+        policy = self.config.handle_missing_values
+        if policy == "median":
+            self.imputation_values = df.median().to_dict()
+        elif policy == "mean":
+            self.imputation_values = df.mean().to_dict()
+        elif policy == "zero":
+            self.imputation_values = {name: 0.0 for name in self.input_feature_names}
+        elif policy == "drop":
+            self.imputation_values = {}
+        else:
+            raise ValueError(f"Unknown missing-value policy: {policy}")
+        df = self._handle_missing(df)
         
         # Fit scaler
         if ML_AVAILABLE and 'main' in self.scalers:
@@ -295,7 +305,8 @@ class FeatureExtractor:
                 k=min(self.config.max_features or 20, len(df.columns))
             )
             
-            self.feature_selector.fit(df.values, target_values)
+            values = self.scalers['main'].transform(df.values) if 'main' in self.scalers else df.values
+            self.feature_selector.fit(values, target_values)
             
             # Update feature names to selected features
             selected_indices = self.feature_selector.get_support(indices=True)
@@ -306,36 +317,38 @@ class FeatureExtractor:
     def transform_features(self, feature_dict: Dict[str, float]) -> List[float]:
         """Transform features using fitted transformers"""
         if not self.is_fitted:
+            self.missing_features = [name for name, value in feature_dict.items()
+                                     if value is None or math.isnan(value)]
             return list(feature_dict.values())
         
-        # Convert to DataFrame and align with training features
-        df = pd.DataFrame([feature_dict])
-        
-        # Ensure all expected features are present
-        for feature_name in self.feature_names:
-            if feature_name not in df.columns:
-                df[feature_name] = 0.0
-        
-        # Reorder columns to match training
-        df = df[self.feature_names]
-        
-        # Handle missing values
-        if self.config.handle_missing_values == "median":
-            df = df.fillna(df.median())
-        elif self.config.handle_missing_values == "zero":
-            df = df.fillna(0)
-        
-        # Apply feature selection
-        if self.feature_selector and ML_AVAILABLE:
-            transformed_values = self.feature_selector.transform(df.values)
-        else:
-            transformed_values = df.values
+        df = pd.DataFrame([feature_dict]).reindex(columns=self.input_feature_names)
+        df = self._handle_missing(df)
+        transformed_values = df.values
         
         # Apply scaling
         if ML_AVAILABLE and 'main' in self.scalers:
             transformed_values = self.scalers['main'].transform(transformed_values)
+        if self.feature_selector and ML_AVAILABLE:
+            transformed_values = self.feature_selector.transform(transformed_values)
         
         return transformed_values[0].tolist()
+
+    def _handle_missing(self, df: Any) -> Any:
+        self.missing_features = list(df.columns[df.isna().any()])
+        if not self.missing_features:
+            if not np.isfinite(df.to_numpy(dtype=float)).all():
+                raise ValueError("Feature values must be finite")
+            return df
+        if self.config.handle_missing_values == "drop":
+            raise ValueError("Rejecting rows with missing features; filter rows and targets together")
+        filled = df.fillna(self.imputation_values)
+        if not np.isfinite(filled.to_numpy(dtype=float)).all():
+            raise ValueError("Cannot impute missing features without finite training observations")
+        warnings.warn(
+            f"Imputing missing features using {self.config.handle_missing_values}: {', '.join(self.missing_features)}",
+            RuntimeWarning, stacklevel=3,
+        )
+        return filled
     
     def get_feature_importance(self, model: Any = None) -> Dict[str, float]:
         """Get feature importance scores"""

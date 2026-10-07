@@ -288,20 +288,15 @@ class TennisLiveAPIClient(BaseAPIClient):
         if not matches:
             return (ServeStatistics(), ReturnStatistics(), [])
         
-        # Aggregate statistics from matches
-        total_matches = len(matches)
-        
-        # Serve statistics
-        first_serves_made = 0
-        first_serves_won = 0
-        second_serves_made = 0
-        second_serves_won = 0
-        
-        # Return statistics  
-        first_serve_return_points = 0
-        first_serve_return_won = 0
-        second_serve_return_points = 0
-        second_serve_return_won = 0
+        # Each rate uses only matches reporting both counts. Combined counts
+        # cannot establish a first/second-serve split.
+        pairs = [
+            ('first_serve_won', 'first_serve_made'),
+            ('second_serve_won', 'second_serve_made'),
+            ('first_serve_return_won', 'first_serve_return_points'),
+            ('second_serve_return_won', 'second_serve_return_points'),
+        ]
+        totals = [[0.0, 0.0] for _ in pairs]
         
         # Recent form
         recent_form = []
@@ -314,73 +309,23 @@ class TennisLiveAPIClient(BaseAPIClient):
                 else:
                     recent_form.append('L')
             
-            # Extract detailed serve/return statistics if available
-            stats = match.get('statistics', {})
-            
-            # Process serve statistics with better granularity
-            if 'first_serve_made' in stats and 'first_serve_won' in stats:
-                first_serves_made += max(0, stats.get('first_serve_made', 0))
-                first_serves_won += max(0, stats.get('first_serve_won', 0))
-            elif 'serve_points_won' in stats:  # Fallback to combined serve stats
-                serves_won = max(0, stats.get('serve_points_won', 0))
-                serves_total = max(1, stats.get('serve_points_total', 1))
-                # Estimate first/second serve split (typical: ~60% first serve)
-                estimated_first_serves = int(serves_total * 0.6)
-                estimated_first_won = int(serves_won * 0.65)  # First serves typically won more
-                first_serves_made += estimated_first_serves
-                first_serves_won += min(estimated_first_won, estimated_first_serves)
-            
-            if 'second_serve_made' in stats and 'second_serve_won' in stats:
-                second_serves_made += max(0, stats.get('second_serve_made', 0))
-                second_serves_won += max(0, stats.get('second_serve_won', 0))
-            elif 'serve_points_won' in stats:  # Fallback estimation for second serves
-                serves_won = max(0, stats.get('serve_points_won', 0))
-                serves_total = max(1, stats.get('serve_points_total', 1))
-                estimated_second_serves = int(serves_total * 0.4)
-                estimated_second_won = serves_won - min(int(serves_won * 0.65), int(serves_total * 0.6))
-                second_serves_made += estimated_second_serves
-                second_serves_won += max(0, min(estimated_second_won, estimated_second_serves))
-            
-            # Process return statistics with better accuracy
-            if 'first_serve_return_points' in stats:
-                first_serve_return_points += max(0, stats.get('first_serve_return_points', 0))
-                first_serve_return_won += max(0, stats.get('first_serve_return_won', 0))
-            
-            if 'second_serve_return_points' in stats:
-                second_serve_return_points += max(0, stats.get('second_serve_return_points', 0))
-                second_serve_return_won += max(0, stats.get('second_serve_return_won', 0))
-            
-            elif 'return_points_won' in stats:  # Fallback for combined return stats
-                return_won = max(0, stats.get('return_points_won', 0))
-                # Estimate return opportunities based on typical match patterns
-                estimated_return_points = max(1, stats.get('return_points_total', total_matches * 45))
-                # Split return points (typical: ~60% against first serves)
-                first_return_est = int(estimated_return_points * 0.6)
-                second_return_est = estimated_return_points - first_return_est
-                first_serve_return_points += first_return_est
-                second_serve_return_points += second_return_est
-                # Distribute won points (second serve returns typically more successful)
-                first_return_won_est = int(return_won * 0.4)
-                second_return_won_est = return_won - first_return_won_est
-                first_serve_return_won += first_return_won_est
-                second_serve_return_won += second_return_won_est
-        
-        # Calculate realistic percentages with proper bounds
-        first_serve_win_pct = first_serves_won / max(first_serves_made, 1)
-        second_serve_win_pct = second_serves_won / max(second_serves_made, 1)
-        
-        first_return_win_pct = first_serve_return_won / max(first_serve_return_points, 1)
-        second_return_win_pct = second_serve_return_won / max(second_serve_return_points, 1)
-        
-        # Apply realistic tennis bounds (based on professional tennis statistics)
+            stats = match.get('statistics') or {}
+            for index, (won_key, total_key) in enumerate(pairs):
+                won, total = stats.get(won_key), stats.get(total_key)
+                if (type(won) in (int, float) and type(total) in (int, float)
+                        and 0 <= won <= total and 0 < total < float('inf')):
+                    totals[index][0] += won
+                    totals[index][1] += total
+
+        rates = [won / total if total > 0 else None for won, total in totals]
         serve_stats = ServeStatistics(
-            first_serve_win_percentage=max(0.45, min(first_serve_win_pct, 0.85)),  # Typical range: 45-85%
-            second_serve_win_percentage=max(0.35, min(second_serve_win_pct, 0.75))  # Typical range: 35-75%
+            first_serve_win_percentage=rates[0],
+            second_serve_win_percentage=rates[1],
         )
         
         return_stats = ReturnStatistics(
-            first_serve_return_points_won=max(0.15, min(first_return_win_pct, 0.55)),  # Typical range: 15-55%
-            second_serve_return_points_won=max(0.25, min(second_return_win_pct, 0.65))  # Typical range: 25-65%
+            first_serve_return_points_won=rates[2],
+            second_serve_return_points_won=rates[3],
         )
         
         return serve_stats, return_stats, recent_form

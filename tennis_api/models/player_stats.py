@@ -7,21 +7,21 @@ Includes serve statistics, return statistics, surface-specific performance, and 
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 import json
 
 
 @dataclass
 class ServeStatistics:
-    """Comprehensive serving statistics for a player"""
-    first_serve_percentage: float = 0.6
-    first_serve_win_percentage: float = 0.7
-    second_serve_win_percentage: float = 0.5
-    aces_per_match: float = 5.0
-    double_faults_per_match: float = 2.0
-    service_games_won_percentage: float = 0.8
+    """Provider observations; None means unreported, never an estimate."""
+    first_serve_percentage: Optional[float] = None
+    first_serve_win_percentage: Optional[float] = None
+    second_serve_win_percentage: Optional[float] = None
+    aces_per_match: Optional[float] = None
+    double_faults_per_match: Optional[float] = None
+    service_games_won_percentage: Optional[float] = None
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Optional[float]]:
         return {
             'first_serve_pct': self.first_serve_percentage,
             'first_serve_win_pct': self.first_serve_win_percentage,
@@ -32,28 +32,28 @@ class ServeStatistics:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> 'ServeStatistics':
+    def from_dict(cls, data: Dict[str, Any]) -> 'ServeStatistics':
         """Create ServeStatistics from dictionary with mapped field names"""
         return cls(
-            first_serve_percentage=data.get('first_serve_pct', 0.6),
-            first_serve_win_percentage=data.get('first_serve_win_pct', 0.7),
-            second_serve_win_percentage=data.get('second_serve_win_pct', 0.5),
-            aces_per_match=data.get('aces_per_match', 5.0),
-            double_faults_per_match=data.get('double_faults_per_match', 2.0),
-            service_games_won_percentage=data.get('service_games_won_pct', 0.8)
+            first_serve_percentage=data.get('first_serve_pct', data.get('first_serve_percentage')),
+            first_serve_win_percentage=data.get('first_serve_win_pct', data.get('first_serve_win_percentage')),
+            second_serve_win_percentage=data.get('second_serve_win_pct', data.get('second_serve_win_percentage')),
+            aces_per_match=data.get('aces_per_match'),
+            double_faults_per_match=data.get('double_faults_per_match'),
+            service_games_won_percentage=data.get('service_games_won_pct', data.get('service_games_won_percentage'))
         )
 
 
 @dataclass
 class ReturnStatistics:
-    """Comprehensive return statistics for a player"""
-    first_serve_return_points_won: float = 0.3
-    second_serve_return_points_won: float = 0.5
-    break_points_converted: float = 0.4
-    return_games_won_percentage: float = 0.2
-    return_winners_per_match: float = 8.0
+    """Provider observations; None means unreported, never an estimate."""
+    first_serve_return_points_won: Optional[float] = None
+    second_serve_return_points_won: Optional[float] = None
+    break_points_converted: Optional[float] = None
+    return_games_won_percentage: Optional[float] = None
+    return_winners_per_match: Optional[float] = None
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Optional[float]]:
         return {
             'first_serve_return_won': self.first_serve_return_points_won,
             'second_serve_return_won': self.second_serve_return_points_won,
@@ -63,14 +63,14 @@ class ReturnStatistics:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> 'ReturnStatistics':
+    def from_dict(cls, data: Dict[str, Any]) -> 'ReturnStatistics':
         """Create ReturnStatistics from dictionary with mapped field names"""
         return cls(
-            first_serve_return_points_won=data.get('first_serve_return_won', 0.3),
-            second_serve_return_points_won=data.get('second_serve_return_won', 0.5),
-            break_points_converted=data.get('break_points_converted', 0.4),
-            return_games_won_percentage=data.get('return_games_won_pct', 0.2),
-            return_winners_per_match=data.get('return_winners_per_match', 8.0)
+            first_serve_return_points_won=data.get('first_serve_return_won', data.get('first_serve_return_points_won')),
+            second_serve_return_points_won=data.get('second_serve_return_won', data.get('second_serve_return_points_won')),
+            break_points_converted=data.get('break_points_converted'),
+            return_games_won_percentage=data.get('return_games_won_pct', data.get('return_games_won_percentage')),
+            return_winners_per_match=data.get('return_winners_per_match')
         )
 
 
@@ -95,7 +95,7 @@ class SurfaceStats:
             return 0.5
         return self.wins / self.total_matches
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             'surface': self.surface,
             'matches_played': self.matches_played,
@@ -107,7 +107,7 @@ class SurfaceStats:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> 'SurfaceStats':
+    def from_dict(cls, data: Dict[str, Any]) -> 'SurfaceStats':
         """Create SurfaceStats from dictionary"""
         # Note: win_percentage is calculated, so we don't use it in the constructor
         return cls(
@@ -150,7 +150,7 @@ class PlayerStats:
     last_updated: datetime = field(default_factory=datetime.now)
     
     # Head-to-head records (opponent_name -> (wins, losses))
-    head_to_head: Dict[str, tuple] = field(default_factory=dict)
+    head_to_head: Dict[str, tuple[int, int]] = field(default_factory=dict)
     
     def calculate_form_factor(self) -> float:
         """Calculate recent form factor based on last 10 matches"""
@@ -199,20 +199,20 @@ class PlayerStats:
         factor = 0.7 + (h2h_win_rate * 0.6)
         return max(0.5, min(1.5, factor))
     
-    def update_recent_form(self, match_results: List[str]):
+    def update_recent_form(self, match_results: List[str]) -> None:
         """Update recent match results (W/L)"""
         self.recent_matches = match_results[-10:]  # Keep last 10 matches
         self.recent_form_factor = self.calculate_form_factor()
     
-    def add_surface_stats(self, surface: str, stats: SurfaceStats):
+    def add_surface_stats(self, surface: str, stats: SurfaceStats) -> None:
         """Add or update surface-specific statistics"""
         self.surface_stats[surface.lower()] = stats
     
-    def add_head_to_head(self, opponent: str, wins: int, losses: int):
+    def add_head_to_head(self, opponent: str, wins: int, losses: int) -> None:
         """Add or update head-to-head record against opponent"""
         self.head_to_head[opponent] = (wins, losses)
     
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization"""
         return {
             'name': self.name,
@@ -235,7 +235,7 @@ class PlayerStats:
         }
     
     @classmethod
-    def from_dict(cls, data: Dict) -> 'PlayerStats':
+    def from_dict(cls, data: Dict[str, Any]) -> 'PlayerStats':
         """Create PlayerStats from dictionary"""
         # Make a copy to avoid modifying the original data
         data = data.copy()
@@ -246,10 +246,14 @@ class PlayerStats:
                 data['last_updated'] = datetime.fromisoformat(data['last_updated'])
         
         # Handle nested objects
-        if 'serve_stats' in data and isinstance(data['serve_stats'], dict):
+        if data.get('serve_stats') is None:
+            data['serve_stats'] = ServeStatistics()
+        elif isinstance(data['serve_stats'], dict):
             data['serve_stats'] = ServeStatistics.from_dict(data['serve_stats'])
         
-        if 'return_stats' in data and isinstance(data['return_stats'], dict):
+        if data.get('return_stats') is None:
+            data['return_stats'] = ReturnStatistics()
+        elif isinstance(data['return_stats'], dict):
             data['return_stats'] = ReturnStatistics.from_dict(data['return_stats'])
         
         if 'surface_stats' in data and isinstance(data['surface_stats'], dict):

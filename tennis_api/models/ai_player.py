@@ -12,6 +12,7 @@ import numpy as np
 import json
 from datetime import datetime
 from enum import Enum
+import warnings
 
 # ML imports - with fallback for development
 try:
@@ -163,6 +164,8 @@ class MLModel:
         
         X_array = np.array(X)
         y_array = np.array(y)
+        if not np.isfinite(np.asarray(X_array, dtype=float)).all() or not np.isfinite(np.asarray(y_array, dtype=float)).all():
+            raise ValueError("Missing observations or labels cannot enter player-model training")
         
         if feature_names:
             self.feature_names = feature_names
@@ -201,6 +204,8 @@ class MLModel:
             return 0.5  # Default fallback
         
         X_array = np.array([X])
+        if not np.isfinite(np.asarray(X_array, dtype=float)).all():
+            raise ValueError("Missing observations cannot enter a trained player model")
         
         if self.scaler:
             X_scaled = self.scaler.transform(X_array)
@@ -281,9 +286,8 @@ class PlayerAI(PlayerEnhanced):
             Tuple of (predicted_serve_percentage, confidence)
         """
         # Create feature vector from player state and context
-        features = self._create_serve_features(context)
-        
         if self.serve_model.is_trained:
+            features = self._create_serve_features(context)
             prediction, confidence = self.serve_model.predict_with_confidence(features)
         else:
             # Fallback to enhanced player calculation
@@ -305,9 +309,8 @@ class PlayerAI(PlayerEnhanced):
         Returns:
             Tuple of (predicted_return_percentage, confidence)
         """
-        features = self._create_return_features(context)
-        
         if self.return_model.is_trained:
+            features = self._create_return_features(context)
             prediction, confidence = self.return_model.predict_with_confidence(features)
         else:
             # Fallback calculation
@@ -423,12 +426,12 @@ class PlayerAI(PlayerEnhanced):
             self.mental_state.confidence_level,
             self.mental_state.momentum,
             self.get_surface_multiplier(context.surface),
-            self.api_stats.serve_stats.first_serve_percentage if self.api_stats else 0.6,
-            self.api_stats.serve_stats.first_serve_win_percentage if self.api_stats else 0.65,
-            self.api_stats.serve_stats.aces_per_match if self.api_stats else 5.0
+            self.api_stats.serve_stats.first_serve_percentage if self.api_stats else None,
+            self.api_stats.serve_stats.first_serve_win_percentage if self.api_stats else None,
+            self.api_stats.serve_stats.aces_per_match if self.api_stats else None
         ]
         
-        return base_features + player_features
+        return [float(value) if value is not None else np.nan for value in base_features + player_features]
     
     def _create_return_features(self, context: PerformanceContext) -> List[float]:
         """Create feature vector for return prediction"""
@@ -440,12 +443,12 @@ class PlayerAI(PlayerEnhanced):
             self.physical_condition.stamina_level,
             self.mental_state.confidence_level,
             self.get_surface_multiplier(context.surface),
-            self.api_stats.return_stats.first_serve_return_points_won if self.api_stats else 0.3,
-            self.api_stats.return_stats.second_serve_return_points_won if self.api_stats else 0.5,
-            self.api_stats.return_stats.break_points_converted if self.api_stats else 0.4
+            self.api_stats.return_stats.first_serve_return_points_won if self.api_stats else None,
+            self.api_stats.return_stats.second_serve_return_points_won if self.api_stats else None,
+            self.api_stats.return_stats.break_points_converted if self.api_stats else None
         ]
         
-        return base_features + player_features
+        return [float(value) if value is not None else np.nan for value in base_features + player_features]
     
     def _create_mental_features(self, pressure_level: float, context: PerformanceContext) -> List[float]:
         """Create feature vector for mental state prediction"""
@@ -496,21 +499,28 @@ class PlayerAI(PlayerEnhanced):
         """Collect training data from completed match"""
         # Serve training data
         serve_features = self._create_serve_features(context)
-        actual_serve_performance = match_stats.get('serve_percentage', 0.65)
-        self.training_data['serve'].append(serve_features)
-        self.training_labels['serve'].append(actual_serve_performance)
+        actual_serve_performance = match_stats.get('serve_percentage')
+        if actual_serve_performance is not None and np.isfinite(actual_serve_performance) and np.isfinite(serve_features).all():
+            self.training_data['serve'].append(serve_features)
+            self.training_labels['serve'].append(actual_serve_performance)
+        else:
+            warnings.warn("Skipping serve training row with missing observations or label", RuntimeWarning, stacklevel=2)
         
         # Return training data
         return_features = self._create_return_features(context)
-        actual_return_performance = match_stats.get('return_percentage', 0.35)
-        self.training_data['return'].append(return_features)
-        self.training_labels['return'].append(actual_return_performance)
+        actual_return_performance = match_stats.get('return_percentage')
+        if actual_return_performance is not None and np.isfinite(actual_return_performance) and np.isfinite(return_features).all():
+            self.training_data['return'].append(return_features)
+            self.training_labels['return'].append(actual_return_performance)
+        else:
+            warnings.warn("Skipping return training row with missing observations or label", RuntimeWarning, stacklevel=2)
         
         # Outcome training data
         outcome_features = serve_features[:10] + return_features[10:15]  # Combine key features
         outcome_label = 1.0 if match_result == 'W' else 0.0
-        self.training_data['outcome'].append(outcome_features)
-        self.training_labels['outcome'].append(outcome_label)
+        if np.isfinite(outcome_features).all():
+            self.training_data['outcome'].append(outcome_features)
+            self.training_labels['outcome'].append(outcome_label)
     
     def _retrain_models(self) -> Dict[str, Dict[str, float]]:
         """Retrain all models with collected data"""
