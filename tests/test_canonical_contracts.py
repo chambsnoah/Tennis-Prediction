@@ -590,3 +590,43 @@ def test_withdrawal_identity_round_trips_and_survives_swap(match):
         replace(withdrawn, withdrawn_player_id=PlayerId("canonical:outsider"))
     with pytest.raises(ValueError, match="Withdrawal"):
         replace(match, withdrawn_player_id=P1)
+
+
+@pytest.mark.parametrize("best_of", [3, 5])
+@pytest.mark.parametrize("swapped", [False, True])
+def test_historical_twelve_all_deciding_tiebreak_round_trips(best_of, swapped, match):
+    split_sets = ((6, 4), (4, 6)) * (best_of // 2)
+    score = MatchScore(
+        sets=(*split_sets, (13, 12)),
+        tiebreak_points=(*(None for _ in split_sets), (7, 3)),
+    )
+    result = replace(match, best_of=best_of, score=score)
+    if swapped:
+        result = result.swapped()
+    assert Match.from_dict(result.to_dict()) == result
+    assert result.swapped().swapped() == result
+
+
+@pytest.mark.parametrize(
+    "sets",
+    [
+        ((13, 12), (6, 4), (6, 4)),
+        ((6, 4), (4, 6), (6, 4), (13, 12)),
+        ((4, 6), (6, 4), (4, 6), (13, 12), (6, 4)),
+    ],
+)
+def test_twelve_all_tiebreak_requires_actual_deciding_set(sets, match):
+    with pytest.raises(ValueError, match="incomplete set"):
+        replace(match, best_of=5, score=MatchScore(sets=sets))
+
+
+def test_historical_in_progress_twelve_all_tiebreak_round_trips(match):
+    result = replace(
+        match,
+        status=MatchStatus.RETIRED,
+        score=MatchScore(
+            sets=((6, 4), (4, 6), (12, 12)),
+            tiebreak_points=(None, None, (3, 2)),
+        ),
+    )
+    assert Match.from_dict(result.to_dict()) == result

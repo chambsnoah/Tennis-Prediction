@@ -256,9 +256,9 @@ class MatchScore(Contract):
         for games, points in zip(self.sets, self.tiebreak_points):
             if points is None:
                 continue
-            if games not in ((7, 6), (6, 7), (6, 6)):
+            if games not in ((7, 6), (6, 7), (6, 6), (13, 12), (12, 13), (12, 12)):
                 raise ValueError("Tiebreak points require a tiebreak set")
-            if games != (6, 6) and (
+            if games[0] != games[1] and (
                 max(points) < 7
                 or abs(points[0] - points[1]) < 2
                 or (
@@ -334,6 +334,11 @@ class Match(Contract):
                 if not (
                     (max(a, b) >= 6 and abs(a - b) == 2)
                     or (max(a, b) == 7 and min(a, b) == 6)
+                    or (
+                        max(a, b) == 13
+                        and min(a, b) == 12
+                        and counts[0] == counts[1] == self.best_of // 2
+                    )
                     or (max(a, b) == 6 and min(a, b) <= 4)
                 ):
                     raise ValueError("Completed match has an incomplete set")
