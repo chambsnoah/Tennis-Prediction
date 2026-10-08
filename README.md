@@ -160,11 +160,11 @@ Live provider contracts are skipped unless explicitly requested with
 consume provider quota. Ordinary tests never read your checkout's `.env`.
 
 The CI workflow tests Python 3.11-3.13 and blocks on each failure, fatal Ruff
-lint checks, strict mypy checks for pool rules and scoring, a locked dependency
-audit (including optional features and development tools), and a redacted
-Gitleaks history scan. Legacy runner scripts delegate to pytest and propagate
-its exit status; a partial pass is not a release or prediction-quality claim.
-Type coverage can expand as canonical contracts and model modules land.
+lint checks, strict mypy checks for pool rules/scoring and canonical contracts,
+a locked dependency audit (including optional features and development tools),
+and a redacted Gitleaks history scan. Legacy runner scripts delegate to pytest
+and propagate its exit status; a partial pass is not a release or prediction-quality claim.
+Type coverage can expand as feature and model modules land.
 
 ```bash
 uv run --locked ruff check .
@@ -176,3 +176,40 @@ uv run --locked pip-audit --strict --disable-pip --no-deps -r /tmp/tennis-audit.
 Chronological model smoke evaluation will join these gates when the
 backtesting harness in issue #12 is implemented; no accuracy threshold is
 claimed by the current CI.
+
+## Canonical Contracts
+
+New pipeline code imports versioned records from
+`tennis_api.models.canonical`, not the legacy provider models. The module defines
+opaque namespaced player/event/match IDs, provenance, events, matches and scores,
+ranking snapshots, measured player-match counts, fixed-order draws, and the
+`MatchProbabilityProvider.predict(PredictionContext)` interface. Canonical IDs
+must be resolved by adapters; names are display labels, not identity keys.
+
+Records are immutable and support JSON-compatible `to_dict()` / `from_dict()`.
+Every nested record requires schema version 1; unknown versions/fields fail
+closed. Missing rankings/statistics are `None`, never plausible numeric defaults.
+Times must be timezone-aware; date-only match times remain dates and are excluded
+from history until the entire UTC day has passed. Availability must strictly
+precede the prediction cutoff, and the target result is excluded from history.
+
+Winners are player IDs. Scores and probabilities use player1/player2 order;
+`swapped()` reverses scores or complements win probability without changing the
+winner's or withdrawn player's identity. Unknown withdrawal identity stays
+`None`; a known withdrawal identifies an entrant, never the walkover winner.
+Probability responses declare model/calibration versions,
+cutoff, coverage, warnings and whether availability risk is already included.
+Call `require_context(context)` before consuming a response.
+The response's `context_digest` must equal `context.digest`, binding all request
+inputs (including event, format and historical snapshots) while preserving swaps.
+Missing calibration version explicitly means uncalibrated; this interface does
+not validate a model or imply detailed score/serve forecasts.
+
+The boundary is source adapters -> canonical records -> as-of tennis features ->
+probability provider -> neutral simulation -> pool objectives -> presentation.
+Prediction contexts accept no arbitrary feature dictionary or pool ownership,
+quotas or scores. Legacy imports stay unchanged. Issue #2 removed fabricated
+statistics defaults, but older numeric exports cannot be repaired without the
+original observations and must not be migrated as measured data. Legacy ensemble
+artifacts require retraining. Identity resolution and provider adapters follow in
+issues #8 and #10; canonical contracts do not fetch or approve source data.
