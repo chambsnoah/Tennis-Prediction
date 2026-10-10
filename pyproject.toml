@@ -61,7 +61,12 @@ select = ["E9", "F63", "F7", "F82", "F821"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["tennis_pool", "pool_optimizer/pool/scoring.py"]
+files = ["tennis_pool", "pool_optimizer/pool/scoring.py", "tennis_api/models/canonical.py"]
 strict = true
 warn_unused_ignores = true
 exclude = ["/tests/"]
+
+[[tool.mypy.overrides]]
+# Package initializers re-export legacy optional-ML models outside this gate.
+module = ["tennis_api", "tennis_api.models"]
+follow_imports = "skip"
