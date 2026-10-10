@@ -211,5 +211,30 @@ Prediction contexts accept no arbitrary feature dictionary or pool ownership,
 quotas or scores. Legacy imports stay unchanged. Issue #2 removed fabricated
 statistics defaults, but older numeric exports cannot be repaired without the
 original observations and must not be migrated as measured data. Legacy ensemble
-artifacts require retraining. Identity resolution and provider adapters follow in
-issues #8 and #10; canonical contracts do not fetch or approve source data.
+artifacts require retraining. Provider adapters follow in issue #10; canonical
+contracts do not fetch or approve source data.
+
+### Reviewed Player Identities
+
+`tennis_api.models.identity.IdentityRegistry` is the adapter boundary for issue #8.
+It stores canonical `Player` records, reviewed `ProviderMapping` records and
+`ReviewedAlias` records for workbook names. Each mapping carries source evidence,
+reviewer and timezone-aware review time. Provider IDs are opaque strings scoped
+by source and tour, preserving leading zeros; duplicate/colliding keys and dangling
+or cross-tour player references fail at registry construction.
+
+Call `resolve(source=..., tour=Tour.ATP, external_id=...)` for historical/current
+provider records or `resolve(source=..., tour=Tour.ATP, name=...)` for an exact
+reviewed workbook alias. Unknown provider IDs never fall back to names. Accent,
+case and surname normalization is used only by `candidates()` for review, never
+to accept an identity. A supplied provider ID and conflicting reviewed name also
+fail closed. Catch `IdentityResolutionError` to quarantine the input with its
+`reason` and candidate IDs; do not emit canonical training records for that row.
+
+Registries are immutable revision snapshots with strict version-1 JSON
+`to_dict()` / `from_dict()` round trips and an order-independent SHA-256 `digest`.
+Record revision and digest with downstream datasets. To approve a candidate or
+rename, create a new revision with an evidenced mapping/alias and keep the old
+snapshot for replay. Changing a display name never creates a new canonical ID.
+The synthetic test mappings are not real source approvals; no live data is
+fetched and legacy name-based APIs are unchanged until their adapters migrate.
