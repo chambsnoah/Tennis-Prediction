@@ -70,3 +70,8 @@ exclude = ["/tests/"]
 # Package initializers re-export legacy optional-ML models outside this gate.
 module = ["tennis_api", "tennis_api.models"]
 follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+# The optional Excel parser ships no typing metadata; keep adapter code strict.
+module = ["openpyxl", "openpyxl.*"]
+ignore_missing_imports = true
