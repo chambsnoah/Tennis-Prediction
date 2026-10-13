@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from io import BytesIO
 from pathlib import Path
 import posixpath
 import re
 import stat
+import warnings
 from typing import Any
 from xml.etree import ElementTree
 from zipfile import ZipFile
@@ -469,8 +470,14 @@ def preview_workbook(
 ) -> WorkbookPreview:
     """Preview authorized local records without consuming state or logging private rows."""
     try:
-        return _preview(path, event, year, format, registry, provenance, limits,
-                        season_path, season_provenance)
+        # Parser warnings may quote defined names or other private metadata.
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            result = _preview(path, event, year, format, registry, provenance, limits,
+                              season_path, season_provenance)
+        if captured:
+            result = replace(result, warnings=result.warnings + ("workbook_parser_warning",))
+        return result
     except WorkbookImportError as error:
         reason = str(error)
     except IdentityResolutionError:
@@ -604,11 +611,13 @@ def _preview(
             if absent:
                 warnings.append(sheet + ":missing_formula_cache")
             # Missing key caches cannot be mistaken for blank/no-history rows.
+            bank_name_column = (8 if support_rows and len(support_rows[0]) > 2
+                                and support_rows[0][2] == "Tournois Masters" else 12)
             if any(
                 (sheet == "Rankings" and j == 1)
                 or (sheet == "Choix" and (j < 2 or j % 2 == 0))
                 or (sheet == "Classement" and j < 2)
-                or (sheet == "Banques (Solde restant)" and j in (1, 8, 12))
+                or (sheet == "Banques (Solde restant)" and j in (1, bank_name_column))
                 or (sheet == "ChoixSommaire" and (j == 0 or i == 2))
                 or (sheet == "Substitutions" and j < 4)
                 for i, j in absent

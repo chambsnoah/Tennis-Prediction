@@ -294,7 +294,9 @@ Check `missing_sheets`, `unsupported_sheets`, summary `missing_values`, and
 quotas and missing formula caches are explicit; nothing is filled with zero or
 a guessed rank. Both cached-value and formula views are read, without formula
 evaluation; missing identity caches make the affected layout unsupported.
-`WorkbookImportError` exposes only safe reason codes. `WorkbookLimits` defaults
+`WorkbookImportError` exposes only safe reason codes. Parser warnings are captured
+and reduced to `workbook_parser_warning`, never emitted with source metadata.
+`WorkbookLimits` defaults
 to 8 MiB/file, 32 MiB expanded ZIP, 256 members, 10,000 rows/sheet, 128 columns,
 and 300,000 actual/dense cells across worksheets per file, enforced before
 openpyxl parsing. DTD/entities and malformed/duplicate ZIP or cell structures are

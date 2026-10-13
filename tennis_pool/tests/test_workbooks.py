@@ -7,6 +7,7 @@ import re
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from openpyxl import Workbook
+from openpyxl.workbook.defined_name import DefinedName
 import pytest
 
 from tennis_api.models.canonical import (
@@ -298,6 +299,32 @@ def test_standings_event_heading_mismatch_cannot_misattribute_points(tmp_path, r
     assert result.season.standings == ()
 
 
+@pytest.mark.parametrize("valid", [True, False])
+def test_private_parser_warning_is_redacted_on_success_and_failure(tmp_path, registry, valid, capsys, recwarn):
+    wb = workbook()
+    wb.defined_names.add(DefinedName(
+        "_xlnm.Print_Area", attr_text="PRIVATE_SYNTHETIC_SECRET", localSheetId=0,
+    ))
+    if not valid:
+        wb["Draw"]["B2"] = "Unknown"
+        with pytest.raises(WorkbookImportError):
+            preview(tmp_path, registry, wb)
+    else:
+        result = preview(tmp_path, registry, wb)
+        assert "workbook_parser_warning" in result.warnings
+    assert not any("PRIVATE_SYNTHETIC_SECRET" in str(w.message) for w in recwarn)
+    assert "PRIVATE_SYNTHETIC_SECRET" not in capsys.readouterr().err
+
+
+def test_missing_full_season_quota_cache_preserves_other_bank_observations(tmp_path, registry):
+    wb = support_sheets(workbook())
+    wb["Banques (Solde restant)"]["I3"] = "=1+1"
+    result = preview(tmp_path, registry, wb)
+    assert "Banques (Solde restant)" not in result.unsupported_sheets
+    assert result.season.banks[0].masters == (2, 2, None, 2)
+    assert "Banques (Solde restant):missing_formula_cache" in result.warnings
+
+
 @pytest.mark.parametrize("sheet,cell,value", [
     ("Rankings", "A3", 0), ("Rankings", "B3", "Player 1"),
     ("Choix", "C2", "Unreviewed private label"), ("Choix", "D2", "invalid"),
@@ -431,15 +458,24 @@ def test_existing_numeric_formula_cache_is_used_not_recalculated(tmp_path, regis
     assert "Draw:missing_formula_cache" not in result.warnings
 
 
-def test_masters_only_banks_report_absent_slam_quotas(tmp_path, registry):
+@pytest.mark.parametrize("missing_names_cache", [False, True])
+def test_masters_only_banks_report_absent_slam_quotas(tmp_path, registry, missing_names_cache):
     wb = workbook()
     ws = wb.create_sheet("Banques (Solde restant)")
     ws.cell(1, 3, "Tournois Masters")
     for i, band in enumerate(("1-4", "5-8", "9-16", "17-32"), 3):
         ws.cell(2, i, band)
     ws.append([None, "Private Synthetic Participant", 9, 9, 9, 7, None, 0, None])
+    if missing_names_cache:
+        ws["I3"] = '=IF(TRUE,"Player 1","")'
     result = preview(tmp_path, registry, wb)
+    if missing_names_cache:
+        assert "Banques (Solde restant)" in result.unsupported_sheets
+        assert result.season.banks == ()
+        return
     assert result.summaries[0].records == 1
+    assert result.season.banks[0].slam is None
+    assert result.season.banks[0].masters == (9, 9, 9, 7)
     assert "Banques (Solde restant):slam_quotas_absent" in result.warnings
 
 
