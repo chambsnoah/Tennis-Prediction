@@ -369,7 +369,9 @@ def _support_summary(
     elif sheet == "Classement":
         if (len(rows) < 4 or width < 17 or rows[3][0] not in ("Position", "Rank", "Rang")
                 or rows[3][1] not in ("Participants", "Participant", "Nom")
-                or rows[3][16] != "Total"):
+                or rows[3][16] != "Total"
+                or any(heading not in (None, name)
+                       for heading, name in zip(rows[3][2:15], TOURNAMENTS))):
             raise _UnsupportedLayout
         for row in rows[4:]:
             if not any(v is not None for v in row):

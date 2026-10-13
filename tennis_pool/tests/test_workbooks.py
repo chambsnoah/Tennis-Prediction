@@ -288,6 +288,16 @@ def test_preview_retains_local_season_records_without_consuming_them(tmp_path, r
         season.usage[0].count = 0
 
 
+@pytest.mark.parametrize("headings", [("Paris", "Australie"), ("Unknown", "Indian Wells")])
+def test_standings_event_heading_mismatch_cannot_misattribute_points(tmp_path, registry, headings):
+    wb = support_sheets(workbook())
+    wb["Classement"]["C4"], wb["Classement"]["D4"] = headings
+    wb["Classement"]["C5"], wb["Classement"]["D5"] = 111, 222
+    result = preview(tmp_path, registry, wb)
+    assert "Classement" in result.unsupported_sheets
+    assert result.season.standings == ()
+
+
 @pytest.mark.parametrize("sheet,cell,value", [
     ("Rankings", "A3", 0), ("Rankings", "B3", "Player 1"),
     ("Choix", "C2", "Unreviewed private label"), ("Choix", "D2", "invalid"),
