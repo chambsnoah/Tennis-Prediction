@@ -238,3 +238,74 @@ rename, create a new revision with an evidenced mapping/alias and keep the old
 snapshot for replay. Changing a display name never creates a new canonical ID.
 The synthetic test mappings are not real source approvals; no live data is
 fetched and legacy name-based APIs are unchanged until their adapters migrate.
+
+## Workbook Preview
+
+`tennis_pool.workbooks.preview_workbook` is a read-only issue #11 adapter for
+authorized `.xlsx` / `.xlsm` input. Install the existing `excel` extra. Supply a
+canonical ATP `Event`, its explicit `year`, a `format` (`GS128`, `M7`, or `M6`),
+a reviewed `IdentityRegistry`, and workbook `Provenance`; filenames never infer
+metadata or identities. Every player label requires an exact, source-scoped
+reviewed alias. Registry revision/digest and source provenance accompany results.
+
+```python
+from tennis_pool.workbooks import preview_workbook
+
+# event, registry and evidence are caller-supplied reviewed records.
+preview = preview_workbook(
+    authorized_event_path, event=event, year=2026, format="M7",
+    registry=registry, provenance=evidence,
+    # Optional separate season file; its provenance must also be supplied.
+    season_path=authorized_season_path, season_provenance=season_evidence,
+)
+```
+
+The frozen preview contains a canonical draw, player-ID ranking measurements,
+sheet coverage summaries, and private local observations in `preview.season`:
+pick history (including substitute slot labels), standings, remaining banks,
+use counts and provided substitutions. These records retain participant labels
+for local reconciliation but are excluded from default preview representations;
+never publish or log them. Missing values remain `None`; workbook rankings
+have no inferred effective date and are not canonical as-of ranking snapshots.
+No ledger, season consumption, scoring or commit API is implemented.
+
+Supported formats cover the four Slams (`GS128`: 128 slots/entrants, 32 seeds),
+Indian Wells, Miami, Madrid, Rome, Canada, Cincinnati and Shanghai (`M7`: 128
+slots, 96 entrants, 32 seeds), and Monte Carlo/Paris (`M6`: 64 slots, 56 entrants,
+16 seeds). Use the legacy French event labels in `TOURNAMENTS`; explicit
+Australian Open/French Open and Canadian Masters/Toronto/Montreal labels are
+also accepted. Canada remains one event, not separate venue events. Only trailing,
+empty-result bye padding at positions 65-128 can be removed from an M6 sheet;
+other padding is rejected, never rebracketed heuristically.
+
+Layouts follow the reference's positional sheets: `Draw` header in column A,
+then position/player/rank/seed; `Rankings` rank/player; `Choix` participant blocks
+with 13 player/band pairs from column C; `Classement` rows from row 5, totals in
+Q; `Banques (Solde restant)` quotas from row 3 (full season or Masters-only);
+`ChoixSommaire` participant headers in row 3 and player/use rows from row 5.
+Recognized header labels and column order are validated. `Choix` rows labeled
+`Substitut`/`Remplacant` are alternatives; an optional `Substitutions` sheet uses
+exact headers `Participant, Event, Withdrawn, Replacement, Band`. Substitution
+legality/activation is not inferred. Conflicting copies of a support sheet in
+the event and season files fail rather than silently overwrite one another.
+
+Check `missing_sheets`, `unsupported_sheets`, summary `missing_values`, and
+`warnings` before using a preview. Absent support files/sheets, Masters-only Slam
+quotas and missing formula caches are explicit; nothing is filled with zero or
+a guessed rank. Both cached-value and formula views are read, without formula
+evaluation; missing identity caches make the affected layout unsupported.
+`WorkbookImportError` exposes only safe reason codes. `WorkbookLimits` defaults
+to 8 MiB/file, 32 MiB expanded ZIP, 256 members, 10,000 rows/sheet, 128 columns,
+and 300,000 actual/dense cells across worksheets per file, enforced before
+openpyxl parsing. DTD/entities and malformed/duplicate ZIP or cell structures are
+rejected. Workbooks always close; VBA is not retained/executed and external links
+are not loaded. Worksheet relationships must target local `xl/worksheets/*.xml`
+members so relocated payloads cannot bypass preflight. This is bounded data
+parsing, not an untrusted-file sandbox.
+
+Tests generate wholly synthetic workbooks at runtime. No real workbook has been
+audited or compatibility-certified; unfamiliar headers/layouts remain explicit
+limitations. Legacy `pool_optimizer/pool/parsers.py` is unchanged. This adapter
+does not authorize private-data publication or unblock historical retrieval in
+issues #9/#10; the [historical source policy](docs/data/HISTORICAL_SOURCE_POLICY.md)
+still applies.
