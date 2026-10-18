@@ -239,6 +239,91 @@ snapshot for replay. Changing a display name never creates a new canonical ID.
 The synthetic test mappings are not real source approvals; no live data is
 fetched and legacy name-based APIs are unchanged until their adapters migrate.
 
+### Cited Information Observations
+
+Issue #17 adds `tennis_api.models.information`, a local, reporting-only replacement
+contract for name-keyed form overrides. Legacy code and files are not migrated or
+modified. An `Observation` has a canonical player/event/tour scope, citation,
+certainty in `[0, 1]`, positive `record_version`, registry revision/digest, and
+`Provenance` containing the source, pinned source revision (`source_version`),
+source record ID, observed/available/ingested timestamps. `effective_at` and
+`expires_at` delimit its validity. All times are timezone-aware and normalized to
+UTC. Missing observed times, record IDs, unsupported schemas/fields and invalid
+payloads fail closed.
+
+The payload is exactly one of `MarketAdjustment`, `AnalystOpinion`,
+`VerifiedWithdrawal` or `InjuryRisk`; `observation.kind` is derived from that typed
+payload. A market adjustment is a signed match-win probability change with explicit
+`probability_points` (range `[-1, 1]`) or `percentage_points` (`[-100, 100]`) units
+and independent, cited adjustment provenance. `0.02` probability points equals
+`2` percentage points. Analyst opinions are text, verified withdrawals require a
+strict boolean, and injury estimates require a probability in `[0, 1]`. Certainty
+does not turn an opinion into a measurement or replace injury probability.
+Nothing in this module adjusts model probabilities, sums deltas or activates a
+withdrawal automatically.
+
+```python
+from tennis_api.models.information import InformationCollection, InformationKind, Observation
+
+# local_json is a version-1 observation JSON object without player_id,
+# registry_revision or registry_digest; registry is a reviewed IdentityRegistry.
+item = Observation.import_local(local_json, registry=registry, external_id="001")
+# Alternatively name=... requires an exact, source/tour-scoped reviewed alias.
+collection = InformationCollection(revision="local-r1", observations=(item,))
+snapshot = collection.as_of(
+    cutoff=prediction_cutoff, event_id=item.event_id, tour=item.tour,
+    player_ids=(item.player_id,),
+)
+report = snapshot.state(item.player_id, InformationKind.INJURY_RISK)
+print(report.status, report.missing)  # Never substitute missing risk with zero.
+saved_json = snapshot.to_dict()      # InformationSnapshot.from_dict(...) replays it.
+```
+
+`Observation.from_dict()` replays already-canonical records; `import_local()`
+resolves local source IDs or reviewed aliases and records the registry lineage.
+Unknown provider IDs never fall back to names. `InformationCollection` and
+`InformationSnapshot` are immutable version-1 contracts with strict JSON round
+trips and deterministic SHA-256 digests. Collections deduplicate identical source
+record/version imports, including imports resolved through different aliases;
+different contents for that same key are rejected. `extend(revision=...,
+observations=(... ,))` requires a new collection revision and retains prior record
+versions. Record revisions cannot change player/event/tour/kind or move knowledge
+timestamps backwards. The highest visible record version supersedes earlier
+versions when known, even if its effective time is still pending; earlier cutoffs
+retain their earlier versions. Preserve old collections/snapshots for audit.
+
+Availability must be **strictly before** the cutoff. The default `locally_known`
+mode also requires ingestion strictly before it. Active validity is
+`effective_at <= cutoff < expires_at`; expiry at the cutoff is stale. Reports
+retain separate `active`, `stale` and `pending` evidence tuples, with a status of
+`active`, `conflicting`, `stale`, `pending` or `missing`. Every requested player
+has a report for every kind; no active evidence means `missing=True`, including
+stale/pending-only cases. Different active values are conflicts, regardless of
+certainty or source preference. Equal values from independent records remain
+separate citations, not accumulated adjustments; equivalent market units agree.
+No conflicting winner is chosen. Only the requested event, tour and player roster
+can enter a snapshot; information is never implicitly shared across events.
+
+For a later local import to support a backtest, explicitly request
+`mode=SnapshotMode.HISTORICAL_RECONSTRUCTION` and supply each observation's
+`historical_snapshot: Provenance`. This must cite an archived snapshot record and
+revision, captured no earlier than the observation's claimed source availability;
+the archive itself must have been available strictly before the cutoff. It must
+have been ingested no later than the observation that cites it. Reconstruction
+mode requires this evidence for every selected record. A current snapshot,
+backdated availability alone, or a later archive never establishes historical
+knowledge. Mode and archive lineage persist in snapshot JSON/digests. These are
+validated caller-supplied evidence declarations, not independent authentication of
+the archive or permission to retrieve it; retain and review the cited artifacts.
+
+**No live provider is approved for this workflow.** The
+[historical source policy](docs/data/historical_source_policy.json) remains
+blocked. Snapshots explicitly report
+`refresh_status="blocked_no_approved_provider"`; this module performs no network
+refresh and adds no provider adapter. Existing legacy API examples elsewhere in
+this README do not approve a source for information observations or backtests.
+Tests use synthetic records only and never read the separate `/tennis` project.
+
 ## Workbook Preview
 
 `tennis_pool.workbooks.preview_workbook` is a read-only issue #11 adapter for
