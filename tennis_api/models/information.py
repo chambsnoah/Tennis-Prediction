@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from enum import Enum
+from fractions import Fraction
 import hashlib
 import json
 import re
@@ -214,9 +215,10 @@ def _ordered(observations: tuple[Observation, ...]) -> tuple[Observation, ...]:
             (previous.player_id, previous.event_id, previous.tour, previous.kind)
             != (current.player_id, current.event_id, current.tour, current.kind)
             or previous.provenance.available_at > current.provenance.available_at
-            or previous.provenance.ingested_at > current.provenance.ingested_at
         ):
-            raise ValueError("Record revisions must preserve scope and knowledge order")
+            raise ValueError(
+                "Record revisions must preserve scope and source availability order"
+            )
     return ordered
 
 
@@ -267,12 +269,11 @@ class InformationState(Contract):
         for item in self.active:
             payload = item.payload
             if isinstance(payload, MarketAdjustment):
-                value = (
-                    payload.value / 100
-                    if payload.unit == AdjustmentUnit.PERCENTAGE_POINTS
-                    else payload.value
-                )
-                values.add(json.dumps(value))
+                # Compare declared decimal values without binary unit-conversion noise.
+                value = Fraction(str(payload.value))
+                if payload.unit == AdjustmentUnit.PERCENTAGE_POINTS:
+                    value /= 100
+                values.add(str(value))
             else:
                 values.add(json.dumps(payload.to_dict(), sort_keys=True))
         if len(values) > 1:

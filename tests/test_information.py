@@ -464,7 +464,13 @@ def test_adjustment_provenance_cannot_introduce_future_information():
         Observation.from_dict(data)
 
 
-def test_equivalent_numeric_reports_agree_without_aggregation_or_metadata_winners():
+@pytest.mark.parametrize(
+    ("percentage_points", "probability_points"),
+    [(-2, -0.02), (4.1, 0.041), (0.7, 0.007)],
+)
+def test_equivalent_numeric_reports_agree_without_aggregation_or_metadata_winners(
+    percentage_points, probability_points
+):
     from tennis_api.models.information import (
         InformationCollection,
         InformationKind,
@@ -483,8 +489,8 @@ def test_equivalent_numeric_reports_agree_without_aggregation_or_metadata_winner
             provenance=evidence(source_record_id=record_id),
         )
         for value, unit, record_id in (
-            (-2, AdjustmentUnit.PERCENTAGE_POINTS, "market-1"),
-            (-0.02, AdjustmentUnit.PROBABILITY_POINTS, "market-2"),
+            (percentage_points, AdjustmentUnit.PERCENTAGE_POINTS, "market-1"),
+            (probability_points, AdjustmentUnit.PROBABILITY_POINTS, "market-2"),
         )
     )
     snapshot = InformationCollection(
@@ -498,7 +504,7 @@ def test_equivalent_numeric_reports_agree_without_aggregation_or_metadata_winner
     assert market.status == InformationStatus.ACTIVE
     assert len(market.active) == 2
     disagreement = replace(
-        adjustments[1], payload=replace(adjustments[1].payload, value=0.02)
+        adjustments[1], payload=replace(adjustments[1].payload, value=-probability_points)
     )
     conflicting = InformationCollection(
         revision="r2", observations=(adjustments[0], disagreement)
@@ -552,3 +558,47 @@ def test_source_timestamps_require_timezones(field):
     data["provenance"][field] = "2026-01-10T09:00:00"
     with pytest.raises(ValueError):
         Observation.from_dict(data)
+
+
+def test_out_of_order_historical_backfill_preserves_source_revision_replay():
+    from tennis_api.models.information import InformationCollection, SnapshotMode
+
+    def archived_revision(version, available_at, ingested_at):
+        return observation(
+            record_version=version,
+            provenance=evidence(
+                source_version=f"source-r{version}",
+                observed_at=available_at,
+                available_at=available_at,
+                ingested_at=ingested_at,
+            ),
+            historical_snapshot=evidence(
+                source="synthetic-archive",
+                source_record_id=f"snapshot-{version}",
+                observed_at=available_at,
+                available_at=available_at,
+                ingested_at=ingested_at,
+            ),
+        )
+
+    older = archived_revision(1, NOW - timedelta(hours=2), NOW + timedelta(days=2))
+    newer = archived_revision(2, NOW - timedelta(hours=1), NOW + timedelta(days=1))
+    collection = InformationCollection(revision="r1", observations=(newer,)).extend(
+        revision="r2", observations=(older,)
+    )
+    args = dict(event_id=EVENT, tour=Tour.ATP, player_ids=(PLAYER,))
+    assert collection.as_of(
+        cutoff=NOW - timedelta(minutes=90),
+        mode=SnapshotMode.HISTORICAL_RECONSTRUCTION,
+        **args,
+    ).observations == (older,)
+    assert collection.as_of(
+        cutoff=NOW, mode=SnapshotMode.HISTORICAL_RECONSTRUCTION, **args
+    ).observations == (newer,)
+    assert collection.as_of(cutoff=NOW, **args).observations == ()
+    assert collection.as_of(
+        cutoff=NOW + timedelta(hours=36), **args
+    ).observations == (newer,)
+    assert collection.as_of(
+        cutoff=NOW + timedelta(days=3), **args
+    ).observations == (newer,)

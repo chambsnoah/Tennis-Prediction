@@ -287,8 +287,10 @@ trips and deterministic SHA-256 digests. Collections deduplicate identical sourc
 record/version imports, including imports resolved through different aliases;
 different contents for that same key are rejected. `extend(revision=...,
 observations=(... ,))` requires a new collection revision and retains prior record
-versions. Record revisions cannot change player/event/tour/kind or move knowledge
-timestamps backwards. The highest visible record version supersedes earlier
+versions. Record revisions cannot change player/event/tour/kind or move source
+availability backwards. Local ingestion may arrive out of order when backfilling
+older revisions; each record still has to meet its own ingestion cutoff. The
+highest visible record version supersedes earlier
 versions when known, even if its effective time is still pending; earlier cutoffs
 retain their earlier versions. Preserve old collections/snapshots for audit.
 
