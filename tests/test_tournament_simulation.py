@@ -460,3 +460,30 @@ def test_injected_generators_with_array_state_are_replayable(bit_generator):
         draw(), Provider(0.5), cutoff=CUTOFF, simulations=20, rng=restored
     )
     assert np.array_equal(first.champions, second.champions)
+
+
+def test_retiring_player_zero_cannot_turn_a_vacant_side_into_a_retirement():
+    bracket = draw()
+    bracket = replace(
+        bracket,
+        slots=(
+            *bracket.slots[:2],
+            DrawSlot(position=3, kind=EntryKind.BYE, player_id=None),
+            bracket.slots[3],
+        ),
+    )
+    result = simulate_tournament(
+        bracket,
+        Provider(),
+        cutoff=CUTOFF,
+        simulations=3,
+        rng=np.random.default_rng(7),
+        retirements=(ForcedRetirement(PlayerId("synthetic:p0"), 1),),
+    )
+    assert result.rounds[0].player1[:, 0].tolist() == [0, -1]
+    assert result.rounds[0].kinds[:, 0].tolist() == [
+        OutcomeKind.RETIRED,
+        OutcomeKind.UNCONTESTED,
+    ]
+    assert result.rounds[0].winners[:, 0].tolist() == [1, 2]
+    assert result.champions.tolist() == [1] * 3
