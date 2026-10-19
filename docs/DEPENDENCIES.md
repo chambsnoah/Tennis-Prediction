@@ -26,6 +26,7 @@ uv sync --locked --python 3.13 --no-dev
 # Optional features (extras may be combined)
 uv sync --locked --python 3.13 --no-dev --extra ml
 uv sync --locked --python 3.13 --no-dev --extra excel
+uv sync --locked --python 3.13 --no-dev --extra simulation
 uv sync --locked --python 3.13 --no-dev --extra web
 
 # Complete development environment
@@ -35,8 +36,9 @@ uv sync --locked --python 3.13 --all-extras --group dev
 Runtime includes both requests (synchronous HTTP) and aiohttp (asynchronous HTTP),
 plus date parsing support. `ml` supplies NumPy, pandas, joblib,
 scikit-learn, and the boosted-tree implementations used by the existing modules.
-`excel` supplies openpyxl for .xlsx/.xlsm workbooks; workbook adapters remain
-future work. `web` supplies Flask. `dev` supplies test and build
+`excel` supplies openpyxl for .xlsx/.xlsm workbooks.
+`simulation` supplies only NumPy for the neutral tournament simulator; it does
+not require the ML stack. `web` supplies Flask. `dev` supplies test and build
 tools and is not a runtime requirement.
 
 Web wheels do not bundle tournament or participant data. Set `TENNIS_DATA_ROOT`
@@ -85,7 +87,7 @@ Run the complete installation matrix and test suites with:
 uv run --locked --all-extras --group dev python scripts/validate_installations.py
 ```
 
-This creates fifteen temporary, non-editable wheel environments, checks their
+This creates eighteen temporary, non-editable wheel environments, checks their
 imports in isolated mode from outside the checkout, verifies that project
 modules originate inside the installed environment, and exercises the web data
 routes and subprocesses using temporary synthetic fixtures. Separately, it runs
@@ -116,6 +118,7 @@ model artifacts, a running server, or persistent cache writes:
 uv run --locked --no-dev python scripts/check_install.py runtime
 uv run --locked --no-dev --extra ml python scripts/check_install.py ml
 uv run --locked --no-dev --extra excel python scripts/check_install.py excel
+uv run --locked --no-dev --extra simulation python scripts/check_install.py simulation
 uv run --locked --no-dev --extra web python scripts/check_install.py web
 ```
 

@@ -1407,6 +1407,10 @@ ml = [
     { name = "xgboost", version = "3.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "xgboost", version = "3.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
+simulation = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
 web = [
     { name = "flask" },
 ]
@@ -1427,6 +1431,7 @@ requires-dist = [
     { name = "flask", marker = "extra == 'web'", specifier = ">=3.1,<4" },
     { name = "joblib", marker = "extra == 'ml'", specifier = ">=1.4,<2" },
     { name = "numpy", marker = "extra == 'ml'", specifier = ">=1.26,<3" },
+    { name = "numpy", marker = "extra == 'simulation'", specifier = ">=1.26,<3" },
     { name = "openpyxl", marker = "extra == 'excel'", specifier = ">=3.1,<4" },
     { name = "pandas", marker = "extra == 'ml'", specifier = ">=2.2,<3" },
     { name = "python-dateutil", specifier = ">=2.9,<3" },
@@ -1434,7 +1439,7 @@ requires-dist = [
     { name = "scikit-learn", marker = "extra == 'ml'", specifier = ">=1.5,<2" },
     { name = "xgboost", marker = "extra == 'ml'", specifier = ">=2.1,<4" },
 ]
-provides-extras = ["ml", "excel", "web"]
+provides-extras = ["ml", "excel", "simulation", "web"]
 
 [package.metadata.requires-dev]
 dev = [

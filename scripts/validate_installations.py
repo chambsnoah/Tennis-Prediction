@@ -12,7 +12,7 @@ def validate_installations(uv):
     subprocess.run([uv, "lock", "--check"], cwd=root, check=True)
     with tempfile.TemporaryDirectory(prefix="tennis-install-check-") as temporary:
         for version in ("3.11", "3.12", "3.13"):
-            for feature in ("runtime", "ml", "excel", "web", "all"):
+            for feature in ("runtime", "ml", "excel", "simulation", "web", "all"):
                 environment = Path(temporary) / f"{version}-{feature}"
                 options = ["--no-dev"]
                 if feature == "all":
