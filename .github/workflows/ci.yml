@@ -39,9 +39,11 @@ jobs:
         with:
           version: '0.12.23'
           python-version: '3.13'
-      - run: uv sync --locked --group dev
+      - run: uv sync --locked --extra simulation --group dev
       - run: uv run --locked ruff check .
       - run: uv run --locked mypy
+      # NumPy 2.4 stubs require a 3.12+ parser target; runtime tests still cover 3.11.
+      - run: uv run --locked --extra simulation mypy --python-version 3.13 tennis_api/simulation/tournament.py
       - run: uv run --locked mypy --strict --follow-imports=skip tennis_api/models/player_stats.py
 
   dependency-audit:

@@ -205,6 +205,62 @@ inputs (including event, format and historical snapshots) while preserving swaps
 Missing calibration version explicitly means uncalibrated; this interface does
 not validate a model or imply detailed score/serve forecasts.
 
+### Neutral Tournament Simulation
+
+Issue #18 adds `tennis_api.simulation.tournament.simulate_tournament`.
+Install `--extra simulation` for NumPy without the ML stack (`ml` also supplies
+NumPy). It accepts a canonical `Draw` and `MatchProbabilityProvider`:
+
+```python
+import numpy as np
+from tennis_api.simulation.tournament import simulate_tournament
+
+result = simulate_tournament(
+    draw, provider, cutoff=cutoff, simulations=20_000,
+    rng=np.random.default_rng(7),
+)
+```
+
+`draw`, `provider` and the timezone-aware `cutoff` are caller-supplied; no live
+source, model, or fallback is selected automatically. Optional `rankings`,
+`history` and `statistics` are canonical as-of snapshots. Rankings are filtered
+to each matchup; shared history/statistics must strictly predate the cutoff.
+Each sampled matchup/round queries the provider once, validates its response
+binding, and retains its model/calibration versions, coverage and warnings in
+`result.predictions`. Surface and best-of format come from the event unchanged.
+
+Arrays in `result.rounds` contain bracket-ordered player1/player2/winner indices
+into `result.player_ids`, plus `OutcomeKind` codes. `-1` means a vacant side or
+no champion. `result.round_reach[player, simulation]` is the last round entered,
+with `round_count + 1` for a champion and zero for a pre-event withdrawal. A bye
+advances a player but is not a played win; use outcome kinds to distinguish
+contested decisions, uncontested advancement, forced retirements and vacancies.
+Arrays are read-only by default. Pool points, upset bonuses and roster choices
+are deliberately absent. Unresolved qualifiers/lucky losers fail closed; resolve
+them or supply an explicitly revised draw. Replacements keep their fixed slots.
+
+There are **no implicit injury/withdrawal hazards**. Optional `withdrawn` is a
+frozenset of pre-first-match withdrawn player IDs. Optional `retirements` is a
+tuple of `ForcedRetirement(player_id, round_number)` scenarios, applied only if
+that player reaches a contested match in that round. Simultaneous opponent
+retirements require adjudication and raise an error; all-withdrawn brackets have
+no champion. Any explicit availability scenario rejects provider responses that
+already include availability risk. Provider-only probabilities may marginalize
+retirement risk, but `DECIDED` never asserts a completed match or invents a
+retirement identity, scoreline or duration. Scenario runs are conditional on
+caller assumptions, not estimates of the scenarios' likelihood.
+
+For replay, retain the original draw and as-of inputs, provider artifacts,
+locked NumPy version, simulation count, and the returned draw digest, cutoff,
+simulator version, scenario configuration and initial RNG state JSON. Restore
+the named NumPy bit generator's state before replay; seeds reproduce runs within
+the same implementation/dependency versions. This simulator is not wired to the
+legacy web optimizer and does not establish prediction quality.
+
+The strict simulation type gate is
+`uv run --locked --extra simulation mypy --python-version 3.13 tennis_api/simulation/tournament.py`.
+The parser target accommodates NumPy's newer stubs; runtime tests cover 3.11-3.13.
+
 The boundary is source adapters -> canonical records -> as-of tennis features ->
 probability provider -> neutral simulation -> pool objectives -> presentation.
 Prediction contexts accept no arbitrary feature dictionary or pool ownership,

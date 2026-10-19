@@ -45,6 +45,9 @@ def check_install(feature="runtime", require_wheel=False):
         assert workbook.active is not None
         workbook.close()
 
+    if feature in ("simulation", "all"):
+        import_module("tennis_api.simulation.tournament")
+
     if feature in ("web", "all"):
         with tempfile.TemporaryDirectory(prefix="tennis-web-smoke-") as directory:
             tournament = Path(directory) / "2024" / "smoke"
@@ -92,7 +95,7 @@ def check_install(feature="runtime", require_wheel=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("feature", choices=("runtime", "ml", "excel", "web", "all"))
+    parser.add_argument("feature", choices=("runtime", "ml", "excel", "simulation", "web", "all"))
     parser.add_argument("--require-wheel", action="store_true")
     args = parser.parse_args()
     check_install(args.feature, args.require_wheel)
