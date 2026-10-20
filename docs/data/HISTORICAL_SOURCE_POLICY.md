@@ -1,21 +1,38 @@
 # Historical ATP Source Policy
 
-Review date: **2026-10-07**. Scope: [issue #9](https://github.com/chambsnoah/Tennis-Prediction/issues/9); future ingestion: [#10](https://github.com/chambsnoah/Tennis-Prediction/issues/10).
+Initial review: **2026-10-07**. Source selection/access update: **2026-10-20**, policy **2026-10-20.1**. Scope: [issue #9](https://github.com/chambsnoah/Tennis-Prediction/issues/9); future ingestion: [#10](https://github.com/chambsnoah/Tennis-Prediction/issues/10).
 This is source research and project policy, **not legal advice or permission approval**.
 Machine-readable companion: [`historical_source_policy.json`](historical_source_policy.json), maintained separately; it must preserve the unresolved evidence and blocked gates below.
 
 ## Decision And Evidence Status
 
-- Provisionally select **JeffSackmann/tennis_atp** as the candidate for multi-year ATP singles, subject to restored access, verified version/license, quality review, and required use-case permission.
+- The project owner selected **JeffSackmann/tennis_atp** for multi-year ATP singles on **2026-10-20**. This replaces the provisional candidate decision, not the access, verified version/license, quality review, or required use-case permission gates. Selecting a source is not rights-holder approval.
 - **Exact latest commit SHA: unavailable; record `null`, not a fabricated pin.** GitHub repository metadata and commit endpoints returned HTTP 404 on the review date [S1].
 - **Pinned upstream README and repository license: not verified; record `null`.** Raw README checks on both `master` and `main` returned HTTP 404 [S1]. No immutable README URL can honestly be supplied yet.
 - A 404 establishes only failed public access during review, not whether the repository was deleted, renamed, made private, or temporarily inaccessible [S1].
 - Automated ingestion, paid-prize-pool decision support, and publication/redistribution **remain blocked**. Public accessibility, attribution, private operation, and this recommendation do not constitute approval.
 - Issue #9 is not fully resolved: source access, exact revision, applicable license, and required permission remain external blockers. Do not unblock #10's real-data retrieval on this document alone.
 
+## Selection And Access Update: 2026-10-20
+
+The owner's instruction was "lets go with the jeff sackmann source, is it free?"
+The same-day checks returned HTTP 404 for the repository metadata, latest-commit
+list, and both `master` and `main` README URLs in S1. These failures do not
+establish why access failed or verify a source revision or license. No dataset,
+live provider API, or commissioner workbook was accessed.
+
+S2 was accessible again and explicitly announces that the databases are "free
+for anyone who wants to use them." That establishes a **2015 free-access
+announcement**, not a verified current price, unrestricted license, or permission
+for paid-prize-pool use. The machine-readable cost status records that limitation;
+all three action gates remain false and the permission approval list stays empty.
+S3-S5 were not re-reviewed in this update; their findings below retain the initial
+review date. Historical partitions and the synthetic-only workbook policy are
+unchanged.
+
 ## Five Primary Sources
 
-All sources below were checked on **2026-10-07**; only GitHub public metadata/README and first-party informational/terms pages were requested. No historical dataset, repository archive, live provider API, or workbook was downloaded.
+All sources below were initially checked on **2026-10-07**; the update above identifies the subset rechecked on **2026-10-20**. Only GitHub public metadata/README and first-party informational/terms pages were requested. No historical dataset, repository archive, live provider API, or workbook was downloaded.
 
 | ID | Primary source and exact URL | Review result |
 | --- | --- | --- |

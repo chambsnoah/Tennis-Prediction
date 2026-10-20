@@ -20,10 +20,9 @@ def policy():
 
 def test_unavailable_source_has_no_invented_version_or_license(policy):
     assert policy["schema_version"] == 1
-    assert policy["policy_version"] == "2026-10-07.1"
+    assert policy["policy_version"] == "2026-10-20.1"
     source = policy["source"]
     assert source["repository"] == "https://github.com/JeffSackmann/tennis_atp"
-    assert source["selection"] == "provisional_candidate"
     assert source["access_status"] == "unavailable_http_404"
     assert source["revision"] is None
     assert source["terms_url"] is None
@@ -32,6 +31,29 @@ def test_unavailable_source_has_no_invented_version_or_license(policy):
     assert source["terms_verified"] is False
     assert source["attribution"]["creator"] == "Jeff Sackmann"
     assert source["attribution"]["changes_must_be_indicated"] is True
+
+
+def test_owner_source_selection_is_not_permission_approval(policy):
+    source = policy["source"]
+    assert source["selection"] == "selected_pending_access_and_permission"
+    assert source["selected_by"] == "project_owner"
+    assert date.fromisoformat(source["selected_on"]) == date(2026, 10, 20)
+    assert policy["reviewed_on"] == source["selected_on"]
+    assert policy["permissions"]["approvals"] == []
+    assert not any(policy["permissions"]["allowed_actions"].values())
+
+
+def test_historical_free_announcement_is_not_current_license_evidence(policy):
+    cost = policy["source"]["cost"]
+    assert cost["status"] == "historically_announced_free_current_terms_unverified"
+    assert cost["evidence_url"] == (
+        "https://www.tennisabstract.com/blog/2015/03/24/"
+        "free-atp-and-wta-results-and-stats-databases/"
+    )
+    assert date.fromisoformat(cost["announced_on"]) == date(2015, 3, 24)
+    assert policy["source"]["terms_verified"] is False
+    assert policy["source"]["license"] is None
+    assert policy["permissions"]["allowed_actions"]["paid_prize_pool_use"] is False
 
 
 @pytest.mark.parametrize("action", ["automated_ingestion", "publication", "paid_prize_pool_use"])

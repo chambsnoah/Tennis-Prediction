@@ -1,12 +1,19 @@
 {
   "schema_version": 1,
-  "policy_version": "2026-10-07.1",
-  "reviewed_on": "2026-10-07",
+  "policy_version": "2026-10-20.1",
+  "reviewed_on": "2026-10-20",
   "issue": 9,
   "source": {
     "id": "jeff_sackmann_tennis_atp",
     "repository": "https://github.com/JeffSackmann/tennis_atp",
-    "selection": "provisional_candidate",
+    "selection": "selected_pending_access_and_permission",
+    "selected_by": "project_owner",
+    "selected_on": "2026-10-20",
+    "cost": {
+      "status": "historically_announced_free_current_terms_unverified",
+      "evidence_url": "https://www.tennisabstract.com/blog/2015/03/24/free-atp-and-wta-results-and-stats-databases/",
+      "announced_on": "2015-03-24"
+    },
     "access_status": "unavailable_http_404",
     "revision": null,
     "terms_url": null,
