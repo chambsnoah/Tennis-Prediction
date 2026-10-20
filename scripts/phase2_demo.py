@@ -20,7 +20,6 @@ from tennis_api.models.player_stats import PlayerStats, ServeStatistics, ReturnS
 from tennis_api.ml.feature_engineering import FeatureExtractor, FeatureConfig
 from tennis_api.ml.prediction_models import OutcomePredictor, ScorePredictor, UpsetDetector
 from tennis_api.ml.ensemble import PredictionEnsemble, EnsembleConfig
-from tennis_api.simulation.enhanced_match_engine import EnhancedMatchEngine
 
 
 def create_sample_players():
@@ -273,9 +272,7 @@ def demonstrate_ml_predictions():
     
     # Score prediction
     score_result = score_predictor.predict(features)
-    score_pred = score_result.prediction
-    print(f"   Predicted Sets: {score_pred['winner_sets']}-{score_pred['loser_sets']}")
-    print(f"   Est. Duration: {score_pred['duration_minutes']} minutes")
+    print(f"   Score/Duration: unavailable ({score_result.explanation['reason']})")
     
     # Upset detection
     ranking_diff = -1  # Nadal ranked lower (upset potential)
@@ -343,7 +340,7 @@ def demonstrate_ai_ensemble():
     winner_name = nadal.name if prediction.winner_prediction == 1 else djokovic.name
     print(f"   Winner: {winner_name}")
     print(f"   Win Probability: {prediction.win_probability:.3f}")
-    print(f"   Predicted Score: {prediction.predicted_sets}")
+    print(f"   Predicted Score: unavailable ({prediction.detailed_forecast['reason']})")
     print(f"   Upset Risk: {prediction.upset_probability:.3f}")
     print(f"   Overall Confidence: {prediction.overall_confidence:.3f}")
     print(f"   Prediction Risk: {prediction.prediction_risk}")
@@ -352,72 +349,15 @@ def demonstrate_ai_ensemble():
 
 
 def demonstrate_enhanced_simulation():
-    """Demonstrate enhanced match simulation"""
-    print(f"\n8. AI-ENHANCED MATCH SIMULATION")
+    """Explain why the deprecated engine no longer supplies detailed forecasts."""
+    print(f"\n8. DEPRECATED MATCH SIMULATION")
     print("-" * 40)
-    
-    nadal, djokovic = create_sample_players()
-    
-    # Create ensemble for AI predictions
-    ensemble = PredictionEnsemble()
-    
-    # Create enhanced match engine with AI
-    engine = EnhancedMatchEngine(
-        prediction_ensemble=ensemble,
-        surface="clay",
-        tournament_tier="GrandSlam",
-        verbose=False,
-        seed=42
-    )
-    
-    # Setup match
-    engine.setup_match(nadal, djokovic, sets_to_win=3, player1_serves_first=True)
-    
-    print(f"   Match Setup: {nadal.name} vs {djokovic.name}")
-    print(f"   Surface: {engine.surface}")
-    print(f"   Tournament: {engine.tournament_tier}")
-    
-    # Show AI prediction
-    if engine.ai_predictions:
-        pred_winner = nadal.name if engine.ai_predictions.winner_prediction == 1 else djokovic.name
-        print(f"   AI Prediction: {pred_winner} ({engine.ai_predictions.win_probability:.1%})")
-    
-    # Simulate match
-    print(f"\n   Simulating match...")
-    result = engine.simulate_match()
-    
-    # Display results
-    print(f"\n   MATCH RESULT:")
-    print(f"   Winner: {result['winner_name']}")
-    print(f"   Final Score: {result['final_score']}")
-    print(f"   Duration: {result['match_duration_minutes']} minutes")
-    
-    # Show detailed statistics
-    stats = result['statistics']
-    print(f"\n   MATCH STATISTICS:")
-    print(f"   Total Points: {stats['total_points']}")
-    print(f"   Total Games: {stats['total_games']}")
-    print(f"   Sets Played: {stats['sets_played']}")
-    
-    player_stats = [stats['player1'], stats['player2']]
-    players = [nadal, djokovic]
-    
-    for i, (player, pstats) in enumerate(zip(players, player_stats)):
-        print(f"\n   {player.name}:")
-        print(f"     Points Won: {pstats['points_won']}")
-        print(f"     Games Won: {pstats['games_won']}")
-        print(f"     Sets Won: {pstats['sets_won']}")
-        print(f"     Aces: {pstats['aces']}")
-        print(f"     Double Faults: {pstats['double_faults']}")
-        print(f"     Break Points Won: {pstats['break_points_won']}")
-    
-    # Show AI prediction accuracy if available
-    if 'ai_prediction_accuracy' in result and result['ai_prediction_accuracy']:
-        accuracy = result['ai_prediction_accuracy']
-        print(f"\n   AI PREDICTION ACCURACY:")
-        print(f"   Winner Correct: {accuracy['winner_correct']}")
-        print(f"   Predicted Confidence: {accuracy['predicted_confidence']:.3f}")
-    
+    result = {
+        'status': 'unavailable',
+        'reason': 'EnhancedMatchEngine is deprecated; no validated model-to-serve mapping.',
+    }
+    print(f"   Detailed simulation: unavailable ({result['reason']})")
+    print("   Use tennis_preds.tennis.TennisMatch for synthetic rules exercises only.")
     return result
 
 
@@ -443,7 +383,7 @@ def main():
         print(f"✅ Advanced Feature Engineering Pipeline")
         print(f"✅ Machine Learning Prediction Models")
         print(f"✅ AI Prediction Ensemble System")
-        print(f"✅ Enhanced Match Simulation Engine")
+        print("Detailed match forecasting: unavailable (deprecated engine)")
         print(f"✅ Dynamic State Management")
         print(f"✅ Real-time Factor Adjustments")
         
@@ -452,8 +392,8 @@ def main():
         print(f"• Features Extracted: {len(features)}")
         print(f"• ML Models Tested: 3 (Outcome, Score, Upset)")
         print(f"• Ensemble Confidence: {ensemble_prediction.overall_confidence:.3f}")
-        print(f"• Simulation Duration: {match_result['match_duration_minutes']} min")
-        print(f"• Total Points Simulated: {match_result['statistics']['total_points']}")
+        print(f"Detailed simulation: {match_result['status']}")
+        print("No score, duration or point forecasts are produced.")
         
     except Exception as e:
         print(f"\n❌ Error during demonstration: {str(e)}")

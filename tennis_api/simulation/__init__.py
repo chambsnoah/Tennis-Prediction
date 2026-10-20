@@ -1,8 +1,9 @@
 """
-Enhanced Tennis Match Simulation Package
+Tennis simulation package.
 
-This package contains the enhanced match simulation engine that integrates
-AI predictions and dynamic state management for realistic tennis simulations.
+EnhancedMatchEngine is a deprecated historical export whose simulate_match
+rejects unvalidated detailed forecasts. Use tennis_preds.tennis.TennisMatch for
+synthetic point/game/set mechanics and .tournament for neutral bracket outcomes.
 """
 
 from typing import List

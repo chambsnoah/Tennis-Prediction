@@ -260,6 +260,7 @@ class TennisPredictionApp {
     displayMatchResults(results, player1Name, player2Name) {
         // Show results section
         document.getElementById('match-results').style.display = 'block';
+        document.querySelector('#match-results h3').textContent = 'Unvalidated Heuristic Results';
 
         // Update probability bar
         const probFill = document.getElementById('prob-fill');
@@ -279,36 +280,21 @@ class TennisPredictionApp {
         // Update match statistics
         document.getElementById('p1-wins').textContent = results.player1_wins;
         document.getElementById('p2-wins').textContent = results.player2_wins;
-        document.getElementById('p1-avg-points').textContent = `${results.player1_avg_points}`;
-        document.getElementById('p2-avg-points').textContent = `${results.player2_avg_points}`;
-        document.getElementById('p1-avg-sets').textContent = results.player1_avg_sets;
-        document.getElementById('p2-avg-sets').textContent = results.player2_avg_sets;
+        document.getElementById('p1-avg-points').textContent = 'Unavailable';
+        document.getElementById('p2-avg-points').textContent = 'Unavailable';
+        document.getElementById('p1-avg-sets').textContent = 'Unavailable';
+        document.getElementById('p2-avg-sets').textContent = 'Unavailable';
 
         // Update detailed statistics table
         const detailedStatsBody = document.getElementById('detailed-stats-body');
         detailedStatsBody.innerHTML = `
             <tr>
-                <td>Total Points Won</td>
-                <td>${results.player1_total_points}</td>
-                <td>${results.player2_total_points}</td>
+                <td colspan="3">Score, statistics and duration forecasts unavailable:
+                    no validated model-to-serve mapping. Win results use synthetic
+                    serve inputs, not calibrated model probabilities.</td>
             </tr>
             <tr>
-                <td>Average Points per Match</td>
-                <td>${results.player1_avg_points}</td>
-                <td>${results.player2_avg_points}</td>
-            </tr>
-            <tr>
-                <td>Total Sets Won</td>
-                <td>${results.player1_total_sets}</td>
-                <td>${results.player2_total_sets}</td>
-            </tr>
-            <tr>
-                <td>Average Sets per Match</td>
-                <td>${results.player1_avg_sets}</td>
-                <td>${results.player2_avg_sets}</td>
-            </tr>
-            <tr>
-                <td>Win Percentage</td>
+                <td>Unvalidated Heuristic Win Percentage</td>
                 <td>${results.player1_win_percentage}%</td>
                 <td>${results.player2_win_percentage}%</td>
             </tr>

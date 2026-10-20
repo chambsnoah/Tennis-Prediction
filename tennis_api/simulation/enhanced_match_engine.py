@@ -1,15 +1,14 @@
 """
-Enhanced Match Simulation Engine for Phase 2
+Deprecated Phase 2 engine retained for historical reference and adapters.
 
-This module implements an advanced tennis match simulation engine that integrates
-AI predictions, dynamic state management, and real-time factor adjustments.
+Use tennis_preds.tennis.TennisMatch for synthetic rules simulation. Detailed
+forecasting is unavailable until a model-to-serve mapping has been validated.
 """
 
 import random
-import numpy as np
+import warnings
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime, timedelta
 from enum import Enum
 
 from ..models.enhanced_player import PlayerEnhanced
@@ -88,10 +87,10 @@ class MatchStatistics:
 
 class EnhancedMatchEngine:
     """
-    Enhanced Tennis Match Simulation Engine
-    
-    Integrates AI predictions, dynamic player state management, and real-time
-    factor adjustments to provide highly realistic match simulations.
+    Deprecated duplicate engine; full match simulation is disabled.
+
+    Legacy helpers are retained for reference, not validated forecasting or a
+    supported alternative to the canonical TennisMatch rules engine.
     """
     
     def __init__(self, prediction_ensemble: Optional[PredictionEnsemble] = None,
@@ -103,10 +102,7 @@ class EnhancedMatchEngine:
         self.tournament_tier = tournament_tier
         self.verbose = verbose
         
-        # Set random seed for reproducibility
-        if seed is not None:
-            random.seed(seed)
-            np.random.seed(seed)
+        self._rng = random.Random(seed)
         
         # Match state
         self.match_state = MatchState.PRE_MATCH
@@ -257,10 +253,10 @@ class EnhancedMatchEngine:
     def _execute_point_simulation(self, serve_performance: float) -> Tuple[int, PointOutcome]:
         """Execute the actual point simulation"""
         # First serve attempt
-        if random.random() <= 0.65:  # First serve in
-            if random.random() <= serve_performance:
+        if self._rng.random() <= 0.65:  # First serve in
+            if self._rng.random() <= serve_performance:
                 # Check for ace
-                if random.random() <= 0.06:
+                if self._rng.random() <= 0.06:
                     return self.serving_player, PointOutcome.ACE
                 else:
                     return self.serving_player, PointOutcome.REGULAR_PLAY
@@ -268,8 +264,8 @@ class EnhancedMatchEngine:
                 return 3 - self.serving_player, PointOutcome.WINNER
         else:
             # Second serve
-            if random.random() <= 0.92:  # Second serve in
-                if random.random() <= serve_performance * 0.8:
+            if self._rng.random() <= 0.92:  # Second serve in
+                if self._rng.random() <= serve_performance * 0.8:
                     return self.serving_player, PointOutcome.REGULAR_PLAY
                 else:
                     return 3 - self.serving_player, PointOutcome.WINNER
@@ -382,48 +378,18 @@ class EnhancedMatchEngine:
         return set_winner
     
     def simulate_match(self) -> Dict[str, Any]:
-        """Simulate the complete match"""
-        if not self.player1 or not self.player2:
-            raise ValueError("Players not set up for simulation")
-        
-        match_start = datetime.now()
-        
-        while (self.statistics.p1_sets_won < self.sets_to_win and 
-               self.statistics.p2_sets_won < self.sets_to_win):
-            
-            set_winner = self.simulate_set()
-            
-            # Apply fatigue between sets
-            self._apply_between_set_effects()
-        
-        # Match complete
-        self.match_state = MatchState.MATCH_COMPLETE
-        match_duration = (datetime.now() - match_start).seconds // 60
-        self.statistics.duration_minutes = match_duration
-        
-        # Determine match winner
-        match_winner = 1 if self.statistics.p1_sets_won > self.statistics.p2_sets_won else 2
-        
-        # Create result
-        result = {
-            'winner': match_winner,
-            'winner_name': self.player1.name if match_winner == 1 else self.player2.name,
-            'final_score': self.current_set_scores,
-            'statistics': self.statistics.to_dict(),
-            'ai_prediction_accuracy': self._calculate_prediction_accuracy() if self.ai_predictions else None,
-            'match_duration_minutes': match_duration
-        }
-        
-        # Update player states after match
-        self._update_players_after_match(match_winner, match_duration)
-        
-        if self.verbose:
-            winner_name = self.player1.name if match_winner == 1 else self.player2.name
-            print(f"Match won by {winner_name}")
-            print(f"Final score: {self.current_set_scores}")
-            print(f"Duration: {match_duration} minutes")
-        
-        return result
+        """Reject unvalidated detailed forecasts without mutating match state."""
+        warnings.warn(
+            "EnhancedMatchEngine is deprecated; use tennis_preds.tennis.TennisMatch "
+            "for synthetic rules simulation, not detailed forecasting.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        raise NotImplementedError(
+            "Detailed score, statistics and duration forecasts are unavailable: "
+            "no validated model-to-serve mapping. Use tennis_preds.tennis.TennisMatch "
+            "only as a synthetic rules sandbox."
+        )
     
     def _apply_between_set_effects(self) -> None:
         """Apply fatigue and recovery effects between sets"""

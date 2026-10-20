@@ -8,6 +8,9 @@ feature engineering pipeline, and enhanced match simulation.
 import pytest
 from typing import Dict, List, Any
 import json
+import random
+
+import numpy as np
 
 from tennis_api.models.enhanced_player import PlayerEnhanced, PhysicalCondition, MentalState, ContextualFactors
 from tennis_api.models.ai_player import PlayerAI, PerformanceContext, MLModel
@@ -226,16 +229,18 @@ class TestMLModels:
         assert 0.0 <= result.confidence <= 1.0
         assert result.model_type.value == "outcome"
         
-    def test_score_predictor_fallback(self):
-        """Test score prediction without training"""
+    @pytest.mark.parametrize("trained", [False, True])
+    def test_score_predictor_withholds_unvalidated_forecasts(self, trained):
         predictor = ScorePredictor()
+        predictor.is_trained = trained
         
         features = [0.5] * 20
         result = predictor.predict(features)
         
-        assert isinstance(result.prediction, dict)
-        assert 'winner_sets' in result.prediction
-        assert 'duration_minutes' in result.prediction
+        assert result.prediction is None
+        assert result.confidence == 0
+        assert result.explanation['status'] == 'unavailable'
+        assert 'validated' in result.explanation['reason']
         
     def test_upset_detector_fallback(self):
         """Test upset detection without training"""
@@ -261,9 +266,11 @@ class TestPredictionEnsemble:
         assert ensemble.score_predictor is not None
         assert ensemble.upset_detector is not None
         
-    def test_ensemble_prediction_fallback(self):
+    @pytest.mark.parametrize("score_trained", [False, True])
+    def test_ensemble_prediction_fallback(self, score_trained):
         """Test ensemble prediction without training"""
         ensemble = PredictionEnsemble()
+        ensemble.score_predictor.is_trained = score_trained
         
         # Create test player data
         player1_data = {
@@ -287,7 +294,16 @@ class TestPredictionEnsemble:
         
         assert prediction.winner_prediction in [0, 1]
         assert 0.0 <= prediction.win_probability <= 1.0
-        assert isinstance(prediction.predicted_sets, dict)
+        assert prediction.predicted_sets is None
+        assert prediction.predicted_games is None
+        assert prediction.predicted_duration is None
+        assert prediction.score_confidence is None
+        serialized = prediction.to_dict()
+        assert serialized['detailed_forecast']['status'] == 'unavailable'
+        assert 'score' not in prediction.models_used
+        assert 'score' not in serialized['explanation']['individual_predictions']
+        assert 'score' not in serialized['explanation']['confidence_sources']
+        assert prediction.reliability_score == pytest.approx(0.8)
         assert 0.0 <= prediction.upset_probability <= 1.0
         assert prediction.prediction_risk in ['low', 'medium', 'high']
 
@@ -307,6 +323,18 @@ class TestEnhancedMatchEngine:
         assert engine.surface == "clay"
         assert engine.tournament_tier == "GrandSlam"
         assert engine.match_state.value == "pre_match"
+
+    def test_creation_does_not_reseed_global_rngs(self):
+        python_state = random.getstate()
+        numpy_state = np.random.get_state()
+
+        EnhancedMatchEngine(seed=42)
+
+        assert random.getstate() == python_state
+        actual_numpy_state = np.random.get_state()
+        assert actual_numpy_state[0] == numpy_state[0]
+        np.testing.assert_array_equal(actual_numpy_state[1], numpy_state[1])
+        assert actual_numpy_state[2:] == numpy_state[2:]
         
     def test_match_setup(self):
         """Test setting up a match with enhanced players"""
@@ -353,8 +381,9 @@ class TestEnhancedMatchEngine:
                 PointOutcome.REGULAR_PLAY
             ]
             
-    def test_match_simulation(self):
-        """Test complete match simulation"""
+    @pytest.mark.parametrize("setup", [False, True])
+    def test_match_simulation_is_unavailable(self, setup, monkeypatch):
+        """The deprecated engine must not fabricate detailed match forecasts."""
         engine = EnhancedMatchEngine(seed=42, verbose=False)
         
         player1 = PlayerEnhanced(
@@ -367,29 +396,22 @@ class TestEnhancedMatchEngine:
             current_ranking=25
         )
         
-        engine.setup_match(player1, player2, sets_to_win=2)  # Best of 3
-        
-        # Simulate complete match
-        result = engine.simulate_match()
-        
-        assert 'winner' in result
-        assert result['winner'] in [1, 2]
-        assert 'winner_name' in result
-        assert 'final_score' in result
-        assert 'statistics' in result
-        assert 'match_duration_minutes' in result
-        
-        # Check statistics
-        stats = result['statistics']
-        assert stats['total_points'] > 0
-        assert stats['total_games'] > 0
-        assert stats['sets_played'] >= 2
-        
-        # Verify winner has more sets
-        if result['winner'] == 1:
-            assert stats['player1']['sets_won'] >= 2
-        else:
-            assert stats['player2']['sets_won'] >= 2
+        if setup:
+            engine.setup_match(player1, player2, sets_to_win=2)
+        state = engine.match_state
+        statistics = engine.statistics.to_dict()
+
+        def reject_scoring():
+            pytest.fail("The deprecated scoring engine must not run")
+
+        monkeypatch.setattr(engine, "simulate_set", reject_scoring)
+        with pytest.warns(DeprecationWarning, match="TennisMatch"):
+            with pytest.raises(NotImplementedError, match="no validated model-to-serve mapping"):
+                engine.simulate_match()
+
+        assert engine.match_state is state
+        assert engine.statistics.to_dict() == statistics
+        assert engine.current_set_scores == []
 
 
 class TestIntegration:
@@ -435,24 +457,19 @@ class TestIntegration:
         
         player2 = PlayerEnhanced.from_player_stats(player_stats2)
         
-        # Setup and simulate match
+        # AI prediction setup does not validate a detailed simulation mapping.
         engine.setup_match(player1, player2, sets_to_win=2)
-        result = engine.simulate_match()
+        with pytest.warns(DeprecationWarning, match="deprecated"):
+            with pytest.raises(NotImplementedError, match="unavailable"):
+                engine.simulate_match()
         
         # Verify AI predictions were generated
         assert engine.ai_predictions is not None
         assert hasattr(engine.ai_predictions, 'winner_prediction')
         assert hasattr(engine.ai_predictions, 'win_probability')
         
-        # Verify match result
-        assert result['winner'] in [1, 2]
-        assert result['statistics']['total_points'] > 0
-        
-        # Check if prediction accuracy was calculated
-        if 'ai_prediction_accuracy' in result:
-            accuracy = result['ai_prediction_accuracy']
-            assert 'winner_correct' in accuracy
-            assert isinstance(accuracy['winner_correct'], bool)
+        assert engine.statistics.total_points == 0
+        assert engine.current_set_scores == []
 
 
 def run_phase2_tests():

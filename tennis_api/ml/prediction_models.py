@@ -89,7 +89,7 @@ class ModelConfig:
 @dataclass
 class PredictionResult:
     """Result from a prediction model"""
-    prediction: Union[float, int, List[float]]
+    prediction: Optional[Union[float, int, List[float]]]
     confidence: float
     model_type: ModelType
     features_used: List[str]
@@ -344,10 +344,9 @@ class OutcomePredictor:
 
 class ScorePredictor:
     """
-    Predicts match scores and duration
-    
-    Uses regression models to predict set scores, total games,
-    and estimated match duration.
+    Legacy score-regression experiments, not a validated forecasting service.
+
+    Training remains available for research; predict withholds all details.
     """
     
     def __init__(self, config: Optional[ModelConfig] = None):
@@ -444,80 +443,20 @@ class ScorePredictor:
         return metrics
     
     def predict(self, features: List[float]) -> PredictionResult:
+        """Withhold details until chronological validation and mapping exist.
+
+        Fitting the legacy regressors is not evidence of coherent tennis scores
+        or a validated probability-to-serve/return mapping (issues #19 and #36).
         """
-        Predict match scores and duration
-        
-        Args:
-            features: Feature vector for the match
-            
-        Returns:
-            PredictionResult with score predictions
-        """
-        if not self.is_trained or not ML_AVAILABLE:
-            # Fallback predictions
-            return PredictionResult(
-                prediction={
-                    'winner_sets': 2,
-                    'loser_sets': 1,
-                    'total_games': 24,
-                    'duration_minutes': 120
-                },
-                confidence=0.5,
-                model_type=ModelType.SCORE,
-                features_used=self.feature_names,
-                explanation={'method': 'fallback'}
-            )
-        
-        X = np.array([features])
-        predictions = {}
-        
-        try:
-            # Predict set scores (simplified to total sets)
-            if 'set_scores' in self.models:
-                sets_pred = self.models['set_scores'].predict(X)[0]
-                predictions['total_sets'] = max(3, min(5, round(sets_pred)))
-            
-            # Predict total games
-            if 'total_games' in self.models:
-                games_pred = self.models['total_games'].predict(X)[0]
-                predictions['total_games'] = max(18, min(50, round(games_pred)))
-            
-            # Predict match duration
-            if 'match_duration' in self.models:
-                duration_pred = self.models['match_duration'].predict(X)[0]
-                predictions['duration_minutes'] = max(60, min(300, round(duration_pred)))
-            
-            # Calculate likely set breakdown
-            total_sets = predictions.get('total_sets', 3)
-            if total_sets == 3:
-                predictions['winner_sets'] = 2
-                predictions['loser_sets'] = 1
-            elif total_sets == 4:
-                predictions['winner_sets'] = 3
-                predictions['loser_sets'] = 1
-            else:  # 5 sets
-                predictions['winner_sets'] = 3
-                predictions['loser_sets'] = 2
-            
-            # Confidence based on model performance
-            confidence = 0.7  # Base confidence for score predictions
-            
-        except Exception as e:
-            print(f"Warning: Score prediction failed: {e}")
-            predictions = {
-                'winner_sets': 2,
-                'loser_sets': 1,
-                'total_games': 24,
-                'duration_minutes': 120
-            }
-            confidence = 0.5
-        
         return PredictionResult(
-            prediction=predictions,
-            confidence=confidence,
+            prediction=None,
+            confidence=0.0,
             model_type=ModelType.SCORE,
-            features_used=self.feature_names,
-            explanation={'model_scores': self.training_scores}
+            features_used=[],
+            explanation={
+                'status': 'unavailable',
+                'reason': 'Detailed score/statistics/duration mapping has not been validated.',
+            }
         )
 
 
