@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
     "requests>=2.32.4,<3",
-    "aiohttp>=3.12,<4",
+    "aiohttp>=3.14.4,<4",
     "python-dateutil>=2.9,<3",
 ]
 classifiers = [
