@@ -69,10 +69,10 @@ class ComprehensivePrediction:
     outcome_confidence: float
     
     # Score prediction
-    predicted_sets: Dict[str, int]  # winner_sets, loser_sets
-    predicted_games: int
-    predicted_duration: int  # minutes
-    score_confidence: float
+    predicted_sets: Optional[Dict[str, int]]  # unavailable until validated
+    predicted_games: Optional[int]
+    predicted_duration: Optional[int]  # minutes
+    score_confidence: Optional[float]
     
     # Upset analysis
     upset_probability: float
@@ -89,6 +89,10 @@ class ComprehensivePrediction:
     # Risk assessment
     prediction_risk: str  # "low", "medium", "high"
     reliability_score: float
+    detailed_forecast: Dict[str, str] = field(default_factory=lambda: {
+        'status': 'unavailable',
+        'reason': 'Detailed score/statistics/duration mapping has not been validated.',
+    })
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -99,6 +103,7 @@ class ComprehensivePrediction:
             'predicted_games': self.predicted_games,
             'predicted_duration': self.predicted_duration,
             'score_confidence': self.score_confidence,
+            'detailed_forecast': self.detailed_forecast,
             'upset_probability': self.upset_probability,
             'upset_confidence': self.upset_confidence,
             'upset_factors': self.upset_factors,
@@ -241,7 +246,7 @@ class PredictionEnsemble:
         Returns:
             ComprehensivePrediction with all prediction components
         """
-        if (any(model.is_trained for model in (self.outcome_predictor, self.score_predictor, self.upset_detector))
+        if (any(model.is_trained for model in (self.outcome_predictor, self.upset_detector))
                 and not self.feature_extractor.is_fitted):
             raise ValueError("Trained models require fitted missing-value preprocessing")
         # Extract features
@@ -276,22 +281,7 @@ class PredictionEnsemble:
             )
             confidences['outcome'] = 0.6
         
-        # Score prediction
-        if self.score_predictor.is_trained:
-            score_result = self.score_predictor.predict(feature_vector)
-            predictions['score'] = score_result
-            confidences['score'] = score_result.confidence
-            explanations['score'] = score_result.explanation
-        else:
-            # Fallback score prediction
-            predictions['score'] = PredictionResult(
-                prediction={'winner_sets': 2, 'loser_sets': 1, 'total_games': 24, 'duration_minutes': 120},
-                confidence=0.5,
-                model_type=ModelType.SCORE,
-                features_used=list(features_dict.keys()),
-                explanation={'method': 'fallback'}
-            )
-            confidences['score'] = 0.5
+        # Unvalidated score models neither emit details nor affect confidence.
         
         # Upset prediction
         ranking_difference = player1_data.get('current_ranking', 100) - player2_data.get('current_ranking', 100)
@@ -329,7 +319,7 @@ class PredictionEnsemble:
             predicted_sets=ensemble_result['sets'],
             predicted_games=ensemble_result['games'],
             predicted_duration=ensemble_result['duration'],
-            score_confidence=confidences['score'],
+            score_confidence=None,
             upset_probability=ensemble_result['upset_probability'],
             upset_confidence=confidences['upset'],
             upset_factors=ensemble_result['upset_factors'],
@@ -357,7 +347,6 @@ class PredictionEnsemble:
         
         # Extract predictions
         outcome_pred = predictions.get('outcome')
-        score_pred = predictions.get('score')
         upset_pred = predictions.get('upset')
         
         # Winner prediction (from outcome model)
@@ -372,19 +361,6 @@ class PredictionEnsemble:
         else:
             winner = 1
             win_probability = 0.5
-        
-        # Score prediction
-        if score_pred and isinstance(score_pred.prediction, dict):
-            sets = {
-                'winner_sets': score_pred.prediction.get('winner_sets', 2),
-                'loser_sets': score_pred.prediction.get('loser_sets', 1)
-            }
-            games = score_pred.prediction.get('total_games', 24)
-            duration = score_pred.prediction.get('duration_minutes', 120)
-        else:
-            sets = {'winner_sets': 2, 'loser_sets': 1}
-            games = 24
-            duration = 120
         
         # Upset prediction
         if upset_pred:
@@ -414,9 +390,9 @@ class PredictionEnsemble:
         return {
             'winner': winner,
             'win_probability': win_probability,
-            'sets': sets,
-            'games': games,
-            'duration': duration,
+            'sets': None,
+            'games': None,
+            'duration': None,
             'upset_probability': upset_probability,
             'upset_factors': upset_factors,
             'overall_confidence': overall_confidence,
@@ -482,7 +458,7 @@ class PredictionEnsemble:
             reliability_score *= 0.85
         
         # Model training status
-        untrained_models = sum(1 for model in [self.outcome_predictor, self.score_predictor, self.upset_detector] 
+        untrained_models = sum(1 for model in [self.outcome_predictor, self.upset_detector]
                               if not model.is_trained)
         if untrained_models > 0:
             risk_factors.append("untrained_models")

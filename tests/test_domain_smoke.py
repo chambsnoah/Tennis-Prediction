@@ -1,7 +1,6 @@
 """Discoverable domain coverage using only synthetic, local inputs."""
 
 import json
-import random
 import subprocess
 import sys
 
@@ -22,16 +21,8 @@ from tennis_preds.tennis import Player, PlayerSimple, TennisMatch
 from web_interface import server
 
 
-@pytest.fixture
-def preserve_random_state():
-    # The core simulator seeds Python's shared RNG, not a per-match instance.
-    state = random.getstate()
-    yield
-    random.setstate(state)
-
-
 @pytest.mark.parametrize("simple", [False, True], ids=["detailed", "simple"])
-def test_core_simulation_is_repeatable_and_accounts_for_points(simple, preserve_random_state):
+def test_core_simulation_is_repeatable_and_accounts_for_points(simple):
     if simple:
         players = (PlayerSimple("Synthetic Alpha", 0.68), PlayerSimple("Synthetic Beta", 0.61))
     else:
@@ -44,7 +35,7 @@ def test_core_simulation_is_repeatable_and_accounts_for_points(simple, preserve_
     for _ in range(2):
         match = TennisMatch(*players, sets_to_win=2, seed=42)
         match.simulate_match(verbose=False)
-        snapshots.append(vars(match).copy())
+        snapshots.append(vars(match) | {"rng": match.rng.getstate()})
 
     assert snapshots[0] == snapshots[1]
     assert max(match.player1_sets_won, match.player2_sets_won) == 2
@@ -73,7 +64,7 @@ def test_core_simulation_is_repeatable_and_accounts_for_points(simple, preserve_
 
 
 @pytest.mark.parametrize("player1_to_serve", [False, True])
-def test_core_one_sided_match_has_exact_score(player1_to_serve, preserve_random_state):
+def test_core_one_sided_match_has_exact_score(player1_to_serve):
     alpha = PlayerSimple("Synthetic Alpha", 1.0)
     beta = PlayerSimple("Synthetic Beta", 0.0)
     match = TennisMatch(alpha, beta, sets_to_win=2, player1_to_serve=player1_to_serve, seed=7)
@@ -277,6 +268,34 @@ def test_web_malformed_synthetic_player_json_returns_error(synthetic_web_client)
     response = client.get("/api/players/2024/wimby2024/male")
     assert response.status_code == 500
     assert "error" in response.get_json()
+
+
+def test_web_real_match_subprocess_labels_heuristic_and_withholds_details(synthetic_web_client):
+    client, _ = synthetic_web_client
+    response = client.post(
+        "/api/simulate-match",
+        json={
+            "tournament_path": "2024/wimby2024",
+            "gender": "male",
+            "player1_name": "Synthetic Alpha",
+            "player2_name": "Synthetic Beta",
+            "sets_to_win": 2,
+            "num_simulations": 4,
+        },
+    )
+    assert response.status_code == 200
+    result = response.get_json()
+    assert set(result) == {
+        "player1_wins", "player2_wins", "player1_win_percentage", "player2_win_percentage",
+        "win_estimate", "detailed_forecast",
+    }
+    assert result["player1_wins"] + result["player2_wins"] == 4
+    assert result["player1_win_percentage"] + result["player2_win_percentage"] == 100
+    assert result["win_estimate"]["method"] == "synthetic_serve_heuristic"
+    assert result["win_estimate"]["validated"] is False
+    assert "not calibrated model probabilities" in result["win_estimate"]["description"]
+    assert result["detailed_forecast"]["status"] == "unavailable"
+    assert "No validated model-to-serve mapping" in result["detailed_forecast"]["reason"]
 
 
 @pytest.mark.parametrize(

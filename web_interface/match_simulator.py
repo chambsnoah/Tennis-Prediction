@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""
-Match simulation wrapper for web interface
-Extends existing tennis.py functionality
+"""Unvalidated synthetic win heuristic for the legacy web interface.
+
+Detailed forecasts are unavailable until a model-to-serve mapping is validated.
 """
 
 import sys
@@ -15,12 +15,12 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 sys.path.append(os.path.join(project_root, 'tennis_preds'))
 
-from tennis_preds.tennis import Player, PlayerSimple, TennisMatch
+from tennis_preds.tennis import Player, TennisMatch
 
 DATA_ROOT = os.path.abspath(os.environ.get('TENNIS_DATA_ROOT', project_root))
 
 def create_player_from_data(name, player_data, surface='grass'):
-    """Create a Player object from tournament data with surface adjustments"""
+    """Create synthetic heuristic inputs, not measured or model-derived stats."""
     # Base serving statistics
     first_serve_percentage = 0.65
     second_serve_percentage = 0.90
@@ -55,7 +55,9 @@ def create_player_from_data(name, player_data, surface='grass'):
 
 def simulate_matches(tournament_path, gender, player1_name, player2_name, 
                     sets_to_win=3, num_simulations=500, surface='grass'):
-    """Run multiple match simulations and return aggregated results"""
+    """Return heuristic win counts only, never detailed match forecasts."""
+    if num_simulations < 1:
+        raise ValueError("num_simulations must be positive")
     
     # Load player data
     players_file = os.path.join(DATA_ROOT, tournament_path, f'players_{gender}.json')
@@ -77,10 +79,6 @@ def simulate_matches(tournament_path, gender, player1_name, player2_name,
     results: dict[str, float] = {
         'player1_wins': 0.0,
         'player2_wins': 0.0,
-        'player1_total_points': 0.0,
-        'player2_total_points': 0.0,
-        'player1_total_sets': 0.0,
-        'player2_total_sets': 0.0
     }
     
     for i in range(num_simulations):
@@ -94,20 +92,21 @@ def simulate_matches(tournament_path, gender, player1_name, player2_name,
         else:
             results['player2_wins'] += 1
         
-        results['player1_total_points'] += match.player1_total_points_won
-        results['player2_total_points'] += match.player2_total_points_won
-        results['player1_total_sets'] += match.player1_sets_won
-        results['player2_total_sets'] += match.player2_sets_won
-    
-    # Calculate percentages and averages
+    # These frequencies are conditional on synthetic inputs, not calibrated odds.
     results['player1_win_percentage'] = round((results['player1_wins'] / num_simulations) * 100, 1)
     results['player2_win_percentage'] = round((results['player2_wins'] / num_simulations) * 100, 1)
-    results['player1_avg_points'] = round(results['player1_total_points'] / num_simulations, 1)
-    results['player2_avg_points'] = round(results['player2_total_points'] / num_simulations, 1)
-    results['player1_avg_sets'] = round(results['player1_total_sets'] / num_simulations, 1)
-    results['player2_avg_sets'] = round(results['player2_total_sets'] / num_simulations, 1)
-    
-    return results
+    return {
+        **results,
+        'win_estimate': {
+            'method': 'synthetic_serve_heuristic',
+            'validated': False,
+            'description': 'Unvalidated heuristic using synthetic serve inputs; not calibrated model probabilities.',
+        },
+        'detailed_forecast': {
+            'status': 'unavailable',
+            'reason': 'No validated model-to-serve mapping for score, statistics or duration forecasts.',
+        },
+    }
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Simulate tennis matches')

@@ -20,8 +20,8 @@ budget workflow, not a validated 2026 pool optimizer.
   - Simple player model with overall serve win percentage.
 
 - **Match Simulation:**  
-  - Simulates full tennis matches, including sets, games, tiebreaks, and service alternation.
-  - Tracks detailed statistics: double faults, break points, tiebreaks, service/return points, and more.
+  - Canonical `TennisMatch` rules sandbox for sets, games, tiebreaks, and service alternation using caller-supplied serve probabilities.
+  - Tracks synthetic match statistics; these are not validated score, statistics or duration forecasts.
 
 - **API Integration:**
   - Real-time tennis data integration with caching and rate limiting.
@@ -30,7 +30,7 @@ budget workflow, not a validated 2026 pool optimizer.
   - Automatic data extraction and processing from APIs, Git repositories, and web sources.
 
 - **Web Interface:**  
-  - Interactive web application for match simulation and team optimization.
+  - Interactive web application for explicitly unvalidated heuristic win simulations and legacy team optimization.
   - Tournament bracket visualization and player statistics.
 
 - **Tournament Data:**  
@@ -83,9 +83,12 @@ lock updates, and clean-environment validation.
 
 ## Usage
 
-### 1. Simulate a Match
+### 1. Synthetic Rules Sandbox
 
-You can simulate a match by creating `Player` or `PlayerSimple` objects and running a simulation:
+`tennis_preds.tennis.TennisMatch` is the sole supported detailed point/game/set
+rules engine. Create `Player` or `PlayerSimple` objects with explicit synthetic
+serve probabilities to exercise those mechanics. The example inputs below are
+illustrative, not measured player statistics or calibrated predictions:
 
 ```python
 from tennis_preds.tennis import Player, TennisMatch
@@ -97,11 +100,42 @@ tennis_match.simulate_match(verbose=True)
 tennis_match.print_match_statistics()
 ```
 
+Detailed scorelines, serve/return statistics and match duration are optional
+forecasting outputs, not consequences of having a match-win probability. No
+model-to-serve mapping has been validated, so those forecasts are unavailable;
+synthetic rules runs must not be presented as model-derived detailed forecasts.
+The legacy `ScorePredictor` also returns an unavailable result, even if its
+regressors have been fitted. Ensemble score/game/duration fields and score
+confidence are `None` (JSON `null`), with `detailed_forecast` status/reason;
+unvalidated score models do not contribute to ensemble confidence or explanations.
+
+Matches use an isolated `random.Random(seed)` by default, or accept an injected
+`rng` with a `random()` method. Do not supply both. Use `sets_to_win=2` for
+best-of-three and `3` for best-of-five; `1` remains supported for single-set
+sandbox/smoke runs. Ordinary tiebreaks are seven points, win by two; the deciding
+set uses ten by default (modern Slam rules). Set
+`deciding_tiebreak_points=7` explicitly for a standard ATP best-of-three event.
+The first receiver of a tiebreak serves first in the next set. Service-game
+counts exclude tiebreaks; serve/return point totals include them. Percentages
+with no attempted/landed serves print as `N/A`, not invented zero observations.
+
+The duplicate `tennis_api.simulation.EnhancedMatchEngine` is deprecated and
+retained for historical reference and adapter compatibility. Its `simulate_match`
+emits `DeprecationWarning` and raises `NotImplementedError` rather than returning
+divergent scores, fabricated statistics or wall-clock time as match duration.
+Its legacy helper methods are not a supported rules engine. The local
+`tennis.py`/`pointsv2.py` tournament scripts under `2023/` and `2024/` are also
+deprecated historical artifacts, left untouched with their data/results; new
+work must import the canonical engine instead of copying or invoking those engines.
+
 ### 2. Batch Simulations
 
-To run multiple simulations and aggregate results, use the test code in [`tennis_preds/tennis.py`](tennis_preds/tennis.py):
+To aggregate synthetic rules runs (not validated forecasts), use
+[`tennis_preds/tennis.py`](tennis_preds/tennis.py):
 
 ```python
+from tennis_preds.tennis import PlayerSimple, TennisMatch
+
 player1_wins = 0
 player2_wins = 0
 for i in range(1000):
@@ -109,7 +143,7 @@ for i in range(1000):
     player2 = PlayerSimple("Player 2", 0.65)
     tennis_match = TennisMatch(player1, player2, sets_to_win=3, player1_to_serve=True)
     tennis_match.simulate_match()
-    if tennis_match.player1_sets > tennis_match.player2_sets:
+    if tennis_match.player1_sets_won > tennis_match.player2_sets_won:
         player1_wins += 1
     else:
         player2_wins += 1
@@ -119,16 +153,22 @@ print(f"Player 1 wins: {player1_wins}, Player 2 wins: {player2_wins}")
 
 ### 3. Web Interface
 
-Start the web application for interactive simulations:
+Start the web application for legacy heuristic win simulations:
 
 ```bash
 uv run --locked --extra web python -m web_interface.server
 ```
 
 Then open your browser to `http://localhost:5000` for:
-- Interactive match simulations
+- Unvalidated heuristic win simulations
 - Team optimization tools
 - Tournament bracket visualization
+
+The web match wrapper retains a synthetic p/n-factor-to-serve heuristic only for
+win counts/frequencies, labeled `win_estimate.validated: false`; these are not
+calibrated model probabilities. It exports no point/set totals or averages and
+returns `detailed_forecast.status: unavailable` with the missing-mapping reason.
+The UI displays detailed forecasts as unavailable rather than inventing averages.
 
 ### 4. API Integration
 

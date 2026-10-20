@@ -82,7 +82,7 @@ except ImportError as e:
                     self.winner_prediction = winner
                     self.win_probability = prob
                     self.overall_confidence = 0.7
-                    self.predicted_sets = {'winner_sets': 2, 'loser_sets': 1}
+                    self.predicted_sets = None
                     self.upset_probability = 0.2
 
             return MockResult(winner, win_prob)
@@ -327,12 +327,7 @@ class AccuracyValidationFramework:
                     if is_correct:
                         metrics.high_confidence_correct += 1
 
-                # Score predictions (simplified)
-                if hasattr(prediction, 'predicted_sets'):
-                    metrics.score_predictions += 1
-                    # Simplified score accuracy check
-                    if prediction.predicted_sets.get('winner_sets', 2) >= 2:
-                        metrics.correct_score_predictions += 1
+                # Detailed scores are unavailable; do not count invented accuracy.
 
                 # Upset detection
                 rank_diff = abs(match.player1_ranking - match.player2_ranking)
@@ -358,6 +353,10 @@ class AccuracyValidationFramework:
         self.phase2_results = {
             'metrics': metrics,
             'predictions': predictions,
+            'detailed_forecast': {
+                'status': 'unavailable',
+                'reason': 'Detailed score/statistics/duration mapping has not been validated.',
+            },
             'timestamp': datetime.now().isoformat()
         }
 

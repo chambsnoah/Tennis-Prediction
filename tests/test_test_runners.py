@@ -24,6 +24,42 @@ RUNNERS = [
 ]
 
 
+def test_legacy_prediction_demos_label_details_unavailable(capsys):
+    from scripts.phase2_demo import (
+        demonstrate_ai_ensemble, demonstrate_enhanced_simulation, demonstrate_ml_predictions, main,
+    )
+
+    _, score, _ = demonstrate_ml_predictions()
+    prediction = demonstrate_ai_ensemble()
+    simulation = demonstrate_enhanced_simulation()
+    assert score.prediction is None
+    assert prediction.predicted_sets is None
+    assert simulation["status"] == "unavailable"
+    output = capsys.readouterr().out
+    assert "Score/Duration: unavailable" in output
+    assert "Predicted Score: unavailable" in output
+    assert "Detailed simulation: unavailable" in output
+    assert main() is True
+    assert "No score, duration or point forecasts are produced." in capsys.readouterr().out
+
+
+def test_legacy_validation_skips_absent_scores_without_losing_match_or_upset(capsys):
+    from scripts.accuracy_validation_framework import AccuracyValidationFramework, HistoricalMatch
+
+    framework = AccuracyValidationFramework()
+    framework.historical_matches = [HistoricalMatch(
+        "Synthetic A", "Synthetic B", 1, 90, "hard", "Synthetic Open", 1,
+        "6-0 6-0", "2024-01-01",
+    )]
+    metrics = framework.run_phase2_predictions()
+    assert metrics.total_predictions == 1
+    assert metrics.score_predictions == metrics.correct_score_predictions == 0
+    assert metrics.upset_predictions == 1
+    assert len(framework.phase2_results["predictions"]) == 1
+    assert framework.phase2_results["detailed_forecast"]["status"] == "unavailable"
+    assert "Error predicting match" not in capsys.readouterr().out
+
+
 @pytest.mark.parametrize("runner", RUNNERS)
 @pytest.mark.parametrize(
     ("extra_args", "expected_code", "expected_output"),
