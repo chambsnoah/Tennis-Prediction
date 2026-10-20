@@ -11,6 +11,42 @@ issue #4. Development can use these provisional decisions with
 commissioner confirmation. The existing web team optimizer remains a legacy
 budget workflow, not a validated 2026 pool optimizer.
 
+### Canonical Pool Scoring
+
+`tennis_pool.results.score_tournament(draw, matches, rankings, kind)` reconstructs
+one complete canonical ATP bracket (`kind="gs"`, `"m7"` or `"m6"`). Supply the
+fixed-order `Draw`, decided canonical `Match` records and official first-day
+`RankingSnapshot` evidence. Missing needed rankings are errors, not default ranks.
+Strict mode requires resolved scoring rules; explicitly opt into the recorded
+development assumptions with `allow_provisional=True`. Unsupported rule versions
+or changed scoring decisions require an implementation review and fail closed.
+
+Results contain one terminal award plus cumulative played-win upset bonuses per
+player, an input-evidence digest, PDF fingerprint/version, rule-register version
+and the applied decision texts/statuses. Byes do not count as wins or participation;
+walkovers advance without bonuses and need explicit withdrawal identity. A player
+withdrawing before any played match or walkover advancement scores zero, including
+after a bye. Later withdrawals retain earned terminal points and bonuses.
+Retirements after play are played matches. Incomplete finals, unresolved entrants,
+duplicate/incompatible matches and impossible progression are rejected. Raw
+`WITHDRAWN` records need adjudication into a decided walkover before a complete
+bracket can be scored; no replacement or season-ledger accounting is inferred.
+
+The pure formulas live in `tennis_pool.scoring`; the legacy optimizer imports
+them for compatibility, but its old name-based reconstruction/simulation is not
+the gated canonical service and is not validated 2026 decision support.
+Run synthetic scoring tests with
+`uv run --locked python -m pytest tennis_pool/tests/test_pool_scoring.py`.
+
+**Workbook parity remains unverified.** Issue #20 requests 564 player-event
+comparisons, while the migrated optimizer README historically claimed 515.
+Neither count is independently evidenced by an authorized corpus here. The
+legacy diagnostic now fails on absent fixtures, inconsistent repeated observations,
+component/total mismatches or a count other than 564; it is not canonical parity
+proof. Only generated synthetic fixtures are published. Completing #20 requires
+an authorized private audit and independently counted, versioned expected scores;
+no source-data or workbook publication permission is granted by these tests.
+
 ---
 
 ## Features
