@@ -19,10 +19,13 @@ This README covers the code; the playbook covers the process.
 
 1. **Parsers** ([pool/parsers.py](pool/parsers.py)) read the commissioner's
    workbooks: draws with results, rankings, everyone's picks, quota banks.
-2. **Scoring engine** ([pool/scoring.py](pool/scoring.py)) implements the exact
-   rules (ATP points + cumulative upset bonuses). Validated: reproduces all
-   515 player-tournament scores from the 10 completed 2026 events exactly
-   (`tests/test_scoring.py`).
+2. **Scoring formulas** ([pool/scoring.py](pool/scoring.py)) now import shared
+   arithmetic from `tennis_pool.scoring`. The historical claim of 515 matching
+   player-event scores is not independently reproducible from repository fixtures;
+   issue #20 requires 564 and remains unverified. The private-workbook diagnostic
+   (`tests/test_scoring.py`) fails on missing fixtures/count mismatches and does
+   not establish canonical service parity. Use `tennis_pool.results` for gated,
+   ID-based complete-bracket scoring; this optimizer's reconstruction is legacy.
 3. **Strength model** ([pool/strength.py](pool/strength.py)): Elo anchored on
    current ATP rank, updated with 2026 season results (recency- and
    hard-court-weighted), then calibrated to betting-market title odds

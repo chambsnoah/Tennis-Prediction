@@ -268,7 +268,7 @@ implementation of confirmed decisions. A future narrower conditional
 recommendation must establish that an unresolved case cannot affect it and
 record that condition, rather than simply omit a gate.
 
-No 2026 optimizer exists here yet. The web optimizer is a legacy budget workflow
+No validated 2026 optimizer exists here yet. The web optimizer is a legacy budget workflow
 and does not claim 2026 pool legality. Future 2026 entry points must invoke the
 gate before scoring/optimization, expose blockers to callers, and pin the
 register/PDF versions and affected provisional assumptions in outputs. Accepted
@@ -279,5 +279,18 @@ model assumptions, and search limits; they cannot promise realized winnings.
 Run synthetic register/gate tests with `python -m pytest tennis_pool/tests -q`.
 Commissioner confirmation is deferred and is not a blocker for provisional
 development. The issue's original commissioner-confirmation criterion is not
-claimed as satisfied. Source-workbook parity and full scoring/optimizer
-implementation are not claimed by this foundation change.
+claimed as satisfied. Issue #20 adds the gated canonical scoring service
+`tennis_pool.results.score_tournament`, using the tables above and pinned scoring
+decision texts. Its immutable results retain the PDF/register versions, applied
+assumptions and input-evidence digest. Strict mode still blocks provisional rules.
+The service requires complete GS/M7/M6 brackets and explicit first-day ranking
+evidence where needed; it never infers missing eliminations or awards multiple
+champions from partial results. The migrated name-based optimizer remains legacy.
+
+The synthetic table, bonus, 391-point worked-total and canonical result tests are
+not source-workbook parity. The requested 564 player-event comparisons remain
+unverified, and the old 515-comparison claim is not independently reproducible.
+No private workbook is published or inspected by this scoring change. Complete
+the authorized privacy/source audit and record an independently counted corpus
+with source fingerprints and expected components before claiming that criterion.
+Full optimizer implementation is also not claimed.
