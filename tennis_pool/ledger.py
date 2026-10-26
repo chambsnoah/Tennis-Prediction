@@ -100,11 +100,13 @@ class ApprovedActivation(Contract):
     """Caller attests #22 eligibility was approved for these predeclared pairs.
 
     The source record must identify that approval, not merely a withdrawal row.
+    The submission ID pins its exact revision; changed pairs need renewed evidence.
     Accounting never infers approval or first-participation times from a preview.
     An evidenced superseding correction with no primary IDs revokes that approval.
     """
 
     acceptance_id: str
+    submission_id: str
     primary_ids: tuple[PlayerId, ...]
     approved_by: str
 
@@ -130,13 +132,20 @@ class EventPoints(Contract):
 
 
 @dataclass(frozen=True, kw_only=True)
+class Voided(Contract):
+    """Evidenced cancellation of a prior record, never deletion of its history."""
+
+    approved_by: str
+
+
+@dataclass(frozen=True, kw_only=True)
 class LedgerRecord(Contract):
     record_id: str
     entry_id: str
     event_id: str
     effective_at: datetime
     evidence: Provenance
-    payload: Submitted | Accepted | ApprovedActivation | Missed | EventPoints
+    payload: Submitted | Accepted | ApprovedActivation | Missed | EventPoints | Voided
     supersedes: str | None = None
     correction_reason: str | None = None
 
@@ -249,7 +258,8 @@ class SeasonLedger:
                 if original is None or original.record_id in superseded:
                     raise ValueError("Correction must supersede the current history leaf")
                 if (original.entry_id != record.entry_id or original.event_id != record.event_id
-                        or type(original.payload) is not type(record.payload)
+                        or (not isinstance(record.payload, Voided)
+                            and type(original.payload) is not type(record.payload))
                         or original.effective_at != record.effective_at):
                     raise ValueError("Correction must preserve entry, event, kind and effective time")
                 if record.evidence.available_at <= original.evidence.available_at:
@@ -257,6 +267,8 @@ class SeasonLedger:
                 superseded.add(original.record_id)
             elif record.correction_reason is not None:
                 raise ValueError("Correction reason requires a superseded record")
+            if isinstance(record.payload, Voided) and record.supersedes is None:
+                raise ValueError("Voiding requires a superseded record")
             by_id[record.record_id] = record
             history.append(record)
         if len(history) == len(self.history):
@@ -287,6 +299,8 @@ class SeasonLedger:
         records = {key: active[root] for key, root in roots.items()}
         groups: dict[tuple[str, str], list[LedgerRecord]] = {}
         for record in active.values():
+            if isinstance(record.payload, Voided):
+                continue
             if record.event_id not in terms:
                 raise ValueError("Event terms unavailable or unmapped")
             groups.setdefault((record.entry_id, record.event_id), []).append(record)
@@ -314,8 +328,7 @@ class SeasonLedger:
                         or (submission.entry_id, submission.event_id) != (entry_id, event_id)
                         or submission.effective_at > approval.effective_at):
                     raise ValueError("Acceptance requires its explicit submitted record")
-                if (submission.payload.submitted_at >= terms[event_id].deadline
-                        or approval.effective_at >= terms[event_id].deadline):
+                if submission.payload.submitted_at >= terms[event_id].deadline:
                     raise ValueError("Accepted submission must be predeadline")
                 pairs = submission.payload.picks
                 if len(pairs) != 5 or len({p.primary.player_id for p in pairs}) != 5:
@@ -332,10 +345,14 @@ class SeasonLedger:
             activated: set[PlayerId] = set()
             for activation in (r for r in group if isinstance(r.payload, ApprovedActivation)):
                 assert isinstance(activation.payload, ApprovedActivation)
+                if not activation.payload.primary_ids and activation.supersedes is not None:
+                    continue
                 approved = records.get(activation.payload.acceptance_id)
                 if (not approvals or approved != approvals[-1]
                         or activation.effective_at < approved.effective_at):
                     raise ValueError("Activation requires the final explicit acceptance")
+                if activation.payload.submission_id != submission_id:
+                    raise ValueError("Activation requires the exact approved submission revision")
                 if ((not activation.payload.primary_ids and activation.supersedes is None)
                         or len(set(activation.payload.primary_ids)) != len(activation.payload.primary_ids)):
                     raise ValueError("Activation requires unambiguous primary IDs")
