@@ -277,6 +277,33 @@ their recorded decisions. Recommendations remain conditional on information,
 model assumptions, and search limits; they cannot promise realized winnings.
 
 Run synthetic register/gate tests with `python -m pytest tennis_pool/tests -q`.
+
+## Season Accounting Boundary
+
+The issue #21 ledger records submitted choices separately from accepted and
+activated selections. Importing or exporting a workbook does not itself accept a
+submission, debit a bank, consume a player use, or establish spreadsheet-bonus
+eligibility. Source observations need explicit reviewed identity/event mappings
+and acceptance evidence. Repeated identical imports must be idempotent; conflicting
+records require an evidenced correction, not an overwrite.
+
+Replay retains both event timing and information-availability timing so later
+acceptance, results or commissioner corrections cannot rewrite an earlier
+as-of snapshot. It enforces the separate seasonal banks, global five-use cap,
+first-three missed-event handling, event-prize exclusion for random assignments,
+and the once-only seven-spreadsheet season bonus above. It does not award event
+prizes, validate withdrawal timing, or choose replacement scenarios.
+
+Substitution accounting requires an explicit approved activation: transfer the
+accepted primary's event debit to the replacement once, without charging unused
+alternatives. Approval is caller-supplied evidence, not independently authenticated
+commissioner correspondence. Strict rule resolution remains the default, and
+explicit provisional development retains unconfirmed statuses and source versions.
+
+Synthetic summary reconciliation is not real commissioner-workbook parity. No
+private corpus is read or published by this change, and issue #21 stays open until
+the authorized private summary comparison is independently evidenced.
+
 Commissioner confirmation is deferred and is not a blocker for provisional
 development. The issue's original commissioner-confirmation criterion is not
 claimed as satisfied. Source-workbook parity and full scoring/optimizer
