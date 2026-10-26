@@ -62,6 +62,8 @@ def score_tournament(
     Rankings must be snapshots applicable/available by the first event day;
     callers are responsible for supplying the official first-day snapshot.
     """
+    if type(allow_provisional) is not bool:
+        raise ValueError("Provisional scoring requires an explicit boolean opt-in")
     register = require_resolved(
         "scoring", register_path, allow_provisional=allow_provisional,
     )

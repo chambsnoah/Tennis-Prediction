@@ -117,6 +117,13 @@ def test_complete_canonical_bracket_has_one_champion(kind, champion, final_loss)
     assert TournamentScore.from_dict(result.to_dict()) == result
 
 
+@pytest.mark.parametrize("flag", ["false", "true", 1, 0, None])
+def test_provisional_scoring_requires_explicit_boolean_opt_in(flag):
+    draw, matches, rankings = completed_event()
+    with pytest.raises(ValueError, match="boolean"):
+        score_tournament(draw, matches, rankings, "m6", allow_provisional=flag)
+
+
 @pytest.mark.parametrize("winner_seed,loser_seed,expected", [
     (4, 1, 20), (4, 5, 0), (4, 9, 0), (4, None, 0),
     (8, 1, 30), (8, 5, 10), (8, 9, 0), (8, None, 0),
