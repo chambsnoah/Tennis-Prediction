@@ -18,6 +18,10 @@ Open it with `SeasonLedger.create(event_terms)`, append evidence-bearing
 `LedgerRecord` values with `append(...)`, and obtain immutable state with
 `replay(cutoff)`. Both effective-time and information-availability cutoffs are
 exclusive. `append` returns a new ledger; retain its history for later replay.
+Explicit audited scores use `EventPoints(points=..., accounting_digest=...)`
+with the matching replayed event state's `accounting_digest`. Changing the
+accepted roster or accounting evidence requires corrected or cancelled scores;
+old random-roster points cannot silently transfer to recovered voluntary picks.
 Submitted choices, commissioner acceptance, activated selections and corrections
 are distinct evidence; a workbook preview or export is not proof of acceptance.
 Replay uses explicit information-availability and event cutoffs, preserves prior

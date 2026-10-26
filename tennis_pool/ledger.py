@@ -124,6 +124,7 @@ class EventPoints(Contract):
     """Explicit audited season points; no scoring-service dependency."""
 
     points: int
+    accounting_digest: str
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -176,6 +177,7 @@ class EventState(Contract):
     accepted_submission_id: str | None
     accepted_picks: tuple[Pair, ...]
     selections: tuple[Selection, ...]
+    accounting_digest: str
     event_payout_eligible: bool
     qualifying_excel: bool
     missed_number: int | None = None
@@ -382,17 +384,30 @@ class SeasonLedger:
                     len(selections) != 5 or len({s.player_id for s in selections}) != 5
                 ):
                     raise ValueError("First three misses require five explicit distinct assignments")
-            points = [r.payload.points for r in group if isinstance(r.payload, EventPoints)]
+            accounting_digest = _digest(json.dumps({
+                "entry": entry_id, "event": event_id,
+                "acceptance": approvals[-1].record_id if approvals else None,
+                "submission": submission_id,
+                "activations": sorted(r.record_id for r in group
+                                      if isinstance(r.payload, ApprovedActivation)
+                                      and r.payload.primary_ids),
+                "missed": missed[0].record_id if missed else None,
+                "selections": [selection.to_dict() for selection in selections],
+            }, sort_keys=True))
+            points = [r.payload for r in group if isinstance(r.payload, EventPoints)]
             if len(points) > 1 or (points and not (approvals or missed)):
                 raise ValueError("Points require one unambiguous accounted event")
-            if points and missed_number is not None and missed_number > 3 and points[0] != 0:
+            if points and points[0].accounting_digest != accounting_digest:
+                raise ValueError("Points refer to a stale accounting basis")
+            if points and missed_number is not None and missed_number > 3 and points[0].points != 0:
                 raise ValueError("Unassigned event cannot score points")
             event_states.append(EventState(
                 entry_id=entry_id, event_id=event_id, submitted=submissions,
                 accepted_submission_id=submission_id, accepted_picks=pairs,
                 selections=selections, missed_number=missed_number,
+                accounting_digest=accounting_digest,
                 event_payout_eligible=bool(approvals), qualifying_excel=qualifying,
-                season_points=points[0] if points else 0,
+                season_points=points[0].points if points else 0,
                 points_recorded=bool(points),
             ))
         entries = []

@@ -289,7 +289,10 @@ records require an evidenced correction, not an overwrite.
 An evidenced `Voided` correction can cancel an erroneous missed-event record
 before explicit accepted records replace its accounting. Dependent points or
 activation records also need explicit correction or cancellation; nothing is
-silently discarded. A timely submission can be accepted later, retaining the
+silently discarded. `EventPoints` pins the replayed event's `accounting_digest`,
+including acceptance/submission/activation revisions and actual selections.
+Changing that basis rejects stale points until explicitly corrected or voided.
+A timely submission can be accepted later, retaining the
 actual acceptance time rather than backdating it to the submission deadline.
 
 Replay retains both event timing and information-availability timing so later

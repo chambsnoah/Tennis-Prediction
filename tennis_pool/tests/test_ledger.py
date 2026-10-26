@@ -60,6 +60,12 @@ def accepted(submission="s", key="a", day=2, event="australian_open"):
                   day, event)
 
 
+def event_points(state, total, event="australian_open"):
+    snapshot = state.replay(at(100))
+    basis = next(item.accounting_digest for item in snapshot.events if item.event_id == event)
+    return EventPoints(points=total, accounting_digest=basis)
+
+
 def test_submitted_picks_do_not_debit_until_explicit_acceptance():
     with pytest.raises(UnresolvedRulesError):
         SeasonLedger.create((terms(),))
@@ -85,7 +91,7 @@ def test_first_three_misses_score_for_season_only_and_fourth_gets_no_roster():
         state = state.append(record(f"m{i}", Missed(assignments=assignments,
                                                   approved_by="synthetic authority"),
                                     10 + i, event))
-        state = state.append(record(f"p{i}", EventPoints(points=30 if i < 3 else 0),
+        state = state.append(record(f"p{i}", event_points(state, 30 if i < 3 else 0, event),
                                     15 + i, event))
     snapshot = state.replay(at(20))
     assert [event.missed_number for event in sorted(snapshot.events, key=lambda e: e.missed_number)] == [1, 2, 3, 4]
@@ -175,9 +181,10 @@ def test_approved_activation_transfers_once_unused_alternatives_never_debit():
 
 
 def test_corrections_are_immutable_evidenced_and_do_not_leak_backward():
-    initial = ledger().append(submitted(), accepted(), record("score", EventPoints(points=20), 3))
+    initial = ledger().append(submitted(), accepted())
+    initial = initial.append(record("score", event_points(initial, 20), 3))
     before = initial.replay(at(5))
-    correction = record("corrected-score", EventPoints(points=45), 3,
+    correction = record("corrected-score", event_points(initial, 45), 3,
                         supersedes="score", correction_reason="Synthetic corrected source total")
     correction = replace(correction, evidence=evidence(8, "corrected-source"))
     corrected = initial.append(correction)
@@ -193,7 +200,7 @@ def test_corrections_are_immutable_evidenced_and_do_not_leak_backward():
     with pytest.raises(ValueError, match="effective"):
         initial.append(replace(correction, effective_at=at(4)))
     with pytest.raises(ValueError, match="content"):
-        initial.append(replace(initial.history[-1], payload=EventPoints(points=10)))
+        initial.append(replace(initial.history[-1], payload=event_points(initial, 10)))
 
 
 def test_correction_to_accepted_submission_replays_accounting_not_raw_history():
@@ -259,7 +266,8 @@ def test_workbook_reconciliation_imports_only_explicit_attestations_and_is_idemp
     metadata = dict(participants={"Synthetic entrant": "entry:one"},
                     events={"Australie": "australian_open"}, cutoff=at(5),
                     submission_links={("Synthetic entrant", "Australie"): "s"})
-    explicit = (submitted(), accepted(), record("score", EventPoints(points=31), 3))
+    explicit = (submitted(), accepted())
+    explicit += (record("score", event_points(ledger().append(*explicit), 31), 3),)
     result = reconcile_workbook(ledger(), observations, records=explicit, **metadata)
     assert result.differences == ()
     assert result.compared >= 12
@@ -283,7 +291,8 @@ def test_reconciliation_reports_explicit_mismatches_and_missing_data_without_see
         substitutions=(WorkbookSubstitution("Synthetic entrant", "Australie", PlayerId("atp:p0"),
                                               PlayerId("atp:unapproved"), "1-4", evidence()),),
     )
-    state = ledger().append(submitted(), accepted(), record("points", EventPoints(points=3), 3))
+    state = ledger().append(submitted(), accepted())
+    state = state.append(record("points", event_points(state, 3), 3))
     result = reconcile_workbook(state, observations,
                                 participants={"Synthetic entrant": "entry:one"},
                                 events={"Australie": "australian_open"}, cutoff=at(5))
@@ -346,10 +355,11 @@ def test_activation_can_be_revoked_only_by_an_evidenced_correction():
 
 
 def test_replay_survives_typed_record_round_trip_and_chained_corrections():
-    state = ledger().append(submitted(), accepted(), record("score", EventPoints(points=1), 3))
-    correction = replace(record("correct1", EventPoints(points=7), 3), supersedes="score",
+    state = ledger().append(submitted(), accepted())
+    state = state.append(record("score", event_points(state, 1), 3))
+    correction = replace(record("correct1", event_points(state, 7), 3), supersedes="score",
                          correction_reason="Synthetic first amendment", evidence=evidence(6))
-    correction2 = replace(correction, record_id="correct2", payload=EventPoints(points=15),
+    correction2 = replace(correction, record_id="correct2", payload=event_points(state, 15),
                           supersedes="correct1", evidence=evidence(8))
     state = state.append(correction, correction2)
     rebuilt = ledger().append(*(LedgerRecord.from_dict(record.to_dict()) for record in state.history))
@@ -534,3 +544,28 @@ def test_erroneous_miss_is_voided_without_rewriting_historical_accounting():
     with pytest.raises(ValueError, match="superseded"):
         state.append(replace(void, record_id="unbound-void", supersedes=None,
                              correction_reason=None))
+
+
+def test_recovering_a_scored_miss_requires_explicit_score_cancellation():
+    missed = record("miss", Missed(assignments=tuple(p.primary for p in roster("random")),
+                                   approved_by="synthetic"), day=10)
+    state = ledger().append(missed)
+    score = record("random-score", event_points(state, 123), day=11)
+    state = state.append(score)
+    void_miss = replace(missed, record_id="void-miss", payload=Voided(approved_by="synthetic"),
+                        evidence=evidence(25), supersedes="miss", correction_reason="Recovered")
+    recovered = (replace(submitted(), evidence=evidence(25)),
+                 replace(accepted(day=11), evidence=evidence(25)))
+    with pytest.raises(ValueError, match="accounting basis"):
+        state.append(void_miss, *recovered)
+    void_score = replace(score, record_id="void-score", payload=Voided(approved_by="synthetic"),
+                         evidence=evidence(25), supersedes="random-score",
+                         correction_reason="Random roster score no longer applies")
+    corrected = state.append(void_miss, void_score, *recovered)
+    assert corrected.replay(at(24)) == state.replay(at(24))
+    after = corrected.replay(at(26))
+    assert after.events[0].accepted_submission_id == "s"
+    assert not after.events[0].points_recorded
+    assert after.entries[0].season_points == 0
+    scored = corrected.append(record("accepted-score", event_points(corrected, 37), day=26))
+    assert scored.replay(at(27)).entries[0].season_points == 37
