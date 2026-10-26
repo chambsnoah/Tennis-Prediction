@@ -569,3 +569,16 @@ def test_recovering_a_scored_miss_requires_explicit_score_cancellation():
     assert after.entries[0].season_points == 0
     scored = corrected.append(record("accepted-score", event_points(corrected, 37), day=26))
     assert scored.replay(at(27)).entries[0].season_points == 37
+
+
+def test_reconciliation_never_infers_a_missing_submission_link():
+    observations = WorkbookSeason(picks=tuple(
+        WorkbookPick("Synthetic entrant", "Australie", str(i), pair.primary.player_id,
+                     pair.primary.band.value, False, evidence())
+        for i, pair in enumerate(roster())))
+    state = ledger().append(submitted())
+    result = reconcile_workbook(state, observations,
+                                participants={"Synthetic entrant": "entry:one"},
+                                events={"Australie": "australian_open"}, cutoff=at(5))
+    assert [difference.field for difference in result.differences] == ["submission_attestation"]
+    assert result.snapshot.entries[0].usage == ()

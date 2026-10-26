@@ -568,10 +568,11 @@ def reconcile_workbook(
         event_id = event(event_label)
         event_state = states.get((state.entry_id, event_id))
         link = (submission_links or {}).get((label, event_label))
-        for correction in updated.history:
-            if (correction.supersedes == link and correction.effective_at < cutoff
-                    and correction.evidence.available_at < cutoff):
-                link = correction.record_id
+        if link is not None:
+            for correction in updated.history:
+                if (correction.supersedes == link and correction.effective_at < cutoff
+                        and correction.evidence.available_at < cutoff):
+                    link = correction.record_id
         submission = next((r for r in event_state.submitted if r.record_id == link), None) \
             if event_state is not None else None
         if submission is None or not isinstance(submission.payload, Submitted):
