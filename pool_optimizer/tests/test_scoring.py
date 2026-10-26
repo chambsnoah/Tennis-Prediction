@@ -1,8 +1,9 @@
-"""Validate the scoring engine against ground truth in the workbooks.
+"""Legacy private-workbook diagnostic, not canonical scoring parity evidence.
 
 For every completed tournament: reconstruct each entrant's run from the Draw
 sheet, score it, and compare with the (atp, bonus) the commissioner recorded
-for every participant-player row.
+for every participant-player row. Requires authorized private fixtures; never
+publish them. Issue #20's 564-comparison claim remains unverified.
 """
 
 import sys
@@ -14,6 +15,7 @@ from pool.parsers import GRAND_SLAMS, MASTERS_6R, load_draw, load_pool_results, 
 from pool.results import score_tournament
 
 DATA = Path(__file__).resolve().parents[1] / "data"
+EXPECTED_COMPARISONS = 564  # Issue #20 acceptance target, not a measured count.
 
 FILES = {
     "Australie": "01 - Australie.xlsm",
@@ -38,13 +40,15 @@ def validate(tournament: str, fname: str, verbose: bool = False):
     truth = load_pool_results(path, tournament)
 
     checked = mismatches = missing = 0
-    seen_players = set()
+    seen_players = {}
     for participant, players in truth.items():
         for player, (atp, bonus, total) in players.items():
             key = norm(player)
             if key in seen_players:
+                if seen_players[key] != (atp, bonus, total):
+                    mismatches += 1
                 continue
-            seen_players.add(key)
+            seen_players[key] = (atp, bonus, total)
             if key not in outcomes:
                 missing += 1
                 if verbose:
@@ -52,7 +56,7 @@ def validate(tournament: str, fname: str, verbose: bool = False):
                 continue
             got = outcomes[key].result
             checked += 1
-            if (got.atp, got.bonus) != (atp, bonus):
+            if (got.atp, got.bonus, got.total) != (atp, bonus, total):
                 mismatches += 1
                 if verbose:
                     print(
@@ -67,10 +71,11 @@ def validate(tournament: str, fname: str, verbose: bool = False):
 
 
 def main():
-    total_checked = total_bad = total_missing = 0
+    total_checked = total_bad = total_missing = missing_files = 0
     for t, f in FILES.items():
         if not (DATA / f).exists():
             print(f"{t}: file not found, skipped")
+            missing_files += 1
             continue
         checked, bad, missing = validate(t, f, verbose=True)
         total_checked += checked
@@ -81,7 +86,11 @@ def main():
               f"{bad} mismatches, {missing} missing -> {status}")
     print(f"\nTOTAL: {total_checked} checked, {total_bad} mismatches, "
           f"{total_missing} missing")
-    return 1 if (total_bad or total_missing) else 0
+    if missing_files or total_checked != EXPECTED_COMPARISONS:
+        print(f"UNVERIFIED: expected {EXPECTED_COMPARISONS} player-event comparisons; "
+              f"{missing_files} required files unavailable")
+    return 1 if (total_bad or total_missing or missing_files
+                 or total_checked != EXPECTED_COMPARISONS) else 0
 
 
 if __name__ == "__main__":
