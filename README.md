@@ -11,6 +11,36 @@ issue #4. Development can use these provisional decisions with
 commissioner confirmation. The existing web team optimizer remains a legacy
 budget workflow, not a validated 2026 pool optimizer.
 
+### Season Ledger
+
+Issue #21 adds a local, append-only season ledger in `tennis_pool.ledger`.
+Open it with `SeasonLedger.create(event_terms)`, append evidence-bearing
+`LedgerRecord` values with `append(...)`, and obtain immutable state with
+`replay(cutoff)`. Both effective-time and information-availability cutoffs are
+exclusive. `append` returns a new ledger; retain its history for later replay.
+Explicit audited scores use `EventPoints(points=..., accounting_digest=...)`
+with the matching replayed event state's `accounting_digest`. Changing the
+accepted roster or accounting evidence requires corrected or cancelled scores;
+old random-roster points cannot silently transfer to recovered voluntary picks.
+Submitted choices, commissioner acceptance, activated selections and corrections
+are distinct evidence; a workbook preview or export is not proof of acceptance.
+Replay uses explicit information-availability and event cutoffs, preserves prior
+history, and rejects conflicting duplicate records rather than silently rewriting
+them. Separate Slam/Masters seed-band banks and the season-wide five-use limit
+apply without an invented budget or one-player-per-band restriction.
+
+Strict rule gates remain the default. Development must explicitly opt into
+provisional accounting/submission decisions, and outputs retain rule provenance.
+Unused substitutes consume nothing; approved activation transfers the original
+selection's debit exactly once. This bookkeeping does not adjudicate withdrawal
+eligibility or generate replacement scenarios, which belong to issue #22.
+Random assignments remain event-prize-ineligible, and the seven-spreadsheet
+250-point bonus is a once-only season award.
+
+Only synthetic ledger and workbook reconciliation fixtures are published.
+Real-workbook summary parity remains unverified pending an authorized private
+audit; neither ingestion nor participant-data publication permission is implied.
+
 ---
 
 ## Features
