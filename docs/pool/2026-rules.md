@@ -286,6 +286,11 @@ submission, debit a bank, consume a player use, or establish spreadsheet-bonus
 eligibility. Source observations need explicit reviewed identity/event mappings
 and acceptance evidence. Repeated identical imports must be idempotent; conflicting
 records require an evidenced correction, not an overwrite.
+An evidenced `Voided` correction can cancel an erroneous missed-event record
+before explicit accepted records replace its accounting. Dependent points or
+activation records also need explicit correction or cancellation; nothing is
+silently discarded. A timely submission can be accepted later, retaining the
+actual acceptance time rather than backdating it to the submission deadline.
 
 Replay retains both event timing and information-availability timing so later
 acceptance, results or commissioner corrections cannot rewrite an earlier
@@ -296,8 +301,10 @@ prizes, validate withdrawal timing, or choose replacement scenarios.
 
 Substitution accounting requires an explicit approved activation: transfer the
 accepted primary's event debit to the replacement once, without charging unused
-alternatives. Approval is caller-supplied evidence, not independently authenticated
-commissioner correspondence. Strict rule resolution remains the default, and
+alternatives. Activation evidence pins the exact submitted revision; correcting
+the pairing requires renewed activation evidence. Approval is caller-supplied
+evidence, not independently authenticated commissioner correspondence. Strict rule
+resolution remains the default, and
 explicit provisional development retains unconfirmed statuses and source versions.
 
 Synthetic summary reconciliation is not real commissioner-workbook parity. No

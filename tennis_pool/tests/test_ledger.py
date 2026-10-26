@@ -9,7 +9,7 @@ import pytest
 from tennis_api.models.canonical import PlayerId, Provenance
 from tennis_pool.ledger import (
     Accepted, ApprovedActivation, Band, EventPoints, EventTerms, LedgerRecord, Missed,
-    Pair, SeasonLedger, Selection, Submitted, reconcile_workbook,
+    Pair, SeasonLedger, Selection, Submitted, Voided, reconcile_workbook,
 )
 from tennis_pool.rules import ProvisionalRulesWarning, UnresolvedRulesError, load_register
 from tennis_pool.workbooks import (
@@ -157,7 +157,7 @@ def test_approved_activation_transfers_once_unused_alternatives_never_debit():
     before = state.replay(at(3))
     assert PlayerId("atp:sub0") not in dict(before.entries[0].usage)
     activation = record("activation", ApprovedActivation(
-        acceptance_id="a", primary_ids=(PlayerId("atp:p0"), PlayerId("atp:p1")),
+        acceptance_id="a", submission_id="s", primary_ids=(PlayerId("atp:p0"), PlayerId("atp:p1")),
         approved_by="synthetic authority attesting eligibility"), 3)
     state = state.append(activation)
     after = state.replay(at(4))
@@ -321,7 +321,7 @@ def test_activation_cannot_hide_an_illegal_primary_acceptance_at_same_instant():
     with pytest.raises(ValueError, match="five-use"):
         state.append(submitted("s6", tuple(picks), 6, "rome"),
                      accepted("s6", "a6", 6, "rome"),
-                     record("activate", ApprovedActivation(acceptance_id="a6",
+                     record("activate", ApprovedActivation(acceptance_id="a6", submission_id="s6",
                             primary_ids=(PlayerId("atp:same0"),), approved_by="synthetic"),
                             6, "rome"))
 
@@ -330,7 +330,7 @@ def test_activation_can_be_revoked_only_by_an_evidenced_correction():
     picks = roster()
     picks = (replace(picks[0], substitute=Selection(player_id=PlayerId("atp:replacement"),
                                                     band=Band.TOP4)),) + picks[1:]
-    active = record("activate", ApprovedActivation(acceptance_id="a",
+    active = record("activate", ApprovedActivation(acceptance_id="a", submission_id="s",
                     primary_ids=(PlayerId("atp:p0"),), approved_by="synthetic"), 3)
     state = ledger().append(submitted(picks=picks), accepted(), active)
     revoke = replace(active, record_id="revoke", evidence=evidence(7), supersedes="activate",
@@ -452,3 +452,85 @@ def test_independent_participant_banks_and_usage_are_not_shared():
     assert len(state.entries) == 2
     assert state.entries[0].slam == state.entries[1].slam == (2, 3, 3, 4)
     assert state.entries[0].usage == state.entries[1].usage
+
+
+def test_submission_correction_cannot_retarget_an_existing_activation():
+    picks = roster()
+    picks = (replace(picks[0], substitute=Selection(player_id=PlayerId("atp:subA"),
+                                                    band=Band.TOP4)),) + picks[1:]
+    activation = record("activate", ApprovedActivation(
+        acceptance_id="a", submission_id="s", primary_ids=(PlayerId("atp:p0"),), approved_by="synthetic"), 3)
+    state = ledger().append(submitted(picks=picks), accepted(), activation)
+    amended = replace(state.history[0], record_id="corrected-submission", evidence=evidence(6),
+                      supersedes="s", correction_reason="Synthetic pairing correction",
+                      payload=replace(state.history[0].payload, picks=(
+                          replace(picks[0], substitute=Selection(player_id=PlayerId("atp:subB"),
+                                                                band=Band.TOP4)),) + picks[1:]))
+    with pytest.raises(ValueError, match="submission revision"):
+        state.append(amended)
+    reapproved = replace(activation, record_id="corrected-activation", evidence=evidence(6),
+                         supersedes="activate", correction_reason="Synthetic replacement reapproved",
+                         payload=replace(activation.payload, submission_id="corrected-submission"))
+    corrected = state.append(amended, reapproved)
+    assert corrected.replay(at(5)) == state.replay(at(5))
+    assert dict(corrected.replay(at(7)).entries[0].usage)[PlayerId("atp:subB")] == 1
+    assert PlayerId("atp:subA") not in dict(corrected.replay(at(7)).entries[0].usage)
+
+
+def test_revoked_activation_allows_a_later_timely_acceptance():
+    picks = roster()
+    picks = (replace(picks[0], substitute=Selection(player_id=PlayerId("atp:subA"),
+                                                    band=Band.TOP4)),) + picks[1:]
+    activation = record("activate", ApprovedActivation(
+        acceptance_id="a", submission_id="s", primary_ids=(PlayerId("atp:p0"),), approved_by="synthetic"), 3)
+    state = ledger().append(submitted(picks=picks), accepted(), activation)
+    revoke = replace(activation, record_id="revoke", evidence=evidence(4), supersedes="activate",
+                     correction_reason="Synthetic revoked approval",
+                     payload=replace(activation.payload, primary_ids=()))
+    state = state.append(revoke)
+    before = state.replay(at(5))
+    corrected = state.append(submitted("new", roster("new"), day=5),
+                             accepted("new", "new-acceptance", day=6))
+    assert corrected.replay(at(5)) == before
+    assert corrected.replay(at(7)).events[0].accepted_submission_id == "new"
+    assert PlayerId("atp:subA") not in dict(corrected.replay(at(7)).entries[0].usage)
+
+
+def test_timely_submission_can_be_accepted_after_deadline_without_backdating():
+    pending = ledger().append(submitted())
+    state = pending.append(accepted(day=11))
+    assert state.replay(at(11)).entries[0].usage == ()
+    after = state.replay(at(12))
+    assert after.events[0].event_payout_eligible
+    assert after.entries[0].qualifying_events == ("australian_open",)
+    assert after.entries[0].slam == (2, 3, 3, 4)
+
+
+def test_erroneous_miss_is_voided_without_rewriting_historical_accounting():
+    state = ledger(terms(), terms("indian_wells", 20))
+    random = record("random", Missed(assignments=tuple(p.primary for p in roster("random")),
+                                     approved_by="synthetic"), day=10)
+    second = record("second-miss", Missed(assignments=tuple(p.primary for p in roster("next")),
+                                          approved_by="synthetic"), day=20, event="indian_wells")
+    state = state.append(random, second)
+    before = state.replay(at(24))
+    void = replace(random, record_id="void-random", payload=Voided(approved_by="synthetic"),
+                   evidence=evidence(25), supersedes="random",
+                   correction_reason="Synthetic timely submission discovered")
+    recovered = (replace(submitted(), evidence=evidence(25)),
+                 replace(accepted(day=11), evidence=evidence(25)))
+    corrected = state.append(void, *recovered)
+    assert corrected.replay(at(24)) == before
+    after = corrected.replay(at(26))
+    assert after.events[0].event_payout_eligible
+    assert after.events[0].missed_number is None
+    assert after.events[1].missed_number == 1
+    assert after.entries[0].qualifying_events == ("australian_open",)
+    assert PlayerId("atp:random0") not in dict(after.entries[0].usage)
+    assert dict(after.entries[0].usage)[PlayerId("atp:p0")] == 1
+    rebuilt = ledger(*state.events).append(*(LedgerRecord.from_dict(r.to_dict())
+                                             for r in corrected.history))
+    assert rebuilt.replay(at(26)) == after
+    with pytest.raises(ValueError, match="superseded"):
+        state.append(replace(void, record_id="unbound-void", supersedes=None,
+                             correction_reason=None))
