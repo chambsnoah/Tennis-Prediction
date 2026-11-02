@@ -24,7 +24,7 @@ from tests.test_scoring import DATA, FILES
 GAPS = {  # event -> weeks since previous pool event
     "Indian Wells": 7, "Miami": 2, "Monte Carlo": 3, "Madrid": 2,
     "Rome": 2, "Roland-Garros": 3, "Wimbledon": 5, "Montréal": 5,
-    "Cincinnati": 2,
+    "Cincinnati": 2, "US Open": 2,
 }
 
 

@@ -40,8 +40,8 @@ DATA = Path(__file__).resolve().parent / "data"
 REPORTS = Path(__file__).resolve().parent / "reports"
 SUMMARY_XLSX = DATA / "ChoixTournois_2026.xlsx"
 # per-event entry forms carry the up-to-date bank + usage for that event
-EVENT_FORMS = {"Shanghai": DATA / "ChoixShanghai.xlsx"}
-LATEST_EVENT = "US Open"  # most recent workbook WITH results in data/
+EVENT_FORMS = {"Shanghai": DATA / "ChoixShanghai.xlsx", "Paris": DATA / "ChoixParis.xlsx"}
+LATEST_EVENT = "Shanghai"  # most recent workbook WITH results in data/
 ME = "Noah Chamberland"
 
 
@@ -163,7 +163,7 @@ def usage_and_quota_from_history(history, upto: str):
 
 def run_pipeline(entries, kind, tournament, n_sims, exclude_event=None,
                  usage=None, banks=None, history=None, quiet=False,
-                 quota_cap=None):
+                 quota_cap=None, top_nf=10):
     """history, usage, banks must already be sliced to the eve of the
     tournament when back-testing (see cmd_backtest)."""
     # exclude_event: backtest mode — anchor on that event's own start-of-event
@@ -220,7 +220,7 @@ def run_pipeline(entries, kind, tournament, n_sims, exclude_event=None,
         if not quiet:
             print(f"quota capped for this week: {quota}")
     my_usage = {norm(p): c for p, c in usage[ME].items()}
-    sets = enumerate_sets(names, seeds, quota, my_usage, points)
+    sets = enumerate_sets(names, seeds, quota, my_usage, points, top_nf=top_nf)
     contra_sets = filter_contrarian(sets, ownership)
     if not quiet:
         print(f"{len(sets)} candidate pick sets ({len(contra_sets)} contrarian), "
@@ -521,7 +521,7 @@ def cmd_analyze(args):
             raise SystemExit("--quota needs 4 values: 1-4,5-8,9-16,17-32")
         cap = dict(zip(("1-4", "5-8", "9-16", "17-32"), vals))
     names, points, rival_scores, (ranked, ranked_contra), model, field = run_pipeline(
-        entries, kind, tournament, args.sims, quota_cap=cap)
+        entries, kind, tournament, args.sims, quota_cap=cap, top_nf=args.top_nf)
     seeds = [e.seed for e in entries if not e.is_bye]
     usage = load_player_usage(str(summary_file(tournament)))
     u = {norm(p): c for p, c in usage[ME].items()}
@@ -585,6 +585,9 @@ def main():
         p.add_argument("workbook", nargs="?")
         p.add_argument("--draw-json")
         p.add_argument("--quota", help="per-band cap this week, e.g. 1,1,1,2")
+        p.add_argument("--top-nf", type=int, default=10,
+                       help="unseeded candidates kept for enumeration (raise when the "
+                            "bank forces several NF picks, e.g. Paris)")
         p.add_argument("--tournament",
                        required=name not in ("backtest-all", "rivals"))
         p.add_argument("--sims", type=int, default=20000)

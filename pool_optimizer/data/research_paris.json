@@ -1,0 +1,259 @@
+{
+ "_meta": "Paris 2026 research sweep, 2026-10-31; one contract block per agent scope",
+ "odds_withdrawals": {
+  "schedule": "First main-draw ball Mon 2 Nov 11:00 CET = 05:00 Montréal (EST after 1 Nov clock change). rolexparismasters.com provisional schedule 29 Oct.",
+  "market_source": "oddsportal ATP Paris outrights (no timestamp, longshots capped at 100.00); power-method normalisation k=1.192. No Kalshi/Polymarket outright. Tennisnerd estimates only as cross-check.",
+  "market": {
+   "Alcaraz": 0.27,
+   "Zverev": 0.192,
+   "Djokovic": 0.064,
+   "Medvedev": 0.052,
+   "Shelton": 0.052,
+   "Fils": 0.04,
+   "Jódar": 0.032,
+   "Fritz": 0.032,
+   "de Minaur": 0.022,
+   "Paul": 0.022,
+   "Tiafoe": 0.017,
+   "Cobolli": 0.014
+  },
+  "withdrawals": [
+   "Sinner",
+   "Auger-Aliassime",
+   "Menšík",
+   "Fonseca",
+   "Bublik"
+  ],
+  "doubtful": {
+   "Fils": "retired Basel QF 30 Oct (back/leg), says confident",
+   "Cobolli": "retired Vienna R2 29 Oct, minor thigh strain"
+  },
+  "injury_risk": {
+   "Fils": 0.08,
+   "Cobolli": 0.06
+  },
+  "results": {
+   "Shanghai": "Davidovich Fokina d. Jódar 1-6 7-6(5) 6-4; SF DF d. Zverev, Jódar d. Medvedev",
+   "Vienna QF": "Zverev d. Fery, Alcaraz d. Paul, Medvedev d. Mannarino, de Minaur d. Berrettini; SF 31 Oct",
+   "Basel QF": "Fritz d. Fils (ret.), Lehečka d. Kym, Struff d. Borges, Vacherot d. Rune; SF 31 Oct"
+  },
+  "notes": {
+   "Medvedev": "Almaty title, 18-2 since 26 Sep",
+   "Shelton": "lost Basel R2 to WC Kym",
+   "Zverev": "becomes No.1 on 2 Nov",
+   "Struff": "special exempt in slot 34 (vs Géa); Basel SF"
+  }
+ },
+ "seeds_1_8": {
+  "elo_delta": {
+   "Zverev": -15,
+   "Alcaraz": 0,
+   "Medvedev": 5,
+   "Fils": -40,
+   "Shelton": -25,
+   "de Minaur": 10,
+   "Cobolli": -35,
+   "Tiafoe": -20
+  },
+  "injury_risk": {
+   "Zverev": 0.03,
+   "Medvedev": 0.02,
+   "Fils": 0.1,
+   "de Minaur": 0.02,
+   "Cobolli": 0.08,
+   "Tiafoe": 0.02
+  },
+  "h2h": [
+   [
+    "Djokovic",
+    "Zverev",
+    30
+   ],
+   [
+    "Djokovic",
+    "de Minaur",
+    25
+   ],
+   [
+    "Medvedev",
+    "Davidovich Fokina",
+    20
+   ]
+  ],
+  "turin": "Qualified: Zverev, Alcaraz, Shelton, Medvedev (nothing at stake). Chasing: Cobolli 3690, Fils 3535, Tiafoe 3430, Jódar 3209 (9th = last spot), de Minaur 3080, Djokovic 2900, Fritz 2895, Paul 2775.",
+  "notes": {
+   "Zverev": "ankle+fatigue at Shanghai (SF L Davidovich Fokina); Vienna SF 31 Oct; nothing at stake",
+   "Alcaraz": "L Shanghai R3 Bergs; Vienna SF vs Medvedev 31 Oct; qualified",
+   "Medvedev": "18/19, Almaty title, Vienna SF; 4th straight week",
+   "Fils": "retired Basel QF 30 Oct back/leg; 2025 back stress fracture; scans pending; can't start before Wed",
+   "Shelton": "L Shanghai R3 Géa, L Basel R16 to #222 Kym; flat",
+   "de Minaur": "groin healed; Vienna SF; must score for Turin",
+   "Cobolli": "retired Vienna 29 Oct left-leg strain; says will play",
+   "Tiafoe": "cold: L Vienna R32 Musetti, Lyon WD"
+  }
+ },
+ "seeds_9_16_top_unseeded": {
+  "elo_delta": {
+   "Lehecka": 20,
+   "Darderi": -40,
+   "Rublev": -45,
+   "Ruud": -5,
+   "Musetti": 15,
+   "Khachanov": 5,
+   "Jodar": -5,
+   "Djokovic": -30,
+   "Fritz": 10,
+   "Paul": 10,
+   "Davidovich Fokina": 5,
+   "Nakashima": -15,
+   "Tien": -5,
+   "Cerundolo": -10
+  },
+  "elo_delta_out_of_scope_not_merged": {
+   "Vacherot": 20,
+   "Etcheverry": -15,
+   "Michelsen": 5,
+   "Berrettini": 10,
+   "Tsitsipas": -10,
+   "Tabilo": -10,
+   "Rinderknech": -10
+  },
+  "injury_risk": {
+   "Djokovic": 0.06,
+   "Jodar": 0.05,
+   "Tsitsipas": 0.06,
+   "Cobolli": 0.06,
+   "Fils": 0.08,
+   "Musetti": 0.03,
+   "Lehecka": 0.03,
+   "Fritz": 0.03,
+   "Davidovich Fokina": 0.03,
+   "Vacherot": 0.03,
+   "Zverev": 0.03
+  },
+  "h2h": [
+   [
+    "Alcaraz",
+    "Lehecka",
+    20
+   ]
+  ],
+  "notes": {
+   "Lehecka": "Basel SF 31 Oct, strong indoors, 4th straight week; R1 Michelsen then Alcaraz",
+   "Musetti": "won Lyon 25 Oct; L Vienna R16 Fery",
+   "Rublev": "4 straight losses",
+   "Darderi": "clay specialist, crushed by Paul 6-1 6-1",
+   "Khachanov": "Almaty QF, tight L to Alcaraz Vienna",
+   "Djokovic": "L Shanghai R2 Hurkacz, L Basel R16 Struff; rib/abdomen history",
+   "Jodar": "Shanghai F with thigh MTOs; L Basel R16 Vacherot",
+   "Tien": "R1 opp Tsitsipas withdrew from Basel (shoulder/back?)",
+   "Davidovich Fokina": "Shanghai champ; WD Basel, no match since 18 Oct"
+  },
+  "musetti_resolution": "Scoped agent +30 (Lyon title 25 Oct over Cobolli/Fritz); ranks-27-39 agent suggested -25 (lost Shanghai R2 to #277 Zhou, Vienna R16 to Fery). Same verified facts, different weighting -> +15."
+ },
+ "unseeded_27_39": {
+  "elo_delta": {
+   "hurkacz": 30,
+   "bergs": 25,
+   "van de zandschulp": 10,
+   "tsitsipas": 15,
+   "vacherot": 45,
+   "blockx": -35,
+   "fery": 25,
+   "tabilo": -15,
+   "etcheverry": -10,
+   "buse": -20,
+   "michelsen": 5,
+   "arnaldi": -10,
+   "humbert": 5
+  },
+  "injury_risk": {
+   "hurkacz": 0.03,
+   "bergs": 0.03,
+   "tsitsipas": 0.07,
+   "vacherot": 0.02,
+   "blockx": 0.08
+  },
+  "h2h": [
+   [
+    "Humbert",
+    "Van de Zandschulp",
+    40
+   ]
+  ],
+  "top_nf_shortlist": [
+   "vacherot",
+   "hurkacz",
+   "bergs",
+   "tsitsipas",
+   "fery"
+  ],
+  "notes": {
+   "vacherot": "Basel SF (d. Jódar, Rune); R1 Djokovic (tired, lost Struff), then de Minaur; fatigue if Basel final Sun",
+   "hurkacz": "beat Djokovic Shanghai; Basel L Rune 9-7 TB; adductor resolved; R1 Musetti, R2 Zverev",
+   "bergs": "beat Alcaraz Shanghai, Brussels QF; R2 Medvedev (4th straight week)",
+   "tsitsipas": "best slot (R1 Tien, R2 Zverev) but right-shoulder discomfort, WD Basel",
+   "fery": "Vienna QF (d. Musetti); R2 cold Tiafoe",
+   "blockx": "ankle ligament strain 20 Oct, avoid",
+   "van de zandschulp": "Humbert leads H2H ~6-0"
+  }
+ },
+ "unseeded_41plus_french": {
+  "elo_delta": {
+   "Gea": 30,
+   "Shapovalov": -10,
+   "Rinderknech": -40,
+   "Jacquet": 20,
+   "Droguet": -10,
+   "Kouame": 30,
+   "Berrettini": 15,
+   "Merida": 0,
+   "Norrie": 20,
+   "Halys": 10,
+   "Van Assche": 10,
+   "Navone": 0,
+   "Struff": 40
+  },
+  "absolute_elo": {
+   "Rune": 1370
+  },
+  "rune_note": "Protected-ranking entry listed at 432 -> anchor Elo ~1132. Basel 26-30 Oct: d. Halys, d. Hurkacz (saved MP), l. Vacherot in 3; earlier 0-3 incl. 1-6 set vs Jacquet. Set absolute ~rank-50 level (1370) instead of agent's +120 on the 432 anchor.",
+  "out_of_scope_not_merged": {
+   "Fery": 20,
+   "Blockx": -30,
+   "Shelton": -25,
+   "Tiafoe": -15,
+   "Fils": -40,
+   "Cobolli": -30,
+   "DavidovichFokina": 40,
+   "Arnaldi": -15
+  },
+  "injury_risk": {
+   "Gea": 0.07,
+   "Shapovalov": 0.04,
+   "Rinderknech": 0.05,
+   "Rune": 0.04,
+   "Berrettini": 0.03,
+   "Kouame": 0.02,
+   "Struff": 0.03
+  },
+  "h2h": [],
+  "top_nf_shortlist": [
+   "Rune",
+   "Norrie",
+   "Berrettini",
+   "Kouame",
+   "Jacquet"
+  ],
+  "qualifying": "none decided (final round 1 Nov); in form: Griekspoor (Brussels champion), Mannarino, Borges, Altmaier; R1 winners Machac, Tirante, Bellucci, JM Cerúndolo, Kecmanovic, Hijikata, Kopriva",
+  "notes": {
+   "Gea": "Shanghai QF (d. Shelton, Mensik) but psoas retirement 15 Oct, no match since; R1 Struff",
+   "Struff": "Brussels F, Basel SF (d. Djokovic); 36, 9 matches in 12 days",
+   "Norrie": "d. Cerúndolo, took Medvedev to 3rd-set TB; R1 cold Arnaldi, R2 slumping Shelton",
+   "Kouame": "17yo WC; R1 Davidovich Fokina (rested since Shanghai title)",
+   "Berrettini": "Vienna QF; R1 Nakashima[14]",
+   "Rinderknech": "abdominal injury since Beijing; R1 Cerúndolo[16]",
+   "Jacquet": "R2 injured Fils"
+  }
+ }
+}

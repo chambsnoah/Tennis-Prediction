@@ -17,29 +17,28 @@ from .parsers import norm
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 
-# vig-normalized title probabilities — Shanghai 2026, post-draw. ONE book only
-# (OddsPortal, 150% overround; proportional/power average), so only the top 12
-# are fitted — beyond that the price is ±30% noise and research deltas govern
-# (2026-10-05 odds sweep; see data/research_shanghai.json for sources).
-# The real draw is known, so calibration runs ON THE REAL BRACKET: post-draw
-# prices already include section strength, which is then matched exactly
-# (no damping of section moves needed, unlike the pre-draw US Open runs).
-TOURNAMENT = "Shanghai"
-KIND = "m7"
-DRAW_JSON = DATA / "shanghai_draw_2026.json"
+# vig-normalized title probabilities — Paris 2026, post-draw (filled from the
+# 2026-10-31 odds sweep; see data/research_paris.json for sources). Calibrated
+# on the real bracket, so post-draw prices are matched directly.
+TOURNAMENT = "Paris"
+KIND = "m6"
+DRAW_JSON = DATA / "paris_draw_2026.json"
 MARKET: dict[str, float] = {
-    "alcaraz": 0.3225,
-    "zverev": 0.1081,
-    "shelton": 0.0678,
-    "fils": 0.0511,
-    "djokovic": 0.0437,
-    "fritz": 0.0339,
-    "medvedev": 0.0276,
-    "tien": 0.0242,
-    "de minaur": 0.0215,
-    "tiafoe": 0.0215,
-    "lehecka": 0.0181,
-    "jodar": 0.0181,
+    "alcaraz": 0.27,
+    "zverev": 0.192,
+    "djokovic": 0.064,
+    "medvedev": 0.052,
+    "shelton": 0.052,
+    "fils": 0.04,
+    "jodar": 0.032,
+    "fritz": 0.032,
+    "de minaur": 0.022,
+    "paul": 0.022,
+    "tiafoe": 0.017,
+    "cobolli": 0.014,
+    "rune": 0.012,
+    "ruud": 0.011,
+    "davidovich fokina": 0.011,
 }
 
 # seed list; the live set is the UNION of this and whatever is already in

@@ -48,6 +48,9 @@ SEASON = [
     ("Montréal", "09 - Montréal.xlsm", "hard"),
     ("Cincinnati", "10 - Cincinnati.xlsm", "hard"),
     ("US Open", "11 - US Open.xlsm", "hard"),
+    # mid-event snapshot (15 Oct): results through the R16 only; swap in the
+    # final workbook when it arrives (then add it to tests/test_scoring.py)
+    ("Shanghai", "12 - Shanghai.xlsm", "hard"),
 ]
 
 ELO_SCALE = 400.0
