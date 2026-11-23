@@ -77,6 +77,27 @@ Only synthetic ledger and workbook reconciliation fixtures are published.
 Real-workbook summary parity remains unverified pending an authorized private
 audit; neither ingestion nor participant-data publication permission is implied.
 
+### Paired Substitutes
+
+Issue #22 adds `tennis_pool.substitutions`. Before the deadline,
+`validate_roster(pairs, draw, event_id, entry_state)` checks five distinct
+primaries, optional distinct same-band alternatives that are not also primaries,
+and bands against the released draw's seeds. It then checks the event's remaining
+Slam or Masters bank and the five-use cap under every activation combination.
+Submit only when `legal` is true; problems name the failing player, band or scenario.
+
+After withdrawals, `adjudicate(pairs, withdrawals, participation, as_of=...)`
+decides each slot from one snapshot of evidence available before `as_of`. A
+primary is replaced only if its official withdrawal precedes its first started
+match or walkover advancement (a bye does not count), and only by its predeclared
+substitute. There are no chains, no post-deadline picks and no replacement after a
+loss. A substitute that withdraws before playing leaves the slot scoring zero.
+Missing or conflicting timing evidence returns `BLOCKED` with the decision ID that
+needs clarification. `activation_payload(...)` turns an unblocked result into the
+ledger's `ApprovedActivation`, which transfers debits exactly once. Approval is
+still a caller attestation. Strict mode blocks on the provisional register, and
+changed substitution decisions require an implementation review.
+
 ---
 
 ## Features
