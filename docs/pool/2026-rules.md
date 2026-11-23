@@ -310,6 +310,15 @@ evidence, not independently authenticated commissioner correspondence. Strict ru
 resolution remains the default, and
 explicit provisional development retains unconfirmed statuses and source versions.
 
+Issue #22 adds the eligibility side in `tennis_pool.substitutions`, pinned to the
+nine substitution decision texts above. Submission checks enumerate every
+activation combination of the supplied pairs against the event bank and five-use
+cap. Adjudication applies `replacement_eligibility`, `substitute_withdrawal` and
+`walkovers` from official withdrawal and first-participation timestamps available
+before an exclusive cutoff. Unknown or conflicting timing blocks the slot rather
+than guessing. Its output feeds `ApprovedActivation`; it does not authenticate
+commissioner approval or score points.
+
 Synthetic summary reconciliation is not real commissioner-workbook parity. No
 private corpus is read or published by this change, and issue #21 stays open until
 the authorized private summary comparison is independently evidenced.
