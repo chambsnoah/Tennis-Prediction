@@ -19,7 +19,15 @@ import numpy as np
 from .parsers import ParticipantBank, norm
 
 BAND_KEYS = ("1-4", "5-8", "9-16", "17-32")
-CONCENTRATION = 1.35   # weight sharpening; calibrated vs actual weekly holdings
+# Fitted 2026-10-31 on the pool's REAL ownership over 12 weeks
+# (tests/ownership_fit.py; each week rebuilt as of its eve): squared error
+# 0.73 -> 0.52 per week, better on 11/12 held-out weeks. Was (1.35, 25, 120).
+# Rivals follow current strength far more than pick history. Still misses
+# each band's market favourite (the backtest Elo can't see odds), which live
+# runs cover with measured band-leader floors (PLAYBOOK §6).
+CONCENTRATION = 1.0    # weight sharpening
+STRENGTH_WEIGHT = 600.0  # pull toward whoever is strong RIGHT NOW (Elo prior)
+STRENGTH_TEMP = 120.0   # Elo scale of that pull
 
 
 def band_of_seed(seed: int | None) -> str | None:
@@ -69,8 +77,8 @@ class FieldModel:
         # strong RIGHT NOW (market news, current form)
         if elos is not None:
             e = np.array(elos)
-            strength_prior = np.exp((e - e.max()) / 120.0)
-            pop = pop + 25.0 * strength_prior
+            strength_prior = np.exp((e - e.max()) / STRENGTH_TEMP)
+            pop = pop + STRENGTH_WEIGHT * strength_prior
         rank_prior = np.array([1.0 / (1.0 + r / 40.0) for r in atp_ranks])
         self.base_w = (pop * rank_prior) ** CONCENTRATION
 

@@ -19,6 +19,7 @@ def check_install(feature="runtime", require_wheel=False):
     for module in (
         "tennis_api.adapters.http_adapter",
         "tennis_api.config.api_config",
+        "tennis_pool.ledger",
         "tennis_preds.tennis",
     ):
         import_module(module)
