@@ -98,6 +98,24 @@ ledger's `ApprovedActivation`, which transfers debits exactly once. Approval is
 still a caller attestation. Strict mode blocks on the provisional register, and
 changed substitution decisions require an implementation review.
 
+### Pool Payouts
+
+Issue #23 adds `tennis_pool.payouts`. `payout_config(participants)` returns the
+printed 2026 schedule for 40, 60 or 80 participants, in cents. Any other count,
+or a commissioner adjustment, needs an explicit `ScheduleOverride` with its own
+version, source and approval attestation. Season prizes refund the top five
+$50 stakes, add the $25 sixth prize where the schedule has one, and split the
+residual 57.5/27.5/10/5 percent, so they differ slightly from the rounded page 7
+examples. Underfunded schedules are rejected.
+
+`event_payouts(snapshot, event_id, config)` and `season_payouts(snapshot, config)`
+pay from a ledger snapshot. Tied entries share the prizes of every position they
+occupy, unpaid ones included, and leftover cents go to the lowest entry IDs.
+Random-assigned entries are left out of event prizes but their points, like the
+Excel bonus, count in the season standings. `outlook(samples, entry_id, config)`
+reports expected payout separately from expected points and P(top-3) over
+simulated scores, for event or season scope.
+
 ---
 
 ## Features

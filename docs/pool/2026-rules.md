@@ -319,6 +319,14 @@ before an exclusive cutoff. Unknown or conflicting timing blocks the slot rather
 than guessing. Its output feeds `ApprovedActivation`; it does not authenticate
 commissioner approval or score points.
 
+Issue #23 implements `ties_payouts` in `tennis_pool.payouts`, pinned to that
+decision text. Printed schedules apply only at 40, 60 and 80 participants; other
+counts and rule 14 adjustments require an explicit versioned `ScheduleOverride`,
+whose approval is a caller attestation. Season prizes come from the residual
+formula rounded by largest remainder in cents, not from the page 7 examples.
+Event prizes rank only `event_payout_eligible` ledger entries; season standings
+rank every entry, including random-assigned points and the submission bonus.
+
 Synthetic summary reconciliation is not real commissioner-workbook parity. No
 private corpus is read or published by this change, and issue #21 stays open until
 the authorized private summary comparison is independently evidenced.
