@@ -102,6 +102,9 @@ def test_commissioner_override_is_explicit_and_versioned():
         config(80).season_prizes_cents
     with pytest.raises(ValueError, match="participant count"):
         config(7, override)
+    # Zero-prize positions beyond the field are harmless.
+    padded = config(6, small_override(event=(200, 100) + (0,) * 5))
+    assert padded.season_prizes_cents == result.season_prizes_cents
 
 
 @pytest.mark.parametrize("override, message", [
@@ -111,6 +114,7 @@ def test_commissioner_override_is_explicit_and_versioned():
     (small_override(event=()), "at least one"),
     (small_override(participants=5, event=(0,), sixth=100), "sixth"),
     (small_override(participants=4, event=(0,)), "five season"),
+    (small_override(event=(50,) * 7), "beyond the participant count"),
 ])
 def test_invalid_overrides_fail_closed(override, message):
     with pytest.raises(ValueError, match=message):

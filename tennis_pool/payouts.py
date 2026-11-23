@@ -122,6 +122,8 @@ def _season_prizes(participants: int, event: tuple[int, ...], sixth: int) -> tup
         raise ValueError("Schedule needs at least five season participants to refund")
     if sixth and participants < _REFUND_PLACES + 1:
         raise ValueError("A sixth prize needs a sixth participant")
+    if any(event[participants:]):
+        raise ValueError("Event prizes reach positions beyond the participant count")
     residual = (participants * _STAKE_CENTS - _EVENT_COUNT * sum(event)
                 - _REFUND_PLACES * _STAKE_CENTS - sixth)
     if residual < 0:
