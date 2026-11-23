@@ -16,7 +16,9 @@ Every nested record requires schema version 1; unknown versions/fields fail
 closed. Missing rankings/statistics are `None`, never plausible numeric defaults.
 Times must be timezone-aware; date-only match times remain dates and are excluded
 from history until the entire UTC day has passed. Availability must strictly
-precede the prediction cutoff, and the target result is excluded from history.
+precede the prediction cutoff. When `PredictionContext.target_match_id` is set,
+the target result is rejected from history; it defaults to `None`, so callers
+that omit it must exclude the target result from `history` themselves.
 
 Winners are player IDs. Scores and probabilities use player1/player2 order;
 `swapped()` reverses scores or complements win probability without changing the
@@ -50,9 +52,10 @@ result = simulate_tournament(
 source, model, or fallback is selected automatically. Optional `rankings`,
 `history` and `statistics` are canonical as-of snapshots. Rankings are filtered
 to each matchup; shared history/statistics must strictly predate the cutoff.
-Each sampled matchup/round queries the provider once, validates its response
-binding, and retains its model/calibration versions, coverage and warnings in
-`result.predictions`. Surface and best-of format come from the event unchanged.
+The provider is queried once per unique modeled pair in each round, not once per
+simulation, so repeated samples of the same pair share one entry in
+`result.predictions`. Each response's binding is validated, and its
+model/calibration versions, coverage and warnings are retained there. Surface and best-of format come from the event unchanged.
 
 Arrays in `result.rounds` contain bracket-ordered player1/player2/winner indices
 into `result.player_ids`, plus `OutcomeKind` codes. `-1` means a vacant side or
