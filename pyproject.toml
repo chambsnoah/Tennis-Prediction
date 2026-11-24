@@ -65,7 +65,8 @@ python_version = "3.11"
 files = ["tennis_pool", "pool_optimizer/pool/scoring.py", "tennis_api/models/canonical.py", "tennis_api/models/identity.py", "tennis_api/models/information.py"]
 strict = true
 warn_unused_ignores = true
-exclude = ["/tests/"]
+# NumPy-backed modules run under a 3.13 parser target in a separate CI step.
+exclude = ["/tests/", "tennis_pool/optimizer\\.py$"]
 
 [[tool.mypy.overrides]]
 # Package initializers re-export legacy optional-ML models outside this gate.
