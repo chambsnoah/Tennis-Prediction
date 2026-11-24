@@ -165,13 +165,14 @@ roster in the pruned pool and screens them on a scenario prefix with greedy
 covers. It then improves the substitutes of the beam on all scenarios: first
 one slot at a time, then by re-choosing same-band slot pairs together. When the
 whole policy space over every eligible player fits within `exhaustive_limit`,
-it is also enumerated. The exhaustive optimum is then returned, along with the
-heuristic's measured in-sample gap, even when pruning left the heuristic no roster. Otherwise expected points reports an upper
-bound from a relaxation, and the other objectives report the gap as not
-measured. Too many rosters raise an error rather than being truncated silently.
+it is also enumerated and the exhaustive optimum is returned. The heuristic's
+in-sample gap is then measured, unless pruning left the heuristic no legal
+roster, in which case the gap is reported as not measured. Without exhaustive
+enumeration, expected points reports an upper bound from a relaxation, and the
+other objectives report the gap as not measured. Too many rosters raise an error rather than being truncated silently.
 On the synthetic small fixtures, default limits matched exhaustive search for
-all four objectives. A 128-player draw with 10,000 scenarios takes roughly 10 to
-25 seconds per objective.
+all four objectives. A 128-player draw with 10,000 scenarios takes roughly 5 to
+20 seconds per objective.
 
 **Legality.** Unused substitutes cost nothing, and every substitute shares its
 primary's band. Primaries therefore fit the remaining Slam or Masters bank under
@@ -181,9 +182,12 @@ primaries and as substitutes. Every returned policy is checked again with
 decisions, and changed decision texts need an implementation review.
 
 **Reporting.** Each `Recommendation` holds the best policy and up to five ranked
-alternative primary rosters, each with its best substitutes, with all metrics
-and standard errors. An alternative ties the best
-when its paired shortfall on the shared scenarios is within two standard errors.
+alternative primary rosters, with all metrics and standard errors. Under
+exhaustive enumeration each roster carries its best substitutes; otherwise it
+carries the best assignment the one-slot and pairwise passes reached, which can
+miss a change needing three same-band slots at once. An alternative ties the
+best when its paired shortfall on the shared scenarios is within two standard
+errors.
 For P(top-3), any shortfall under 1.5 points also counts as a tie. Assumptions
 record the objective definition, scenario seed and count, withdrawal model and
 probabilities, ownership model, payout version, tie rule and rule decisions.

@@ -733,3 +733,14 @@ def test_unsigned_values_beyond_int64_are_rejected_not_wrapped():
                     withdrawn=np.zeros((16, 4), dtype=bool), assumptions=scenarios.assumptions)
     fits = RivalField(scores=np.ones((3, 4), dtype=np.uint64), assumptions=assumptions)
     assert fits.scores.dtype == np.int64 and fits.scores.sum() == 12
+
+
+def test_exhaustive_limit_counts_legal_policies_not_unconstrained_subsets():
+    # 13 eligible players form 1,287 five-player subsets, but an empty seeded bank
+    # leaves one legal roster (p9-p13) and no same-band substitute: one policy.
+    entry = capped_entry(capped=(14, 15, 16), slam=(0, 0, 0, 0))
+    result = optimize(random_scenarios(5), small_draw(), EVENT,
+                      objective=Objective.EXPECTED_POINTS, entry=entry,
+                      limits=SearchLimits(exhaustive_limit=10), allow_provisional=True)
+    assert result.search.exhaustive and result.search.exhaustive_policies == 1
+    assert result.search.optimality_gap == pytest.approx(0.0)

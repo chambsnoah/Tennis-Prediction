@@ -633,17 +633,20 @@ def _band_lists(problem: _Problem, players: Sequence[int]) -> dict[Band, list[in
 
 
 def _rosters(problem: _Problem, pool: dict[Band, list[int]], limit: int) -> list[tuple[int, ...]]:
+    """Every bank-legal five-primary roster from the pool, counted before enumeration."""
     caps = [min(len(pool[b]), _SLOTS if b is Band.UNSEEDED else problem.banks[b]) for b in _BANDS]
+    structures = [counts for counts in product(*(range(cap + 1) for cap in caps))
+                  if sum(counts) == _SLOTS]
+    total = sum(math.prod(math.comb(len(pool[band]), n) for band, n in zip(_BANDS, counts))
+                for counts in structures)
+    if total > limit:
+        raise ValueError("{} legal primary rosters exceed the limit of {}; lower the pool "
+                         "sizes or raise max_rosters".format(total, limit))
     rosters: list[tuple[int, ...]] = []
-    for counts in product(*(range(cap + 1) for cap in caps)):
-        if sum(counts) != _SLOTS:
-            continue
+    for counts in structures:
         groups = [combinations(pool[band], n) for band, n in zip(_BANDS, counts)]
         for combo in product(*groups):
             rosters.append(tuple(sorted(i for group in combo for i in group)))
-            if len(rosters) > limit:
-                raise ValueError("More than {} legal primary rosters; lower the pool sizes "
-                                 "or raise max_rosters".format(limit))
     return rosters
 
 
@@ -783,7 +786,7 @@ def _substitute_assignments(problem: _Problem, roster: tuple[int, ...],
 
 def _exhaustive(problem: _Problem, limit: int) -> tuple[NDArray[np.int64], NDArray[np.int64]] | None:
     """Every legal policy over all eligible players, or None above the limit."""
-    if limit < 1 or math.comb(len(problem.eligible), _SLOTS) > limit:
+    if limit < 1:
         return None
     pool = _band_lists(problem, problem.eligible)
     try:
@@ -973,7 +976,7 @@ def optimize(
 
     order = sorted(range(len(values)), key=lambda i: (
         -values[i], tuple(candidates_p[i]), tuple(candidates_s[i])))
-    # Alternatives are distinct primary rosters, each with its best substitutes.
+    # Alternatives are distinct primary rosters with the best substitutes found.
     unique: list[int] = []
     seen: set[frozenset[int]] = set()
     for i in order:
