@@ -421,7 +421,7 @@ def _legal_structures(bank: Sequence[int], known: Counter[Band],
                       available: dict[Band, int], expiring: bool) -> list[tuple[int, ...]]:
     ranges = []
     for i, band in enumerate(_BANDS):
-        upper = known[band] + available[band]
+        upper = min(_SLOTS, known[band] + available[band])
         if band is not Band.UNSEEDED:
             upper = min(upper, bank[i])
         ranges.append(range(known[band], upper + 1))
