@@ -45,6 +45,7 @@ jobs:
       # NumPy 2.4 stubs require a 3.12+ parser target; runtime tests still cover 3.11.
       - run: uv run --locked --extra simulation mypy --python-version 3.13 tennis_api/simulation/tournament.py
       - run: uv run --locked --extra simulation mypy --python-version 3.13 tennis_pool/optimizer.py
+      - run: uv run --locked --extra simulation mypy --python-version 3.13 tennis_pool/rivals.py
       - run: uv run --locked mypy --strict --follow-imports=skip tennis_api/models/player_stats.py
 
   dependency-audit:

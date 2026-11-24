@@ -151,8 +151,9 @@ keeps private read-only copies.
 - `P_TOP3`: the share of scenarios with fewer than three rivals strictly ahead.
 - `EXPECTED_PAYOUT`: tie-shared event prize money, matching `payouts.outlook`.
 
-The last two need ownership input: a `RivalField`, either from
-`sample_rival_field` or supplied by the caller. A rival field is bound to the
+The last two need ownership input: a `RivalField`, from the deadline-aware
+`rivals.model_rival_field` (below), the simpler `sample_rival_field`, or the
+caller. A rival field is bound to the
 exact scenarios it was scored on through `ScenarioSet.digest`. Expected payout also needs a
 `PayoutConfig` for exactly the rivals plus you. `recommend` returns every
 objective it can and names the ones it skipped and why. `evaluate` scores a
@@ -198,10 +199,87 @@ scenarios. Search limits, pruning counts and the gap basis are in `search`.
 
 These are in-sample estimates that depend on the provider, the withdrawal and
 ownership assumptions, and the search limits, not predictions of the winning
-roster. The rival model ignores rival substitutes and quotas, and a withdrawn
-rival pick scores zero. The objectives cover one event only and do not value
+roster. `sample_rival_field` ignores rival substitutes and quotas, and a withdrawn
+rival pick scores zero there; `model_rival_field` models both. The objectives cover one event only and do not value
 quota or player uses saved for later events. The legacy web team optimizer still
 uses annealing over a budget format. It is not 2026 decision support.
+
+## Rival Selection Model
+
+`tennis_pool.rivals` models what the other entries will pick, for the
+optimizer's rank and payout objectives. It needs the `simulation` extra (NumPy).
+
+```python
+from tennis_pool.rivals import AppealSnapshot, KnownPick, model_rival_field
+
+model = model_rival_field(
+    scenarios, ledger, draw, event_terms, starts_at=first_match, cutoff=now,
+    rival_ids=rival_entries, known_picks=revealed, appeal=favourites, seed=17,
+    allow_provisional=True,
+)
+model.report.describe()      # known, partial, estimated and no-history rivals
+sheets = recommend(scenarios, draw, event_id, entry=mine, rivals=model.field,
+                   allow_provisional=True)
+```
+
+**What the analysis may see.** It runs before the deadline: a cutoff after the
+submission deadline is rejected. Every `KnownPick` carries the time it became
+legitimately known. A pick counts only if it was available strictly before both
+the cutoff and the tournament start. Picks revealed at or after the start stay
+hidden even when play starts before the cutoff. The report counts the picks
+excluded for each reason. Banks, use counts and pick history come from one
+`SeasonLedger.replay` at the same exclusive cut, and the draw, event terms and
+appeal evidence must also predate it. An acceptance for this event that the
+ledger already shows becomes a known sheet, and its debits are refunded so the
+bank describes the state before the event. Known picks must name draw players
+in their seed band, with same-band substitutes, within the rival's bank and
+five-use cap.
+
+**Unknown picks.** Each unknown sheet draws a band structure (picks per band)
+from the rival's own accepted sheets for this bank kind. It is smoothed toward
+the field's structures and toward every legal structure, and limited to the
+remaining bank, the five-use cap and the known picks. At the last event of a
+bank (US Open, Paris) rivals spend their expiring seeded tokens unless
+`spend_expiring_bank=False`. Players are then drawn within each band in
+proportion to `appeal^concentration x (1 + repeat_affinity x prior uses)`, a
+current-strength signal plus mild loyalty, because the field follows current
+strength more than pick history. Shared per-world noise moves the whole field
+together, which captures herding and widens the ownership intervals. A rival's
+substitutes come from the same band at its smoothed historical substitute rate.
+A withdrawn rival primary hands its slot to its substitute in that scenario, as
+for your own sheet. Without an `AppealSnapshot`, rivals chase the scenarios'
+mean points, an ex-ante summary and never the column being scored.
+
+**Keeping evidence apart.** Each rival is `KNOWN` (five primaries known),
+`PARTIAL`, `ESTIMATED` (from its accepted history) or `NO_HISTORY`. Rivals
+without history get broader personal noise, and a rival missing from the
+ledger is flagged with a full bank assumed. `pick_certainty` is 1 for a known
+sheet and falls as picks spread. Per-player ownership reports rivals known to
+hold the player separately from the projected share and its interval across
+worlds (80% by default). `RivalModelParameters` are unfitted priors and are
+disclosed in every report.
+
+**Randomness.** Selection draws come from children of a `SeedSequence` mixed
+with a fixed tag, so the same integer seed never reuses a scenario stream. Each
+scenario column picks its world from a separate stream. Changing tournament
+outcomes therefore leaves every sampled sheet unchanged. Each rival has its own
+stream. The `RivalField` records `ScenarioSet.digest`, and the optimizer
+rejects it on any other scenarios. `model.primaries`, `model.substitutes` and
+`model.world_of_scenario` expose the read-only sampled sheets.
+
+**Ownership evaluation.** `evaluate_ownership(ledger, cases, ...)` replays
+past events walk-forward. Each `OwnershipCase` is projected at its own cutoff
+with `project_ownership` inputs only, then scored against the primaries
+accepted for that event as replayed at `outcome_cutoff`, after the deadline.
+It reports rival-level Brier score, reliability bins, ownership MAE/RMSE over
+relevant players, interval coverage and band-leader hits, per event and pooled.
+Fully known rivals and known pairs are excluded from scoring, rivals without an
+accepted sheet are counted as unscored, and known picks that the rival later
+changed are counted. These metrics cover ownership only. No match results,
+scenarios or player-performance quality enter them, so match-prediction quality
+must be evaluated separately. Appeal snapshots used in backtests must be
+pre-cutoff signals without overrides, head-to-head or injury flags. Tests use
+synthetic entries only; no private pool history is published.
 
 ## Workbook Preview
 
