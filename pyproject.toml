@@ -66,7 +66,7 @@ files = ["tennis_pool", "pool_optimizer/pool/scoring.py", "tennis_api/models/can
 strict = true
 warn_unused_ignores = true
 # NumPy-backed modules run under a 3.13 parser target in a separate CI step.
-exclude = ["/tests/", "tennis_pool/optimizer\\.py$"]
+exclude = ["/tests/", "tennis_pool/optimizer\\.py$", "tennis_pool/rivals\\.py$"]
 
 [[tool.mypy.overrides]]
 # Package initializers re-export legacy optional-ML models outside this gate.
