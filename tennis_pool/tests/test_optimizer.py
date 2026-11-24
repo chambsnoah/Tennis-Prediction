@@ -717,3 +717,19 @@ def test_walkover_opponent_advances_without_a_played_win_bonus():
                              simulations=50, seed=4, rankings=rankings(draw),
                              allow_provisional=True)
     assert (played.points[index[pid(21)]] == 1).all()     # loses round one when p20 plays
+
+
+def test_unsigned_values_beyond_int64_are_rejected_not_wrapped():
+    scenarios = random_scenarios(0, runs=4)
+    assumptions = RivalAssumptions(source="fixture", rivals=3, seed=None, model="fixture",
+                                   ownership=(), scenario_digest=scenarios.digest)
+    huge = np.full((3, 4), np.iinfo(np.int64).max + 1, dtype=np.uint64)
+    with pytest.raises(ValueError, match="signed 64 bits"):
+        RivalField(scores=huge, assumptions=assumptions)
+    points = np.zeros((16, 4), dtype=np.uint64)
+    points[0, 0] = np.iinfo(np.int64).max + 1
+    with pytest.raises(ValueError, match="signed 64 bits"):
+        ScenarioSet(player_ids=scenarios.player_ids, seeds=scenarios.seeds, points=points,
+                    withdrawn=np.zeros((16, 4), dtype=bool), assumptions=scenarios.assumptions)
+    fits = RivalField(scores=np.ones((3, 4), dtype=np.uint64), assumptions=assumptions)
+    assert fits.scores.dtype == np.int64 and fits.scores.sum() == 12

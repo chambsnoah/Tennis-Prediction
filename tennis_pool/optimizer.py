@@ -111,6 +111,14 @@ class ScenarioAssumptions(Contract):
     withdrawal_patterns: int
 
 
+def _owned_int64(array: NDArray[np.integer[Any]]) -> NDArray[np.int64]:
+    """A private int64 copy, refusing values that would wrap on conversion."""
+    limit = np.iinfo(np.int64)
+    if array.size and (int(array.max()) > limit.max or int(array.min()) < limit.min):
+        raise ValueError("Integer values must fit in signed 64 bits")
+    return np.array(array, dtype=np.int64, copy=True)
+
+
 @dataclass(frozen=True, eq=False)
 class ScenarioSet:
     """Pool points per player (rows) and shared scenario (columns).
@@ -137,7 +145,7 @@ class ScenarioSet:
             if (not isinstance(array, np.ndarray) or array.ndim != 2
                     or array.shape[0] != count or not np.issubdtype(array.dtype, dtype)):
                 raise ValueError("Scenario {} must be a players x scenarios array".format(name))
-        object.__setattr__(self, "points", np.array(self.points, dtype=np.int64, copy=True))
+        object.__setattr__(self, "points", _owned_int64(self.points))
         object.__setattr__(self, "withdrawn", np.array(self.withdrawn, dtype=np.bool_, copy=True))
         if self.points.shape != self.withdrawn.shape or self.points.shape[1] < 1:
             raise ValueError("Scenario arrays need matching shapes and at least one scenario")
@@ -339,7 +347,7 @@ class RivalField:
                 or self.scores.shape[0] != self.assumptions.rivals
                 or self.assumptions.rivals < 1 or np.any(self.scores < 0)):
             raise ValueError("Rival scores must be a non-negative integer rivals x scenarios array")
-        object.__setattr__(self, "scores", np.array(self.scores, dtype=np.int64, copy=True))
+        object.__setattr__(self, "scores", _owned_int64(self.scores))
         self.scores.flags.writeable = False
 
 
