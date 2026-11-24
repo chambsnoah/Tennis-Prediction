@@ -183,9 +183,11 @@ decisions, and changed decision texts need an implementation review.
 
 **Reporting.** Each `Recommendation` holds the best policy and up to five ranked
 alternative primary rosters, with all metrics and standard errors. Under
-exhaustive enumeration each roster carries its best substitutes; otherwise it
-carries the best assignment the one-slot and pairwise passes reached, which can
-miss a change needing three same-band slots at once. An alternative ties the
+exhaustive enumeration each roster carries its best substitutes. Otherwise it
+carries the best assignment the heuristic found: every beam roster gets the
+one-slot passes, but only the top `exchange_rosters` (20 by default, possibly
+zero) also get the pairwise pass, and no pass changes three same-band slots at
+once. An alternative ties the
 best when its paired shortfall on the shared scenarios is within two standard
 errors.
 For P(top-3), any shortfall under 1.5 points also counts as a tie. Assumptions
