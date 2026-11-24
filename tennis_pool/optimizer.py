@@ -34,7 +34,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from tennis_api.models.canonical import (
-    Contract, Draw, Match, MatchProbabilityProvider, PlayerId, PlayerMatchStats,
+    Contract, Draw, EntryKind, Match, MatchProbabilityProvider, PlayerId, PlayerMatchStats,
     RankingSnapshot,
 )
 from tennis_api.simulation.tournament import OutcomeKind, simulate_tournament
@@ -117,7 +117,8 @@ class ScenarioSet:
 
     ``points`` is what the player scores in that scenario and is zero when
     ``withdrawn`` marks a pre-match withdrawal. Columns are exchangeable draws,
-    so any prefix is an unbiased subsample.
+    so any prefix is an unbiased subsample. The arrays are private read-only
+    copies; ``digest`` identifies the exact ordered data for rival fields.
     """
 
     player_ids: tuple[PlayerId, ...]
@@ -125,6 +126,7 @@ class ScenarioSet:
     points: NDArray[np.int64]
     withdrawn: NDArray[np.bool_]
     assumptions: ScenarioAssumptions
+    digest: str = field(init=False)
 
     def __post_init__(self) -> None:
         count = len(self.player_ids)
@@ -135,6 +137,8 @@ class ScenarioSet:
             if (not isinstance(array, np.ndarray) or array.ndim != 2
                     or array.shape[0] != count or not np.issubdtype(array.dtype, dtype)):
                 raise ValueError("Scenario {} must be a players x scenarios array".format(name))
+        object.__setattr__(self, "points", np.array(self.points, dtype=np.int64, copy=True))
+        object.__setattr__(self, "withdrawn", np.array(self.withdrawn, dtype=np.bool_, copy=True))
         if self.points.shape != self.withdrawn.shape or self.points.shape[1] < 1:
             raise ValueError("Scenario arrays need matching shapes and at least one scenario")
         if self.points.shape[1] != self.assumptions.simulations:
@@ -143,6 +147,11 @@ class ScenarioSet:
             raise ValueError("Points must be non-negative and zero after pre-match withdrawal")
         for array in (self.points, self.withdrawn):
             array.flags.writeable = False
+        content = hashlib.sha256(json.dumps(
+            [list(self.player_ids), list(self.seeds), list(self.points.shape)]).encode())
+        content.update(np.ascontiguousarray(self.points).tobytes())
+        content.update(np.ascontiguousarray(self.withdrawn).tobytes())
+        object.__setattr__(self, "digest", content.hexdigest())
 
     @property
     def simulations(self) -> int:
@@ -152,6 +161,25 @@ class ScenarioSet:
 def _share(value: object) -> bool:
     return (isinstance(value, (int, float)) and not isinstance(value, bool)
             and 0 <= value <= 1)
+
+
+# Rounds, best-of, entrants and seed limit, as score_tournament requires.
+_FORMATS = {"gs": (7, 5, 128, 32), "m7": (7, 3, 96, 32), "m6": (6, 3, 56, 16)}
+
+
+def _draw_digest(draw: Draw) -> str:
+    return hashlib.sha256(json.dumps(draw.to_dict(), sort_keys=True).encode()).hexdigest()
+
+
+def _check_format(draw: Draw, kind: str) -> None:
+    if kind not in _FORMATS:
+        raise ValueError("Unsupported pool scoring kind")
+    rounds, best_of, field_size, seed_limit = _FORMATS[kind]
+    entrants = [s for s in draw.slots if s.kind is not EntryKind.BYE]
+    if (draw.event.round_count != rounds or draw.event.best_of != best_of
+            or len(entrants) != field_size
+            or any(s.seed is not None and s.seed > seed_limit for s in entrants)):
+        raise ValueError("Draw format does not match the {} scoring format".format(kind))
 
 
 def _first_day_ranks(draw: Draw, rankings: tuple[RankingSnapshot, ...]) -> dict[PlayerId, int]:
@@ -221,12 +249,11 @@ def build_scenarios(
     """Simulate shared pool-point scenarios, re-simulating each withdrawal pattern.
 
     The seed fully determines the scenarios for fixed inputs. A provider that
-    already prices availability risk cannot be combined with explicit
-    withdrawal probabilities (the simulator rejects the double count).
+    already prices availability risk cannot be combined with positive explicit
+    withdrawal probabilities, in any withdrawal pattern.
     """
     _gate(allow_provisional, register_path)
-    if kind not in TABLES or len(TABLES[kind][0]) != draw.event.round_count:
-        raise ValueError("Scoring kind does not match the draw's round count")
+    _check_format(draw, kind)
     if type(seed) is not int or seed < 0:
         raise ValueError("Scenario seed must be a non-negative integer")
     if type(simulations) is not int or simulations < 1:
@@ -239,6 +266,7 @@ def build_scenarios(
         if player not in index or not _share(probability):
             raise ValueError("Withdrawal probabilities need draw players and values in [0, 1]")
     listed = sorted(risks)
+    explicit = any(risks[p] > 0 for p in listed)
     root = np.random.SeedSequence(seed)
     withdrawal_rng, = (np.random.default_rng(child) for child in root.spawn(1))
     draws = withdrawal_rng.random((len(listed), simulations)) < np.array(
@@ -265,10 +293,13 @@ def build_scenarios(
         )
         if tuple(result.player_ids) != player_ids:
             raise ValueError("Simulation player order changed")
+        if explicit and any(p.includes_availability_risk for p in result.predictions):
+            raise ValueError("Explicit withdrawal probabilities would double count provider "
+                             "availability risk")
         points[:, runs] = _pool_points(result, draw, kind, ranks)
         for player in out:
             withdrawn[index[player], runs] = True
-    digest = hashlib.sha256(json.dumps(draw.to_dict(), sort_keys=True).encode()).hexdigest()
+    digest = _draw_digest(draw)
     seeds = {s.player_id: s.seed for s in draw.slots if s.player_id is not None}
     return ScenarioSet(
         player_ids=player_ids, seeds=tuple(seeds[p] for p in player_ids),
@@ -289,11 +320,15 @@ class RivalAssumptions(Contract):
     seed: int | None
     model: str
     ownership: tuple[tuple[PlayerId, float], ...]
+    scenario_digest: str
 
 
 @dataclass(frozen=True, eq=False)
 class RivalField:
-    """Rival entry totals (rows) on the same scenario columns."""
+    """Rival entry totals (rows) on the scenario columns named by ``scenario_digest``.
+
+    Callers supplying their own scores bind them with ``ScenarioSet.digest``.
+    """
 
     scores: NDArray[np.int64]
     assumptions: RivalAssumptions
@@ -304,6 +339,7 @@ class RivalField:
                 or self.scores.shape[0] != self.assumptions.rivals
                 or self.assumptions.rivals < 1 or np.any(self.scores < 0)):
             raise ValueError("Rival scores must be a non-negative integer rivals x scenarios array")
+        object.__setattr__(self, "scores", np.array(self.scores, dtype=np.int64, copy=True))
         self.scores.flags.writeable = False
 
 
@@ -346,6 +382,7 @@ def sample_rival_field(
         source="tennis_pool.optimizer.sample_rival_field", rivals=rivals, seed=seed,
         model=_OWNERSHIP_MODEL,
         ownership=tuple(sorted((p, float(s)) for p, s in ownership.items())),
+        scenario_digest=scenarios.digest,
     ))
 
 
@@ -473,6 +510,8 @@ class _Scorer:
             count, runs = rivals.scores.shape
             self.count = count
             self.width = int(max(own_max, int(rivals.scores.max()))) + 1
+            if runs * self.width >= 2**62:
+                raise ValueError("Scores too large to rank exactly in 64-bit keys")
             ordered = np.sort(rivals.scores, axis=0).T
             self.flat = (ordered + (np.arange(runs, dtype=np.int64) * self.width)[:, None]).ravel()
             padded = np.zeros(count + 1, dtype=np.float64)
@@ -523,6 +562,7 @@ class _Problem:
     banks: dict[Band, int]
     screen_value: NDArray[np.float64]
     prune_value: NDArray[np.float64]
+    withdrawal_rate: NDArray[np.float64]
     none: int = field(init=False)
 
     def __post_init__(self) -> None:
@@ -551,6 +591,9 @@ def _problem(scenarios: ScenarioSet, draw: Draw, event_id: str,
     if seeds.keys() != set(scenarios.player_ids) or any(
             seeds[p] != seed for p, seed in zip(scenarios.player_ids, scenarios.seeds)):
         raise ValueError("Scenario players and seeds must match the released draw")
+    if (scenarios.assumptions.draw_digest is not None
+            and scenarios.assumptions.draw_digest != _draw_digest(draw)):
+        raise ValueError("Scenarios were simulated on a different draw")
     bank_name = "slam" if event_id in _SLAMS else "masters"
     if entry is None:
         bank, usage = _FULL_BANKS[bank_name], {}
@@ -567,7 +610,8 @@ def _problem(scenarios: ScenarioSet, draw: Draw, event_id: str,
     out = np.vstack((scenarios.withdrawn.astype(np.int64),
                      np.zeros((1, scenarios.simulations), dtype=np.int64)))
     return _Problem(scenarios=scenarios, plays=plays, out=out, eligible=eligible,
-                    bands=bands, banks=banks, screen_value=mean, prune_value=mean + upside)
+                    bands=bands, banks=banks, screen_value=mean, prune_value=mean + upside,
+                    withdrawal_rate=scenarios.withdrawn.mean(axis=1).astype(np.float64))
 
 
 def _band_lists(problem: _Problem, players: Sequence[int]) -> dict[Band, list[int]]:
@@ -601,7 +645,7 @@ def _greedy_substitutes(problem: _Problem, roster: tuple[int, ...],
     """Best same-band cover per slot (withdrawal-weighted value, then mean points)."""
     taken = set(roster)
     chosen = [problem.none] * _SLOTS
-    order = sorted(range(_SLOTS), key=lambda j: -float(problem.out[roster[j]].mean()))
+    order = sorted(range(_SLOTS), key=lambda j: -problem.withdrawal_rate[roster[j]])
     for j in order:
         primary = roster[j]
         best: tuple[float, float, int] | None = None
@@ -812,8 +856,9 @@ def _check_inputs(objective: Objective, scenarios: ScenarioSet, rivals: RivalFie
                   register_path: str | Path | None) -> tuple[int, ...] | None:
     if not isinstance(objective, Objective):
         raise ValueError("Unknown optimization objective")
-    if rivals is not None and rivals.scores.shape[1] != scenarios.simulations:
-        raise ValueError("Rival scores must share the scenario columns")
+    if rivals is not None and (rivals.scores.shape[1] != scenarios.simulations
+                               or rivals.assumptions.scenario_digest != scenarios.digest):
+        raise ValueError("Rival scores must be bound to these exact scenarios")
     if objective in _RIVAL_OBJECTIVES and rivals is None:
         raise ValueError("Rank-based objectives require ownership input (a rival field)")
     if payout is None:
@@ -858,29 +903,33 @@ def optimize(
                for band, players in by_band.items()}
     pool_players = [p for players in pool.values() for p in players]
     option_players = sorted({p for players in options.values() for p in players})
-    rosters = _rosters(problem, pool, limits.max_rosters)
-    if not rosters:
-        raise ValueError("No legal five-primary roster under the remaining bank and use cap")
-    cover = _cover(problem, pool_players, option_players)
-    greedy = [_greedy_substitutes(problem, roster, options, cover) for roster in rosters]
     screen_runs = min(limits.screen_scenarios, scenarios.simulations)
-    primaries = np.array(rosters, dtype=np.int64)
-    screened = _values(scorer, objective, problem, primaries,
-                       np.array(greedy, dtype=np.int64), screen_runs)
-    keep = sorted(range(len(rosters)), key=lambda i: (-screened[i], rosters[i]))[:limits.beam]
-    policies = [(rosters[i], _improve_substitutes(scorer, objective, problem, rosters[i],
-                                                  greedy[i], options, limits.substitute_passes))
-                for i in keep]
-    candidates_p = np.array([p for p, _ in policies], dtype=np.int64)
-    candidates_s = np.array([s for _, s in policies], dtype=np.int64)
-    values = _values(scorer, objective, problem, candidates_p, candidates_s)
-    exchange = sorted(range(len(policies)), key=lambda i: (-values[i], policies[i][0]))
-    for i in exchange[:limits.exchange_rosters]:
-        candidates_s[i] = _exchange_substitutes(
-            scorer, objective, problem, policies[i][0], candidates_s[i].tolist(), options,
-            limits.substitute_passes)
-    values = _values(scorer, objective, problem, candidates_p, candidates_s)
-    found = float(values.max())
+    rosters = _rosters(problem, pool, limits.max_rosters)
+    policies: list[tuple[tuple[int, ...], list[int]]] = []
+    found: float | None = None
+    candidates_p = np.zeros((0, _SLOTS), dtype=np.int64)
+    candidates_s = np.zeros((0, _SLOTS), dtype=np.int64)
+    values = np.zeros(0, dtype=np.float64)
+    if rosters:
+        cover = _cover(problem, pool_players, option_players)
+        greedy = [_greedy_substitutes(problem, roster, options, cover) for roster in rosters]
+        screened = _values(scorer, objective, problem, np.array(rosters, dtype=np.int64),
+                           np.array(greedy, dtype=np.int64), screen_runs)
+        keep = sorted(range(len(rosters)),
+                      key=lambda i: (-screened[i], rosters[i]))[:limits.beam]
+        policies = [(rosters[i], _improve_substitutes(
+            scorer, objective, problem, rosters[i], greedy[i], options,
+            limits.substitute_passes)) for i in keep]
+        candidates_p = np.array([p for p, _ in policies], dtype=np.int64)
+        candidates_s = np.array([s for _, s in policies], dtype=np.int64)
+        values = _values(scorer, objective, problem, candidates_p, candidates_s)
+        exchange = sorted(range(len(policies)), key=lambda i: (-values[i], policies[i][0]))
+        for i in exchange[:limits.exchange_rosters]:
+            candidates_s[i] = _exchange_substitutes(
+                scorer, objective, problem, policies[i][0], candidates_s[i].tolist(),
+                options, limits.substitute_passes)
+        values = _values(scorer, objective, problem, candidates_p, candidates_s)
+        found = float(values.max())
 
     method = ("pruned enumeration + prefix screen + substitute coordinate ascent "
               "+ pairwise substitute exchange")
@@ -891,12 +940,20 @@ def optimize(
     if exhaustive is not None:
         all_values = _values(scorer, objective, problem, *exhaustive)
         exhaustive_count = len(all_values)
-        gap = max(0.0, float(all_values.max()) - found)
         candidates_p, candidates_s, values = exhaustive[0], exhaustive[1], all_values
-        basis = ("Exhaustive over all {} legal policies of every eligible player: the heuristic "
-                 "search's in-sample gap is reported; the recommendation is the exhaustive "
-                 "optimum.".format(exhaustive_count))
         method = "exhaustive enumeration"
+        basis = "Exhaustive over all {} legal policies of every eligible player; ".format(
+            exhaustive_count)
+        if found is None:
+            basis += ("the pruned pool formed no legal roster, so the heuristic gap is not "
+                      "measured; the recommendation is the exhaustive optimum.")
+        else:
+            gap = max(0.0, float(all_values.max()) - found)
+            basis += ("the heuristic search's in-sample gap is reported; the recommendation "
+                      "is the exhaustive optimum.")
+    elif found is None:
+        raise ValueError("No legal five-primary roster under the remaining bank and use cap "
+                         "in the searched pool")
     elif objective is Objective.EXPECTED_POINTS:
         bound = _expected_points_bound(problem)
         gap = max(0.0, bound - found)
@@ -908,12 +965,13 @@ def optimize(
 
     order = sorted(range(len(values)), key=lambda i: (
         -values[i], tuple(candidates_p[i]), tuple(candidates_s[i])))
+    # Alternatives are distinct primary rosters, each with its best substitutes.
     unique: list[int] = []
-    seen: set[tuple[Pair, ...]] = set()
+    seen: set[frozenset[int]] = set()
     for i in order:
-        pairs = _pairs(problem, candidates_p[i].tolist(), candidates_s[i].tolist())
-        if pairs not in seen:
-            seen.add(pairs)
+        roster = frozenset(candidates_p[i].tolist())
+        if roster not in seen:
+            seen.add(roster)
             unique.append(i)
         if len(unique) > limits.alternatives:
             break
@@ -993,7 +1051,7 @@ def recommend(
             continue
         results.append(optimize(
             scenarios, draw, event_id, objective=objective, entry=entry, rivals=rivals,
-            payout=payout, limits=limits, allow_provisional=allow_provisional,
+            payout=payout if rivals is not None else None, limits=limits, allow_provisional=allow_provisional,
             register_path=register_path,
         ))
     return RecommendationSet(recommendations=tuple(results), skipped=tuple(skipped))

@@ -140,10 +140,11 @@ def legal(recommendation, draw, entry):
     return True
 
 
-def rival_field(scores, source="fixture rivals"):
+def rival_field(scores, scenarios, source="fixture rivals"):
     scores = np.asarray(scores, dtype=np.int64)
     return RivalField(scores=scores, assumptions=RivalAssumptions(
-        source=source, rivals=scores.shape[0], seed=None, model="fixture", ownership=()))
+        source=source, rivals=scores.shape[0], seed=None, model="fixture", ownership=(),
+        scenario_digest=scenarios.digest))
 
 
 @pytest.mark.parametrize("seed", [0, 1, 2])
@@ -154,7 +155,7 @@ def test_small_fixtures_match_an_independent_exhaustive_search(seed, objective):
     entry, draw = capped_entry(), small_draw()
     rivals = None
     if objective is Objective.P_TOP3:
-        rivals = rival_field(np.random.default_rng(seed + 10).integers(60, 220, size=(5, 60)))
+        rivals = rival_field(np.random.default_rng(seed + 10).integers(60, 220, size=(5, 60)), scenarios)
     expected = brute_force(scenarios, entry, objective,
                            None if rivals is None else rivals.scores)
     result = optimize(scenarios, draw, EVENT, objective=objective, entry=entry, rivals=rivals,
@@ -172,7 +173,7 @@ def test_small_fixtures_match_an_independent_exhaustive_search(seed, objective):
 def test_default_heuristic_reaches_the_exhaustive_optimum(seed, objective):
     # These seeds once stalled when two same-band slots had to trade covers.
     scenarios = random_scenarios(seed, runs=300)
-    rivals = rival_field(np.random.default_rng(seed + 100).integers(60, 220, size=(39, 300)))
+    rivals = rival_field(np.random.default_rng(seed + 100).integers(60, 220, size=(39, 300)), scenarios)
     result = optimize(scenarios, small_draw(), EVENT, objective=objective, entry=capped_entry(),
                       rivals=rivals, payout=payout_config(40, allow_provisional=True),
                       allow_provisional=True)
@@ -286,7 +287,7 @@ def test_draw_correlation_is_kept_instead_of_summing_marginals():
     mean = optimize(scenarios, draw, EVENT, objective=Objective.EXPECTED_POINTS, entry=entry,
                     allow_provisional=True)
     assert top8(mean) == {pid(5), pid(6)}     # 100 every time beats 96
-    rivals = rival_field(np.full((5, runs), 130))
+    rivals = rival_field(np.full((5, runs), 130), scenarios)
     ranked = optimize(scenarios, draw, EVENT, objective=Objective.P_TOP3, entry=entry,
                       rivals=rivals, allow_provisional=True)
     chosen = top8(ranked)
@@ -333,7 +334,7 @@ def test_rank_objectives_need_ownership_and_recommend_says_why_they_were_skipped
                  allow_provisional=True)
     with pytest.raises(ValueError, match="payout configuration"):
         optimize(scenarios, small_draw(), EVENT, objective=Objective.EXPECTED_PAYOUT,
-                 rivals=rival_field(np.ones((39, 100))), allow_provisional=True)
+                 rivals=rival_field(np.ones((39, 100)), scenarios), allow_provisional=True)
     result = recommend(scenarios, small_draw(), EVENT, entry=capped_entry(),
                        allow_provisional=True)
     assert [r.objective for r in result.recommendations] == [
@@ -345,7 +346,7 @@ def test_rank_objectives_need_ownership_and_recommend_says_why_they_were_skipped
     config = payout_config(40, allow_provisional=True)
     with pytest.raises(ValueError, match="participants - 1"):
         optimize(scenarios, small_draw(), EVENT, objective=Objective.EXPECTED_PAYOUT,
-                 rivals=rival_field(np.ones((5, 100))), payout=config, allow_provisional=True)
+                 rivals=rival_field(np.ones((5, 100)), scenarios), payout=config, allow_provisional=True)
 
 
 def test_all_objectives_are_returned_with_ownership_and_payout_input():
@@ -380,14 +381,25 @@ def test_identical_options_are_reported_as_ties_not_a_false_winner():
 
 
 def test_top3_ties_use_the_one_and_a_half_point_materiality_rule():
-    scenarios = random_scenarios(12, runs=400)
-    rivals = rival_field(np.random.default_rng(1).integers(80, 200, size=(9, 400)))
+    runs = 1000
+    points = np.zeros((16, runs), dtype=np.int64)
+    points[8, :500] = 100                  # p9 clears the field in half the scenarios
+    points[9, :490] = 100                  # p10 in a strict subset: 1.0 point less
+    points[10:14] = 1
+    scenarios = scenario_set(points)
+    rivals = rival_field(np.full((5, runs), 100), scenarios)
+    entry = capped_entry(capped=(1, 2, 3, 4, 5, 6, 7, 8, 15, 16), slam=(0, 0, 0, 0))
     result = optimize(scenarios, small_draw(), EVENT, objective=Objective.P_TOP3,
-                      entry=capped_entry(), rivals=rivals, allow_provisional=True)
+                      entry=entry, rivals=rivals, allow_provisional=True)
     assert "1.5% absolute P(top-3)" in result.assumptions.tie_rule
-    for candidate in result.alternatives:
-        if candidate.gap_to_best <= 0.015:
-            assert candidate.tie_with_best
+    assert result.best.metrics.p_top3 == pytest.approx(0.5)
+    without_p9 = [c for c in result.alternatives
+                  if pid(9) not in {p.primary.player_id for p in c.pairs}]
+    assert len(without_p9) == 1
+    shortfall = without_p9[0]
+    assert shortfall.gap_to_best == pytest.approx(0.01)
+    assert shortfall.gap_to_best > 2 * shortfall.gap_se   # not a statistical tie
+    assert shortfall.tie_with_best                          # a tie only by materiality
 
 
 def test_recommendation_records_reproducible_assumptions_and_round_trips():
@@ -550,7 +562,7 @@ def test_explicit_withdrawals_cannot_double_count_provider_availability_risk():
 
 def test_scenario_inputs_fail_closed():
     draw = m6_draw()
-    with pytest.raises(ValueError, match="round count"):
+    with pytest.raises(ValueError, match="scoring format"):
         build_scenarios(draw, Provider(), kind="gs", cutoff=CUTOFF, simulations=5, seed=0,
                         rankings=rankings(draw), allow_provisional=True)
     with pytest.raises(ValueError, match="Withdrawal probabilities"):
@@ -574,3 +586,134 @@ def test_rival_sampling_follows_ownership_on_shared_scenarios():
         sample_rival_field(scenarios, {pid(1): 0.5}, rivals=3, seed=0)
     with pytest.raises(ValueError, match="shares in"):
         sample_rival_field(scenarios, {pid(1): 1.5}, rivals=3, seed=0)
+
+
+# --- Review hardening ---------------------------------------------------------
+
+
+def test_scenario_and_rival_arrays_are_private_copies():
+    points = np.full((16, 10), 7, dtype=np.int64)
+    withdrawn = np.zeros((16, 10), dtype=bool)
+    withdrawn[0, 0] = True
+    points[0, 0] = 0
+    scenarios = ScenarioSet(
+        player_ids=tuple(pid(i) for i in range(1, 17)),
+        seeds=tuple(i if i <= 8 else None for i in range(1, 17)), points=points,
+        withdrawn=withdrawn, assumptions=random_scenarios(0, runs=10).assumptions)
+    digest = scenarios.digest
+    points[0, 0] = 5
+    withdrawn[1, 1] = True
+    assert scenarios.points[0, 0] == 0 and not scenarios.withdrawn[1, 1]
+    assert scenarios.digest == digest
+    with pytest.raises(ValueError):
+        scenarios.points[0, 0] = 5
+    scores = np.ones((3, 10), dtype=np.int64)
+    rivals = rival_field(scores, scenarios)
+    scores[0, 0] = 99
+    assert rivals.scores[0, 0] == 1
+
+
+def test_rival_fields_are_bound_to_their_exact_scenarios():
+    first, second = random_scenarios(0, runs=100), random_scenarios(1, runs=100)
+    ownership = {pid(n): 0.3 for n in range(1, 17)}
+    rivals = sample_rival_field(first, ownership, rivals=5, seed=0)
+    assert rivals.assumptions.scenario_digest == first.digest
+    with pytest.raises(ValueError, match="bound to these exact scenarios"):
+        optimize(second, small_draw(), EVENT, objective=Objective.P_TOP3, rivals=rivals,
+                 allow_provisional=True)
+
+
+def test_rival_scores_that_overflow_ranking_keys_are_rejected():
+    scenarios = random_scenarios(0, runs=4)
+    rivals = rival_field(np.full((3, 4), 2**61), scenarios)
+    with pytest.raises(ValueError, match="64-bit"):
+        optimize(scenarios, small_draw(), EVENT, objective=Objective.P_TOP3, rivals=rivals,
+                 allow_provisional=True)
+
+
+def test_exact_search_runs_when_the_pruned_pool_forms_no_roster():
+    entry = capped_entry(capped=(1, 2, 3, 4, 5, 6, 7, 8, 14, 15, 16), slam=(0, 0, 0, 0))
+    result = optimize(random_scenarios(3), small_draw(), EVENT,
+                      objective=Objective.EXPECTED_POINTS, entry=entry,
+                      limits=SearchLimits(unseeded_pool=4, substitute_pool=0, exhaustive_limit=1),
+                      allow_provisional=True)
+    assert {p.primary.player_id for p in result.best.pairs} == {pid(n) for n in range(9, 14)}
+    assert result.search.exhaustive and result.search.optimality_gap is None
+    assert "formed no legal roster" in result.search.gap_basis
+    with pytest.raises(ValueError, match="No legal"):
+        optimize(random_scenarios(3), small_draw(), EVENT,
+                 objective=Objective.EXPECTED_POINTS, entry=entry,
+                 limits=SearchLimits(unseeded_pool=4, substitute_pool=0, exhaustive_limit=0),
+                 allow_provisional=True)
+
+
+def test_recommend_keeps_points_objectives_when_payout_arrives_without_rivals():
+    result = recommend(random_scenarios(2, runs=100), small_draw(), EVENT,
+                       entry=capped_entry(), payout=payout_config(40, allow_provisional=True),
+                       allow_provisional=True)
+    assert [r.objective for r in result.recommendations] == [
+        Objective.EXPECTED_POINTS, Objective.ROBUST]
+    assert {objective for objective, _ in result.skipped} == {
+        Objective.P_TOP3, Objective.EXPECTED_PAYOUT}
+
+
+def test_draw_format_must_match_the_scoring_kind():
+    from tennis_pool.tests.test_substitutions import gs_draw  # 128 entrants, best of five
+
+    with pytest.raises(ValueError, match="m7 scoring format"):
+        build_scenarios(gs_draw(), Provider(), kind="m7", cutoff=CUTOFF, simulations=5,
+                        seed=0, allow_provisional=True)
+
+
+def test_scenarios_from_a_revised_draw_are_rejected():
+    draw = m6_draw()
+    scenarios = build_scenarios(draw, Provider(), kind="m6", cutoff=CUTOFF, simulations=20,
+                                seed=0, rankings=rankings(draw), allow_provisional=True)
+    slots = list(draw.slots)
+    a, b = (next(i for i, s in enumerate(slots) if s.player_id == pid(n)) for n in (20, 30))
+    slots[a], slots[b] = (replace(slots[a], player_id=pid(30)),
+                          replace(slots[b], player_id=pid(20)))
+    revised = replace(draw, slots=tuple(slots))
+    with pytest.raises(ValueError, match="different draw"):
+        optimize(scenarios, revised, "paris", objective=Objective.EXPECTED_POINTS,
+                 allow_provisional=True)
+
+
+def test_provider_availability_risk_is_rejected_in_the_no_withdrawal_pattern_too():
+    draw = m6_draw()
+    with pytest.raises(ValueError, match="double count"):
+        build_scenarios(draw, Provider(includes_risk=True), kind="m6", cutoff=CUTOFF,
+                        simulations=20, seed=0, withdrawal_probabilities={pid(1): 1e-9},
+                        rankings=rankings(draw), allow_provisional=True)
+    unlisted = build_scenarios(draw, Provider(includes_risk=True), kind="m6", cutoff=CUTOFF,
+                               simulations=20, seed=0, withdrawal_probabilities={pid(1): 0.0},
+                               rankings=rankings(draw), allow_provisional=True)
+    assert not unlisted.withdrawn.any()
+
+
+class LosingProvider(Provider):
+    """Player 21 loses every contested match; otherwise the stronger number wins."""
+
+    def predict(self, context):
+        prediction = super().predict(context)
+        if pid(21) in (context.player1_id, context.player2_id):
+            return replace(prediction, player1_win_probability=float(
+                context.player1_id != pid(21)))
+        return prediction
+
+
+def test_walkover_opponent_advances_without_a_played_win_bonus():
+    # Seed-less p20 (rank 20) withdraws; p21 (rank 21) would earn a same-band upset
+    # bonus for a played win over p20, but a walkover is not a played win.
+    draw = m6_draw()
+    scenarios = build_scenarios(draw, LosingProvider(), kind="m6", cutoff=CUTOFF,
+                                simulations=50, seed=4, withdrawal_probabilities={pid(20): 1.0},
+                                rankings=rankings(draw), allow_provisional=True)
+    index = {p: i for i, p in enumerate(scenarios.player_ids)}
+    assert (scenarios.points[index[pid(20)]] == 0).all()
+    # Round-two loss points (7 under M6) with no bonus: the walkover advanced p21.
+    assert (scenarios.points[index[pid(21)]] == 7).all()
+    played = build_scenarios(draw, LosingProvider(), kind="m6", cutoff=CUTOFF,
+                             simulations=50, seed=4, rankings=rankings(draw),
+                             allow_provisional=True)
+    assert (played.points[index[pid(21)]] == 1).all()     # loses round one when p20 plays

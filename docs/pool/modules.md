@@ -136,9 +136,12 @@ simulated again with that player removed: the opponent advances by walkover and
 no lucky loser is drawn in. A policy scores its primary in each scenario, or its
 substitute's result in that same scenario when the primary withdrew. Draw
 correlations (two picks who meet early) and walkover effects therefore carry
-into every objective. Marginal player values are never summed. Withdrawal
-probabilities cannot be combined with a provider that already prices
-availability risk. A `ScenarioSet` can also be built from caller arrays.
+into every objective. Marginal player values are never summed. Positive
+withdrawal probabilities cannot be combined with a provider that already prices
+availability risk. The draw must match the scoring kind's rounds, best-of, field
+size and seed limit. Generated scenarios record the draw digest and are rejected
+for any other draw. A `ScenarioSet` can also be built from caller arrays; it
+keeps private read-only copies.
 
 **Objectives.** `optimize(..., objective=...)` supports:
 
@@ -149,7 +152,8 @@ availability risk. A `ScenarioSet` can also be built from caller arrays.
 - `EXPECTED_PAYOUT`: tie-shared event prize money, matching `payouts.outlook`.
 
 The last two need ownership input: a `RivalField`, either from
-`sample_rival_field` or supplied by the caller. Expected payout also needs a
+`sample_rival_field` or supplied by the caller. A rival field is bound to the
+exact scenarios it was scored on through `ScenarioSet.digest`. Expected payout also needs a
 `PayoutConfig` for exactly the rivals plus you. `recommend` returns every
 objective it can and names the ones it skipped and why. `evaluate` scores a
 policy of your own on the same scenarios.
@@ -162,7 +166,7 @@ covers. It then improves the substitutes of the beam on all scenarios: first
 one slot at a time, then by re-choosing same-band slot pairs together. When the
 whole policy space over every eligible player fits within `exhaustive_limit`,
 it is also enumerated. The exhaustive optimum is then returned, along with the
-heuristic's measured in-sample gap. Otherwise expected points reports an upper
+heuristic's measured in-sample gap, even when pruning left the heuristic no roster. Otherwise expected points reports an upper
 bound from a relaxation, and the other objectives report the gap as not
 measured. Too many rosters raise an error rather than being truncated silently.
 On the synthetic small fixtures, default limits matched exhaustive search for
@@ -177,7 +181,8 @@ primaries and as substitutes. Every returned policy is checked again with
 decisions, and changed decision texts need an implementation review.
 
 **Reporting.** Each `Recommendation` holds the best policy and up to five ranked
-alternatives, with all metrics and standard errors. An alternative ties the best
+alternative primary rosters, each with its best substitutes, with all metrics
+and standard errors. An alternative ties the best
 when its paired shortfall on the shared scenarios is within two standard errors.
 For P(top-3), any shortfall under 1.5 points also counts as a tie. Assumptions
 record the objective definition, scenario seed and count, withdrawal model and
