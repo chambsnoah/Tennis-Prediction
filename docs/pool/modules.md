@@ -261,8 +261,10 @@ disclosed in every report.
 
 **Randomness.** Selection draws come from children of a `SeedSequence` mixed
 with a fixed tag, so the same integer seed never reuses a scenario stream. Each
-scenario column picks its world from a separate stream. Changing tournament
-outcomes therefore leaves every sampled sheet unchanged. Each rival has its own
+scenario column picks its world from a separate stream. With an explicit
+`AppealSnapshot`, changing tournament outcomes leaves every sampled sheet
+unchanged. The scenario-mean fallback appeal is derived from the scenarios, so
+it can change with them and gives no such guarantee. Each rival has its own
 stream. The `RivalField` records `ScenarioSet.digest`, and the optimizer
 rejects it on any other scenarios. `model.primaries`, `model.substitutes` and
 `model.world_of_scenario` expose the read-only sampled sheets.

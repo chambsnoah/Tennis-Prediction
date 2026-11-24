@@ -19,8 +19,11 @@ history get broader personal noise and are labelled as such.
 
 All selection randomness comes from children of a tagged ``SeedSequence``,
 whose entropy differs from the scenario seed's, and each scenario column picks
-its world from its own stream. Selection draws therefore never depend on
-simulated tournament outcomes. Fields are bound to ``ScenarioSet.digest``.
+its world from its own stream. For a fixed appeal signal, selection draws
+therefore never depend on simulated tournament outcomes. The fallback appeal
+(scenario mean points) is derived from the scenarios, so it carries no such
+guarantee; pass an ``AppealSnapshot`` for it. Fields are bound to
+``ScenarioSet.digest``.
 """
 
 from __future__ import annotations
@@ -604,7 +607,9 @@ def model_rival_field(
     """Score modelled rival sheets on the exact scenario columns for the optimizer.
 
     Without ``appeal``, rivals chase the scenarios' mean points: an ex-ante summary
-    shared by every column, never the outcome of the column being scored.
+    shared by every column, never the outcome of the column being scored. That
+    summary changes with the scenarios, so sheets stay fixed across scenario sets
+    only when an explicit ``AppealSnapshot`` is given.
     """
     params = parameters or RivalModelParameters()
     seeds = {slot.player_id: slot.seed for slot in draw.slots if slot.player_id is not None}
@@ -760,9 +765,14 @@ def evaluate_ownership(
         draws = _sample(setup, params, np.random.SeedSequence([_STREAM_TAG, seed, number]))
         index = {player: i for i, player in enumerate(setup.players)}
         after = ledger.replay(case.outcome_cutoff)
-        actual = {state.entry_id: {index[p.primary.player_id] for p in state.accepted_picks}
-                  for state in after.events
-                  if state.event_id == setup.event_id and len(state.accepted_picks) == _SLOTS}
+        actual: dict[str, set[int]] = {}
+        for state in after.events:
+            if (state.entry_id not in rival_ids or state.event_id != setup.event_id
+                    or len(state.accepted_picks) != _SLOTS):
+                continue
+            if any(p.primary.player_id not in index for p in state.accepted_picks):
+                raise ValueError("Accepted rival picks name players outside the case draw")
+            actual[state.entry_id] = {index[p.primary.player_id] for p in state.accepted_picks}
         count = len(setup.players)
         worlds = params.worlds
         forecast_share = np.zeros(count)

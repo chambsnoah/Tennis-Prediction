@@ -242,7 +242,7 @@ def test_known_sheet_scores_exactly_with_substitute_activation():
                  allow_provisional=True)
 
 
-def test_selection_draws_are_independent_of_tournament_outcomes():
+def test_selection_draws_are_independent_of_tournament_outcomes_for_a_fixed_appeal():
     first = field(scenarios(seed=0), appeal=appeal())
     second = field(scenarios(seed=99), appeal=appeal())
     for name in ("primaries", "substitutes", "world_of_scenario"):
@@ -387,6 +387,21 @@ def test_ownership_evaluation_is_walk_forward_with_separate_ownership_metrics():
     assert 0 <= chalk_eval.interval_coverage <= 1
     assert "No match results" in chalk_eval.scope
     assert type(chalk_eval).from_dict(chalk_eval.to_dict()) == chalk_eval
+
+
+def test_evaluation_ignores_entries_outside_the_rival_list():
+    case = OwnershipCase(draw=draw(), terms=TERMS["roland_garros"], starts_at=at(40.5),
+                         cutoff=at(39.5), outcome_cutoff=at(45), appeal=appeal())
+    stranger = Pair(primary=Selection(player_id=pid(99), band=Band.UNSEEDED))
+    ledger = season(*history(), *outcome_records({
+        "entry:a": sheet(1, 5, 9, 17, 18),
+        "entry:z": sheet(1, 5, 9, 17) + (stranger,)}))
+    result = evaluate_ownership(ledger, (case,), rival_ids=("entry:a",), seed=0,
+                                parameters=FAST, allow_provisional=True)
+    assert result.events[0].scored_rivals == 1
+    with pytest.raises(ValueError, match="outside the case draw"):
+        evaluate_ownership(ledger, (case,), rival_ids=("entry:a", "entry:z"), seed=0,
+                           parameters=FAST, allow_provisional=True)
 
 
 def test_ownership_cases_must_read_outcomes_after_the_deadline():
