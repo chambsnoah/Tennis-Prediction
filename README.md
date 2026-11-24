@@ -11,8 +11,8 @@ Development can use these provisional decisions with
 commissioner confirmation. The existing web team optimizer remains a legacy
 budget workflow, not a validated 2026 pool optimizer.
 
-Pool scoring, the season ledger, paired substitutes, payouts and workbook
-preview are documented in [pool modules](docs/pool/modules.md).
+Pool scoring, the season ledger, paired substitutes, payouts, the joint roster
+optimizer and workbook preview are documented in [pool modules](docs/pool/modules.md).
 
 ---
 

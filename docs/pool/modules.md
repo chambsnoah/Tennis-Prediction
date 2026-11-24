@@ -108,6 +108,90 @@ Excel bonus, count in the season standings. `outlook(samples, entry_id, config)`
 reports expected payout separately from expected points and P(top-3) over
 simulated scores, for event or season scope.
 
+## Joint Roster Optimizer
+
+`tennis_pool.optimizer` searches five primaries and their optional same-band
+substitutes together. It needs the `simulation` extra (NumPy).
+
+```python
+from tennis_pool.optimizer import (
+    Objective, build_scenarios, optimize, recommend, sample_rival_field,
+)
+
+scenarios = build_scenarios(
+    draw, provider, kind="gs", cutoff=cutoff, simulations=10_000, seed=2026,
+    withdrawal_probabilities={player_id: 0.04}, rankings=first_day_rankings,
+    allow_provisional=True,
+)
+rivals = sample_rival_field(scenarios, projected_ownership, rivals=59, seed=7)
+sheets = recommend(scenarios, draw, "australian_open", entry=entry_state,
+                   rivals=rivals, payout=config, allow_provisional=True)
+```
+
+**Shared scenarios.** `build_scenarios` runs the tournament simulator and scores
+every player with the pool tables and played-win bonuses, so one column is one
+simulated tournament. Pre-match withdrawals are explicit, independent
+probabilities for listed players only. Each distinct withdrawal pattern is
+simulated again with that player removed: the opponent advances by walkover and
+no lucky loser is drawn in. A policy scores its primary in each scenario, or its
+substitute's result in that same scenario when the primary withdrew. Draw
+correlations (two picks who meet early) and walkover effects therefore carry
+into every objective. Marginal player values are never summed. Withdrawal
+probabilities cannot be combined with a provider that already prices
+availability risk. A `ScenarioSet` can also be built from caller arrays.
+
+**Objectives.** `optimize(..., objective=...)` supports:
+
+- `EXPECTED_POINTS`: mean points.
+- `ROBUST`: the lower-tail mean (CVaR) of points over the worst
+  `robust_alpha` share of scenarios, 20% by default.
+- `P_TOP3`: the share of scenarios with fewer than three rivals strictly ahead.
+- `EXPECTED_PAYOUT`: tie-shared event prize money, matching `payouts.outlook`.
+
+The last two need ownership input: a `RivalField`, either from
+`sample_rival_field` or supplied by the caller. Expected payout also needs a
+`PayoutConfig` for exactly the rivals plus you. `recommend` returns every
+objective it can and names the ones it skipped and why. `evaluate` scores a
+policy of your own on the same scenarios.
+
+**Search and disclosed limits.** `SearchLimits` sets the per-band pools (by
+mean plus 90th-percentile points), the roster cap, the screening prefix, the
+beam and the substitute passes. The search enumerates every bank-legal primary
+roster in the pruned pool and screens them on a scenario prefix with greedy
+covers. It then improves the substitutes of the beam on all scenarios: first
+one slot at a time, then by re-choosing same-band slot pairs together. When the
+whole policy space over every eligible player fits within `exhaustive_limit`,
+it is also enumerated. The exhaustive optimum is then returned, along with the
+heuristic's measured in-sample gap. Otherwise expected points reports an upper
+bound from a relaxation, and the other objectives report the gap as not
+measured. Too many rosters raise an error rather than being truncated silently.
+On the synthetic small fixtures, default limits matched exhaustive search for
+all four objectives. A 128-player draw with 10,000 scenarios takes roughly 10 to
+25 seconds per objective.
+
+**Legality.** Unused substitutes cost nothing, and every substitute shares its
+primary's band. Primaries therefore fit the remaining Slam or Masters bank under
+every activation combination. Players at five uses are excluded both as
+primaries and as substitutes. Every returned policy is checked again with
+`validate_roster`. Strict mode blocks on the provisional `recommendation`
+decisions, and changed decision texts need an implementation review.
+
+**Reporting.** Each `Recommendation` holds the best policy and up to five ranked
+alternatives, with all metrics and standard errors. An alternative ties the best
+when its paired shortfall on the shared scenarios is within two standard errors.
+For P(top-3), any shortfall under 1.5 points also counts as a tie. Assumptions
+record the objective definition, scenario seed and count, withdrawal model and
+probabilities, ownership model, payout version, tie rule and rule decisions.
+`Recommendation.to_dict()` round-trips. The scenario seed reproduces the
+scenarios. Search limits, pruning counts and the gap basis are in `search`.
+
+These are in-sample estimates that depend on the provider, the withdrawal and
+ownership assumptions, and the search limits, not predictions of the winning
+roster. The rival model ignores rival substitutes and quotas, and a withdrawn
+rival pick scores zero. The objectives cover one event only and do not value
+quota or player uses saved for later events. The legacy web team optimizer still
+uses annealing over a budget format. It is not 2026 decision support.
+
 ## Workbook Preview
 
 `tennis_pool.workbooks.preview_workbook` is a read-only adapter for
