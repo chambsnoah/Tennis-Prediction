@@ -815,3 +815,18 @@ def test_exported_file_is_readable_and_no_staged_file_remains(tmp_path, registry
 def test_computed_labels_in_the_usage_lookup_column_are_rejected(tmp_path, registry):
     with pytest.raises(SubmissionExportError, match="unsupported_template_usage"):
         review(tmp_path, registry, template(usage_label_formula=True))
+
+
+def test_an_unverified_staging_folder_is_never_cleaned_up(tmp_path, registry, monkeypatch):
+    import tennis_pool.submission as module
+
+    result = review(tmp_path, registry)
+    swapped = tmp_path / ".submission-swapped"
+    swapped.mkdir()
+    swapped.chmod(0o777)
+    (swapped / "export.xlsx").write_bytes(b"not ours")
+    monkeypatch.setattr(module.tempfile, "mkdtemp", lambda **kwargs: str(swapped))
+    with pytest.raises(SubmissionExportError, match="output_not_writable"):
+        export_submission(result, tmp_path / "out.xlsx", now=NOW)
+    assert (swapped / "export.xlsx").read_bytes() == b"not ours"
+    assert not (tmp_path / "out.xlsx").exists()

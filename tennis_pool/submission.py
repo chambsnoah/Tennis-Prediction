@@ -953,13 +953,16 @@ def export_submission(
     except OSError:
         raise SubmissionExportError("output_not_writable") from None
     name = "export" + output_path.suffix
+    verified = created = False
     try:
         info = os.fstat(pinned)
         if info.st_uid != os.getuid() or info.st_mode & 0o077:
             raise SubmissionExportError("output_not_writable")
+        verified = True
         try:
             handle = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
                              0o644, dir_fd=pinned)
+            created = True
             with os.fdopen(handle, "wb") as target:
                 os.fchmod(target.fileno(), 0o644)
                 target.write(output)
@@ -976,10 +979,13 @@ def export_submission(
         except OSError:
             raise SubmissionExportError("output_not_writable") from None
     finally:
-        with suppress(OSError):
-            os.unlink(name, dir_fd=pinned)
-        with suppress(OSError):
-            os.rmdir(folder)  # removes only an empty folder
+        # Remove only what this attempt created in the folder it verified.
+        if created:
+            with suppress(OSError):
+                os.unlink(name, dir_fd=pinned)
+        if verified:
+            with suppress(OSError):
+                os.rmdir(folder)  # removes only an empty folder
         os.close(pinned)
     with ZipFile(BytesIO(written)) as archive:
         members = len(archive.infolist())
