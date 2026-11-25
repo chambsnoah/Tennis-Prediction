@@ -2,6 +2,7 @@
 
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
+import hashlib
 from io import BytesIO
 from pathlib import Path
 import re
@@ -283,10 +284,12 @@ def write(tmp_path, data, name="template.xlsx"):
 
 def review(tmp_path, registry, data=None, *, name="template.xlsx", **kwargs):
     path = kwargs.pop("path", None) or write(tmp_path, data or template(), name)
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
     options = dict(pairs=pairs(), participant=ME, draw=draw(), terms=terms(),
                    snapshot=snapshot(), entry_id="me", registry=registry,
                    template_provenance=evidence(NOW - timedelta(hours=3)), now=NOW,
-                   event_ids={"test:slam": "us_open"}, allow_provisional=True)
+                   event_ids={"test:slam": "us_open"}, template_events={digest: "us_open"},
+                   allow_provisional=True)
     options.update(kwargs)
     return review_submission(path, **options)
 
@@ -711,3 +714,13 @@ def test_same_kind_template_from_another_event_is_blocked(tmp_path, registry):
 def test_list_numbering_must_start_at_one_in_row_three(tmp_path, registry):
     with pytest.raises(SubmissionExportError, match="unsupported_template_player_list"):
         review(tmp_path, registry, template(tamper={"D2": 1, "D3": "=D2+1"}))
+
+
+def test_template_must_be_bound_to_the_event_even_with_an_identical_list(tmp_path, registry):
+    data = template()    # same kind and the same player list as the US Open draw
+    digest = hashlib.sha256(data).hexdigest()
+    for binding in ({}, {digest: "wimbledon"}):
+        result = review(tmp_path, registry, data, template_events=binding)
+        assert any("does not tie this template to us_open" in p for p in result.problems)
+        with pytest.raises(SubmissionExportError, match="review_has_problems"):
+            export_submission(result, tmp_path / "out.xlsx", now=NOW)

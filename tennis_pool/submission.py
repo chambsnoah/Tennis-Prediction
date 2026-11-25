@@ -517,6 +517,7 @@ def review_submission(
     template_path: str | Path, *, pairs: tuple[Pair, ...], participant: str, draw: Draw,
     terms: EventTerms, snapshot: LedgerSnapshot, entry_id: str, registry: IdentityRegistry,
     template_provenance: Provenance, now: datetime, event_ids: Mapping[str, str],
+    template_events: Mapping[str, str],
     stale_after: timedelta = timedelta(hours=24),
     allow_provisional: bool = False, register_path: str | Path | None = None,
     limits: WorkbookLimits = WorkbookLimits(),
@@ -531,6 +532,10 @@ def review_submission(
     inputs older than ``stale_after``, template/ledger disagreements and earlier
     submissions for this event. ``event_ids`` is a reviewed mapping from canonical
     draw event IDs to pool event IDs; the draw's event must map to ``terms``.
+    ``template_events`` maps the SHA-256 of each commissioner template file, as
+    received, to the pool event it was sent for. The template names no event,
+    so this reviewed binding is what ties it to ``terms``; export then refuses
+    any template whose digest differs from the reviewed one.
     """
     version, decisions = _gate(allow_provisional, register_path)
     _aware(now, "Review time")
@@ -547,6 +552,8 @@ def review_submission(
     notes: list[str] = []
     if template.bank_kind != kind:
         problems.append(f"Template is for a {template.bank_kind} event, not {event_id}")
+    if template_events.get(template.digest) != event_id:
+        problems.append(f"Reviewed template binding does not tie this template to {event_id}")
     # A reviewed mapping names the draw's pool event; format and dates must fit too.
     if event_ids.get(draw.event.event_id) != event_id:
         problems.append(f"Reviewed event mapping does not map the draw's event to {event_id}")

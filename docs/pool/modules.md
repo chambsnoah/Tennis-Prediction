@@ -415,6 +415,7 @@ review = review_submission(
     draw=draw, terms=event_terms, snapshot=ledger.replay(now), entry_id=my_entry,
     registry=registry, template_provenance=template_evidence, now=now,
     event_ids=reviewed_event_ids,  # canonical draw event ID -> pool event ID
+    template_events=reviewed_templates,  # template file SHA-256 -> pool event ID
     allow_provisional=True,
 )
 print(review.describe())          # slots, banks, uses, deadline, problems, warnings
@@ -447,8 +448,11 @@ the template list once, under a reviewed alias, with the template's band equal
 to the draw seed's band. Draws carry a canonical event ID, so a reviewed
 `event_ids` mapping must map it to the requested pool event. The draw's format
 must also fit the event and its dates must span the deadline (from a week
-before the start to the end). The template file names no event. It is tied to
-the event by its Slam or Masters header and by a player list that matches the
+before the start to the end). The template file names no event, so a reviewed
+`template_events` mapping must bind the SHA-256 of the template as received to
+the requested pool event. Export refuses a template whose digest differs from
+the reviewed one, so the binding carries through to the output. The template's
+Slam or Masters header must also fit, and its player list must match the
 mapped draw (more than a 10% mismatch blocks). Against the template's own formulas, which blank a
 pick whose band shows no tokens left or whose player shows five uses in
 `ChoixSommaire`, and which count primaries per band against the participant's
