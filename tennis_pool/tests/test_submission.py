@@ -156,7 +156,7 @@ def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Gra
              full_calc=False, macro=False, formula_link=False, controls=None, pad=0,
              tamper=None, drop_link=None, bank_end=79, usage_range="$CM$228",
              usage_formula=None, bank_formula=False, usage_label_formula=False,
-             usage_labels=None):
+             usage_labels=None, usage_rows=None):
     """A synthetic pick template: dropdown parts, linked cells, banks and use counts."""
     players = list(range(1, 129)) if players is None else players
     uses = {3: 1, 4: 0, 7: 1, 11: 1, 19: 1, 50: 1} if uses is None else uses
@@ -209,6 +209,8 @@ def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Gra
     usage.append([None, OTHER, ME])
     usage.append(["Nombre joueurs max 5", 0, 0])
     for number in players:
+        for extra, count in (usage_rows or {}).get(number, ()):
+            usage.append([extra, 0, count])
         usage.append([(usage_labels or {}).get(number, label(number)), 0, uses.get(number, 0)])
         if number == usage_formula:
             usage.cell(usage.max_row, 3, "=IF(InputChoix!$S$5=2,5,4)")
@@ -868,3 +870,12 @@ def test_an_uninspectable_output_path_returns_a_safe_error(tmp_path, registry, m
     with pytest.raises(SubmissionExportError) as error:
         export_submission(result, tmp_path / "out.xlsx", now=NOW)
     assert str(error.value) == "output_not_writable" and error.value.__cause__ is None
+
+
+def test_use_rows_are_matched_on_untrimmed_text_like_excel(tmp_path, registry):
+    # Excel skips " Player 41" and reads the next row, which shows five uses.
+    data = template(uses={41: 5}, usage_rows={41: ((" Player 41", 0),)})
+    result = review(tmp_path, registry, data)
+    assert any("five uses for atp:p41" in p for p in result.problems)
+    with pytest.raises(SubmissionExportError, match="unsupported_template_player_list"):
+        review(tmp_path, registry, template(tamper={"B3": "Player 1 "}))

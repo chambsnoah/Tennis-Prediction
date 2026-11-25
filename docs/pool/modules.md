@@ -461,9 +461,9 @@ bank row. Those bank and use cells, and the use labels the
 lookup searches, must be stored values: a formula's cached
 result could change when Excel recalculates, so it blocks. Both lookup ranges
 must reach every participant, and use counts past the usage range's last row
-are treated as absent, as Excel's lookup would. Use labels match without
-regard to case, like Excel's exact `VLOOKUP`, and list labels may not contain
-its wildcards (`*`, `?`, `~`). A seeded band a pick uses must have a stored
+are treated as absent, as Excel's lookup would. Use labels match on their
+untrimmed text without regard to case, like Excel's exact `VLOOKUP`, and list
+labels may not contain its wildcards (`*`, `?`, `~`) or outer spaces. A seeded band a pick uses must have a stored
 count in the participant's bank row, since a blank compares equal to zero and
 blanks the pick. Lookup ranges must end inside the worksheet. A reviewed `participants`
 mapping must tie the template participant to `entry_id`, so the template row

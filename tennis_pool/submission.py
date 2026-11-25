@@ -250,9 +250,10 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         if name is None and band in (None, *_BAND_LABELS):
             break  # padding rows may keep a band label but never a name
         # Labels must be stored constants; the D column must number rows from 1.
-        # Excel's VLOOKUP treats * ? ~ as wildcards, so such labels could match other rows.
+        # Excel's VLOOKUP treats * ? ~ as wildcards and compares untrimmed text, so
+        # such labels, or ones with outer spaces, could match rows differently.
         if (_label(name) is None or name.startswith("=") or band not in _BAND_LABELS
-                or any(char in name for char in "*?~")
+                or any(char in name for char in "*?~") or name != name.strip()
                 or index != (1 if row == _FIRST_ROW else f"=D{row - 1}+1")):
             raise SubmissionExportError("unsupported_template_player_list")
         labels.append((name.strip(), _BAND_LABELS[band]))
@@ -304,10 +305,10 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         if isinstance(lookup_label, str) and lookup_label.startswith("="):
             # A computed label could match a pick only after recalculation.
             raise SubmissionExportError("unsupported_template_usage")
-        player = _label(lookup_label)
-        if player is not None:
-            # Excel's exact VLOOKUP ignores case and reads the first match.
-            player = player.casefold()
+        if isinstance(lookup_label, str) and lookup_label.strip():
+            # Excel's exact VLOOKUP compares the untrimmed text, ignores case
+            # and reads the first match.
+            player = lookup_label.casefold()
             if player in usage:
                 repeated.add(player)
                 continue
