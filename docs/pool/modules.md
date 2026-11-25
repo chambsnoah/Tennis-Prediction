@@ -358,8 +358,9 @@ scorers under lognormal choice noise, an unfitted prior. A rival with no legal
 sheet submits nothing and scores zero. Their picks share each world's outcomes
 with yours. When there are fewer scenario columns than evaluation worlds,
 worlds sharing a column are treated as one independent draw in every standard
-error (cluster-robust). The 250-point bonus is added when seven
-qualifying events remain reachable, assuming Excel submissions.
+error (cluster-robust). Every legal sheet is assumed to be an Excel
+submission, so the 250-point bonus is added in each world where an entry's
+qualifying sheets reach seven; an event without a legal sheet does not count.
 `SeasonObjective` selects expected points, expected season payout or P(top 3).
 Policies within two paired standard errors (or 1.5 points of P(top 3)) tie, and
 a tie goes to the policy spending fewer seeded tokens now.

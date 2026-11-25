@@ -89,8 +89,8 @@ _RIVAL_MODEL = (
     "Rivals keep the fair-share ration of their own bank and use caps and pick the "
     "best expected scorers under lognormal choice noise (an unfitted prior); their "
     "picks share each world's outcomes with yours. Withdrawn rival picks score zero. "
-    "Every entry is assumed to submit the Excel sheet for every remaining event, so "
-    "the 250-point bonus is added when seven qualifying events remain reachable."
+    "Every legal sheet is assumed to be an Excel submission, so the 250-point bonus "
+    "is added in each world where an entry's qualifying sheets reach seven."
 )
 _SEASON_LIMITS = (
     "Substitutes are optimized for this event only; future events are planned without "
@@ -397,8 +397,13 @@ def _next_index(bank: NDArray[np.int64], strides: NDArray[np.int64],
 def _play(event: _Event, bank: NDArray[np.int64], usage: NDArray[np.int64], *, rule: Policy,
           events_left: tuple[int, ...], horizon: _Horizon | None = None, position: int = 0,
           noise: NDArray[np.float64] | None = None,
-          ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.bool_]]:
-    """Play one event for N x W states in place; returns expected, realized, picks."""
+          ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.bool_],
+                     NDArray[np.bool_]]:
+    """Play one event for N x W states in place.
+
+    Returns expected and realized points, the picks, and whether a legal sheet
+    was submitted.
+    """
     ok = event.entered.T[None] & (usage[:, :, event.players] < _USE_CAP)
     choice = np.broadcast_to(event.means, ok.shape)
     if noise is not None:
@@ -428,7 +433,7 @@ def _play(event: _Event, bank: NDArray[np.int64], usage: NDArray[np.int64], *, r
     realized = (picked * event.realized.T[None]).sum(axis=-1)
     bank -= counts
     usage[:, :, event.players] += picked
-    return expected, realized, picked
+    return expected, realized, picked, feasible[..., 0]
 
 
 def _programme(events: list[_Event], bank: tuple[int, ...],
@@ -540,10 +545,15 @@ def _context(scenarios: ScenarioSet, draw: Draw, terms: EventTerms, cutoff: date
 
 def _forward(context: _Context, rule: Policy, banks: dict[str, NDArray[np.int64]],
              usage: NDArray[np.int64], noise: float = 0.0,
-             ) -> tuple[NDArray[np.float64], NDArray[np.float64], list[NDArray[np.bool_]]]:
-    """Play every future evaluation event in deadline order, in place."""
+             ) -> tuple[NDArray[np.float64], NDArray[np.float64], list[NDArray[np.bool_]],
+                        NDArray[np.int64]]:
+    """Play every future evaluation event in deadline order, in place.
+
+    Also returns how many legal sheets each state submitted.
+    """
     n, w = usage.shape[:2]
     expected, realized = np.zeros((n, w)), np.zeros((n, w))
+    sheets = np.zeros((n, w), dtype=np.int64)
     picks = []
     position = {"slam": 0, "masters": 0}
     for event, left in zip(context.evaluation, context.future_left):
@@ -551,12 +561,14 @@ def _forward(context: _Context, rule: Policy, banks: dict[str, NDArray[np.int64]
         position[name] += 1
         shocks = (np.exp(noise * context.rng.standard_normal((n, w, len(event.players))))
                   if noise else None)
-        e, r, p = _play(event, banks[name], usage, rule=rule, events_left=left,
-                        horizon=context.horizons[name], position=position[name], noise=shocks)
+        e, r, p, submitted = _play(event, banks[name], usage, rule=rule, events_left=left,
+                                   horizon=context.horizons[name], position=position[name],
+                                   noise=shocks)
+        sheets += submitted
         expected += e
         realized += r
         picks.append(p)
-    return expected, realized, picks
+    return expected, realized, picks, sheets
 
 
 def _rows(context: _Context, rows: Sequence[tuple[tuple[int, ...], tuple[int, ...],
@@ -568,7 +580,7 @@ def _rows(context: _Context, rows: Sequence[tuple[tuple[int, ...], tuple[int, ..
              for i, name in enumerate(("slam", "masters"))}
     usage = np.array([np.broadcast_to(row[2], (w, len(context.universe))) for row in rows],
                      dtype=np.int64)
-    expected, _, picks = _forward(context, Policy.HORIZON, banks, usage)
+    expected, _, picks, _ = _forward(context, Policy.HORIZON, banks, usage)
     return expected, picks
 
 
@@ -853,9 +865,12 @@ def _check_payout(config: PayoutConfig, participants: int, allow_provisional: bo
         raise ValueError("Payouts need every other participant's results")
 
 
-def _pending_bonus(entry: EntryState, events: int) -> int:
-    return _BONUS if (entry.submission_bonus == 0
-                      and len(entry.qualifying_events) + events >= _BONUS_EVENTS) else 0
+def _pending_bonus(entry: EntryState, sheets: NDArray[np.int64]) -> NDArray[np.int64]:
+    """The 250-point bonus per world, when the legal sheets still to come reach seven."""
+    if entry.submission_bonus:
+        return np.zeros(sheets.shape, dtype=np.int64)
+    reached = len(entry.qualifying_events) + sheets >= _BONUS_EVENTS
+    return np.where(reached, _BONUS, 0).astype(np.int64)
 
 
 def _se(values: NDArray[np.float64], clusters: NDArray[np.int64] | None = None) -> float:
@@ -932,7 +947,6 @@ def plan_event(
     }
 
     worlds = params.evaluation_worlds
-    remaining = 1 + len(context.evaluation)
     clusters = np.arange(worlds) % scenarios.simulations
     rival_totals = None
     if rival_states:
@@ -946,13 +960,15 @@ def plan_event(
         noise = params.rival_choice_noise
         shocks = np.exp(noise * context.rng.standard_normal(
             (len(rival_states), worlds, len(context.now.players))))
-        _, now_points, _ = _play(context.now, banks[context.bank_name], usage,
-                                 rule=Policy.RATIONED, events_left=context.events_left,
-                                 noise=shocks)
-        _, later_points, _ = _forward(context, Policy.RATIONED, banks, usage, noise)
-        rival_start = np.array([r.season_points + _pending_bonus(r, remaining)
-                                for r in rival_states])
-        rival_totals = rival_start[:, None] + now_points + later_points
+        _, now_points, _, now_sheet = _play(context.now, banks[context.bank_name], usage,
+                                            rule=Policy.RATIONED,
+                                            events_left=context.events_left, noise=shocks)
+        _, later_points, _, later_sheets = _forward(context, Policy.RATIONED, banks, usage,
+                                                    noise)
+        sheets = now_sheet.astype(np.int64) + later_sheets
+        rival_start = np.array([[r.season_points] for r in rival_states]) + np.array(
+            [_pending_bonus(r, sheets[k]) for k, r in enumerate(rival_states)])
+        rival_totals = rival_start + now_points + later_points
 
     order = sorted(rival_states, key=lambda r: (-r.season_points, r.entry_id))
     if rival_states and not named_rivals:
@@ -976,9 +992,10 @@ def plan_event(
         }
         usage = np.array([[context.usage_vector(u) for u in used]], dtype=np.int64)
         after_event = usage[0].copy()  # _forward adds future picks to ``usage`` in place.
-        expected, realized, _ = _forward(context, policy, own_banks, usage)
+        expected, realized, _, own_sheets = _forward(context, policy, own_banks, usage)
         unused = (own_banks["slam"].sum(axis=-1) + own_banks["masters"].sum(axis=-1))[0]
-        own_start = entry.season_points + _pending_bonus(entry, remaining)
+        # This event's sheet is legal by construction; later ones may not be.
+        own_start = entry.season_points + _pending_bonus(entry, 1 + own_sheets[0])
         sample = {"points": own_start + now_points + expected[0], "unused": unused.astype(float),
                   "future": expected[0]}
         if rival_totals is not None:

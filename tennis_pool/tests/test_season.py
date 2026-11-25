@@ -485,6 +485,20 @@ def test_cost_baseline_holds_only_this_events_charges(monkeypatch):
     assert (final.sum(axis=1) == len(pairs)).all()
 
 
+def test_the_bonus_needs_seven_legal_sheets():
+    stuck = replace(standings()[0], entry_id="entry:stuck", season_points=699,
+                    usage=tuple((pid(n), 5) for n in range(1, 14)),
+                    qualifying_events=("a", "b", "c", "d", "e", "f"))
+    able = replace(stuck, entry_id="entry:able", usage=())
+    result = plan(event="us_open", own=entry(points=700), rival_states=(stuck, able))
+    for item in result.projections:
+        stuck_gap, able_gap = item.rival_gaps if item.rival_gaps[0].entry_id == "entry:stuck" \
+            else item.rival_gaps[::-1]
+        # The stuck rival cannot submit a legal sixth-to-seventh sheet: no bonus.
+        assert stuck_gap.expected_final_gap == pytest.approx(item.season_expected_points - 699)
+        assert able_gap.expected_final_gap < stuck_gap.expected_final_gap - 250
+
+
 def test_activated_substitutes_are_charged_in_the_use_advice():
     event = terms("roland_garros")
     result = plan_event(
