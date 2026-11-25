@@ -725,13 +725,9 @@ def test_read_back_differing_from_the_written_bytes_publishes_nothing(
 
     result = review(tmp_path, registry)
     output = tmp_path / "out.xlsx"
-    real = module._bounded_bytes
-
-    def altered(path, limits):
-        data = real(path, limits)
-        return data + b"\0" if Path(path).parent.name.startswith(".submission-") else data
-
-    monkeypatch.setattr(module, "_bounded_bytes", altered)
+    real = module._read_staged
+    monkeypatch.setattr(module, "_read_staged",
+                        lambda folder, name, limits: real(folder, name, limits) + b"\0")
     with pytest.raises(SubmissionExportError, match="output_changed_after_write"):
         export_submission(result, output, now=NOW)
     assert not output.exists() and leftovers(tmp_path) == []
@@ -760,7 +756,7 @@ def test_failed_write_publishes_nothing_and_leaves_no_staged_file(tmp_path, regi
         def write(self, _):
             raise OSError("disk full")
 
-    monkeypatch.setattr(module.os, "fdopen", lambda fd, mode: Failing(real(fd, mode)))
+    monkeypatch.setattr(module.os, "fdopen", lambda fd, mode: Failing(real(fd, mode)) if mode == "wb" else real(fd, mode))
     with pytest.raises(SubmissionExportError, match="output_not_writable"):
         export_submission(result, output, now=NOW)
     assert not output.exists() and leftovers(tmp_path) == []
@@ -791,7 +787,7 @@ def test_a_file_appearing_at_the_output_path_is_never_overwritten_or_removed(
             output.write_bytes(b"someone else's file")
             return self.handle.write(data)
 
-    monkeypatch.setattr(module.os, "fdopen", lambda fd, mode: Racing(real(fd, mode)))
+    monkeypatch.setattr(module.os, "fdopen", lambda fd, mode: Racing(real(fd, mode)) if mode == "wb" else real(fd, mode))
     with pytest.raises(SubmissionExportError, match="output_exists"):
         export_submission(result, output, now=NOW)
     assert output.read_bytes() == b"someone else's file"

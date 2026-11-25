@@ -491,7 +491,8 @@ writing, the output is re-imported with `read_submission`: participant, the
 five pairs with their bands, the event's bank kind (Slam or Masters header)
 and the template's player list must match the review, and every other member
 must be byte-identical, or the file is removed. The file is written in a fresh
-owner-only staging folder next to the output, read back (the bytes must equal those
+owner-only staging folder next to the output, pinned by a directory descriptor
+so renaming the folder cannot redirect any step, read back (the bytes must equal those
 written) and verified there, and only then published with an atomic hard link
 that refuses an existing path. Export only ever removes its own staged file
 and folder, never a file at the output path.

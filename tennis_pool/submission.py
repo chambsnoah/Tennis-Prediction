@@ -902,6 +902,15 @@ def _verify(data: bytes, output: bytes, changed: tuple[str, ...], expected: _Exp
     return sheet
 
 
+def _read_staged(folder: int, name: str, limits: WorkbookLimits) -> bytes:
+    """Read back the staged file through its pinned folder descriptor."""
+    handle = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=folder)
+    with os.fdopen(handle, "rb") as source:
+        data = source.read(limits.file_bytes + 1)
+    _check_archive(data, limits)
+    return data
+
+
 def export_submission(
     review: SubmissionReview, output_path: str | Path, *, now: datetime,
 ) -> SubmissionExport:
@@ -932,38 +941,46 @@ def export_submission(
     _verify(data, output, changed, expected)
     if output_path.exists() or output_path.is_symlink():
         raise SubmissionExportError("output_exists")
-    # Stage inside a fresh owner-only (0700) folder next to the output, verify
-    # the staged bytes, then publish with an atomic hard link that refuses an
-    # existing path. Only the staged file and its folder are ever removed, so
-    # no file at the output path, or swapped in by another user, is deleted.
+    # Stage inside a fresh owner-only folder next to the output, pinned by a
+    # directory descriptor: creating, reading back, linking and removing the
+    # staged file all go through that descriptor, so renaming the folder or
+    # swapping its path cannot redirect them. Publication is an atomic hard
+    # link that refuses an existing path, and only the staged file (and its
+    # then-empty folder) is ever removed.
     try:
-        folder = Path(tempfile.mkdtemp(prefix=".submission-", dir=output_path.parent))
+        folder = tempfile.mkdtemp(prefix=".submission-", dir=output_path.parent)
+        pinned = os.open(folder, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     except OSError:
         raise SubmissionExportError("output_not_writable") from None
-    staged = folder / ("export" + output_path.suffix)
+    name = "export" + output_path.suffix
     try:
+        info = os.fstat(pinned)
+        if info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise SubmissionExportError("output_not_writable")
         try:
-            handle = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+            handle = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                             0o644, dir_fd=pinned)
             with os.fdopen(handle, "wb") as target:
                 os.fchmod(target.fileno(), 0o644)
                 target.write(output)
         except OSError:
             raise SubmissionExportError("output_not_writable") from None
-        written: bytes = _guarded(lambda: _bounded_bytes(staged, review._limits))
+        written: bytes = _guarded(lambda: _read_staged(pinned, name, review._limits))
         if written != output:
             raise SubmissionExportError("output_changed_after_write")
         sheet = _verify(data, written, changed, expected)
         try:
-            os.link(staged, output_path)
+            os.link(name, output_path, src_dir_fd=pinned, follow_symlinks=False)
         except FileExistsError:
             raise SubmissionExportError("output_exists") from None
         except OSError:
             raise SubmissionExportError("output_not_writable") from None
     finally:
         with suppress(OSError):
-            staged.unlink()
+            os.unlink(name, dir_fd=pinned)
         with suppress(OSError):
-            folder.rmdir()
+            os.rmdir(folder)  # removes only an empty folder
+        os.close(pinned)
     with ZipFile(BytesIO(written)) as archive:
         members = len(archive.infolist())
     return SubmissionExport(
