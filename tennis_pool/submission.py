@@ -250,7 +250,9 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         if name is None and band in (None, *_BAND_LABELS):
             break  # padding rows may keep a band label but never a name
         # Labels must be stored constants; the D column must number rows from 1.
+        # Excel's VLOOKUP treats * ? ~ as wildcards, so such labels could match other rows.
         if (_label(name) is None or name.startswith("=") or band not in _BAND_LABELS
+                or any(char in name for char in "*?~")
                 or index != (1 if row == _FIRST_ROW else f"=D{row - 1}+1")):
             raise SubmissionExportError("unsupported_template_player_list")
         labels.append((name.strip(), _BAND_LABELS[band]))
@@ -304,6 +306,8 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
             raise SubmissionExportError("unsupported_template_usage")
         player = _label(lookup_label)
         if player is not None:
+            # Excel's exact VLOOKUP ignores case and reads the first match.
+            player = player.casefold()
             if player in usage:
                 repeated.add(player)
                 continue
@@ -319,6 +323,7 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
     )
 
 
+_EXCEL_ROWS = 1_048_576
 _COMPUTED = object()  # a usage cell holding a formula rather than a stored count
 _USAGE_LOOKUP = "VLOOKUP($B{r},ChoixSommaire!$A$3:{usage},$S$5+1,FALSE)"
 _SHOWN = 'IF(ISERROR({lookup}),${column}{r},IF({lookup}=5,"",${column}{r}))'
@@ -340,12 +345,14 @@ def _check_display(
     Returns the usage lookup's last column and row and the bank lookup's last row.
     """
     first = _cell(rows, 1, _column("R"))
-    match = re.fullmatch(r"=VLOOKUP\(\$S1,\$D\$3:\$E\$([0-9]+),2,FALSE\)", str(first))
-    found = re.search(r"ChoixSommaire!\$A\$3:(\$([A-Z]+)\$([0-9]+))", str(_cell(rows, 3, 5)))
-    guard = next((re.search(r"!\$A\$3:(\$F\$[0-9]+),", str(_cell(rows, r, 5)))
+    match = re.fullmatch(r"=VLOOKUP\(\$S1,\$D\$3:\$E\$([1-9][0-9]*),2,FALSE\)", str(first))
+    found = re.search(r"ChoixSommaire!\$A\$3:(\$([A-Z]+)\$([1-9][0-9]*))", str(_cell(rows, 3, 5)))
+    guard = next((re.search(r"!\$A\$3:(\$F\$[1-9][0-9]*),", str(_cell(rows, r, 5)))
                   for r in range(_FIRST_ROW, _FIRST_ROW + len(labels))
                   if labels[r - _FIRST_ROW][1] is not Band.UNSEEDED), None)
     if (match is None or found is None or int(match[1]) < _FIRST_ROW + len(labels) - 1
+            or max(int(match[1]), int(found[3])) > _EXCEL_ROWS
+            or (guard is not None and int(guard[1].rsplit("$", 1)[1]) > _EXCEL_ROWS)
             or (guard is None and any(band is not Band.UNSEEDED for _, band in labels))):
         raise SubmissionExportError("unsupported_template_formulas")
     lookup_range = f"$D$3:$E${match[1]}"
@@ -700,7 +707,11 @@ def review_submission(
                 if band in _SEEDED and template_bank[_SEEDED.index(band)] == 0:
                     problems.append(f"Template shows no {band.value} tokens left, so it would "
                                     f"blank {role} {player}")
-                row = template.usage.get(label)
+                elif band in _SEEDED and template_bank[_SEEDED.index(band)] is None:
+                    # A blank lookup compares equal to 0 and blanks the pick.
+                    problems.append(f"Template bank for {band.value} has no stored count, so it "
+                                    f"would blank {role} {player}")
+                row = template.usage.get(label.casefold())
                 cached = (None if row is None or participant_index >= len(row)
                           else row[participant_index])
                 if cached is _COMPUTED:
@@ -708,7 +719,7 @@ def review_submission(
                                     "its value after recalculation cannot be verified")
                 count = None if cached is _COMPUTED else _count(cached, 5)
                 template_uses[player] = 0 if row is None else count
-                if label in template.repeated_usage:
+                if label.casefold() in template.repeated_usage:
                     notes.append(f"Template usage repeats the label for {player}; Excel "
                                  "reads its first row")
                 if count is not None and count >= 5:
@@ -939,7 +950,11 @@ def export_submission(
                          review._limits)
     output, changed = _guarded(lambda: _fill(data, template, review._edits))
     _verify(data, output, changed, expected)
-    if output_path.exists() or output_path.is_symlink():
+    try:
+        occupied = output_path.exists() or output_path.is_symlink()
+    except OSError:
+        raise SubmissionExportError("output_not_writable") from None
+    if occupied:
         raise SubmissionExportError("output_exists")
     # Stage inside a fresh owner-only folder next to the output, pinned by a
     # directory descriptor: creating, reading back, linking and removing the
@@ -960,11 +975,12 @@ def export_submission(
             raise SubmissionExportError("output_not_writable")
         verified = True
         try:
+            # Owner-only: the sheet carries the participant's label and picks.
             handle = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
-                             0o644, dir_fd=pinned)
+                             0o600, dir_fd=pinned)
             created = True
             with os.fdopen(handle, "wb") as target:
-                os.fchmod(target.fileno(), 0o644)
+                os.fchmod(target.fileno(), 0o600)
                 target.write(output)
         except OSError:
             raise SubmissionExportError("output_not_writable") from None

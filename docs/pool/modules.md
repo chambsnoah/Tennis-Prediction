@@ -461,7 +461,11 @@ bank row. Those bank and use cells, and the use labels the
 lookup searches, must be stored values: a formula's cached
 result could change when Excel recalculates, so it blocks. Both lookup ranges
 must reach every participant, and use counts past the usage range's last row
-are treated as absent, as Excel's lookup would. A reviewed `participants`
+are treated as absent, as Excel's lookup would. Use labels match without
+regard to case, like Excel's exact `VLOOKUP`, and list labels may not contain
+its wildcards (`*`, `?`, `~`). A seeded band a pick uses must have a stored
+count in the participant's bank row, since a blank compares equal to zero and
+blanks the pick. Lookup ranges must end inside the worksheet. A reviewed `participants`
 mapping must tie the template participant to `entry_id`, so the template row
 and the ledger state describe the same entry. Any of these, an unknown or ambiguous participant label, a slot
 without a substitute (the template has no empty option), an input dated after
@@ -494,7 +498,8 @@ must be byte-identical, or the file is removed. The file is written in a fresh
 owner-only staging folder next to the output, pinned by a directory descriptor
 so renaming the folder cannot redirect any step, read back (the bytes must equal those
 written) and verified there, and only then published with an atomic hard link
-that refuses an existing path. Export only ever removes its own staged file
+that refuses an existing path. The file is owner-only (mode 0600), because it
+names the participant and their picks. Export only ever removes its own staged file
 and folder, never a file at the output path.
 
 **Not a submission.** Export changes no season state. Once the participant has

@@ -155,7 +155,8 @@ def display(r, number, last, bank_end=79, usage_range="$CM$228"):
 def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Grand Chelem",
              full_calc=False, macro=False, formula_link=False, controls=None, pad=0,
              tamper=None, drop_link=None, bank_end=79, usage_range="$CM$228",
-             usage_formula=None, bank_formula=False, usage_label_formula=False):
+             usage_formula=None, bank_formula=False, usage_label_formula=False,
+             usage_labels=None):
     """A synthetic pick template: dropdown parts, linked cells, banks and use counts."""
     players = list(range(1, 129)) if players is None else players
     uses = {3: 1, 4: 0, 7: 1, 11: 1, 19: 1, 50: 1} if uses is None else uses
@@ -208,7 +209,7 @@ def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Gra
     usage.append([None, OTHER, ME])
     usage.append(["Nombre joueurs max 5", 0, 0])
     for number in players:
-        usage.append([label(number), 0, uses.get(number, 0)])
+        usage.append([(usage_labels or {}).get(number, label(number)), 0, uses.get(number, 0)])
         if number == usage_formula:
             usage.cell(usage.max_row, 3, "=IF(InputChoix!$S$5=2,5,4)")
     if bank_formula:
@@ -713,6 +714,7 @@ def test_use_counts_outside_the_lookup_range_are_not_read(tmp_path, registry):
     result = review(tmp_path, registry, template(usage_range="$CM$10", uses={41: 5}))
     assert not any("five uses" in p for p in result.problems)
     assert result.slots[4].template_substitute_uses == 0
+    assert result.exportable, result.problems
 
 
 def leftovers(tmp_path):
@@ -808,7 +810,8 @@ def test_exported_file_is_readable_and_no_staged_file_remains(tmp_path, registry
     monkeypatch.setattr(module.tempfile, "mkdtemp", recording)
     exported = export_submission(review(tmp_path, registry), tmp_path / "out.xlsx", now=NOW)
     assert len(folders) == 1 and not folders[0].exists()
-    assert exported.output_path.stat().st_mode & 0o777 == 0o644
+    mode = exported.output_path.stat().st_mode
+    assert mode & 0o400 and not mode & 0o077    # owner-only: it names the participant
     assert leftovers(tmp_path) == []
 
 
@@ -830,3 +833,38 @@ def test_an_unverified_staging_folder_is_never_cleaned_up(tmp_path, registry, mo
         export_submission(result, tmp_path / "out.xlsx", now=NOW)
     assert (swapped / "export.xlsx").read_bytes() == b"not ours"
     assert not (tmp_path / "out.xlsx").exists()
+
+
+def test_a_used_seeded_band_without_a_stored_template_count_blocks(tmp_path, registry):
+    result = review(tmp_path, registry, template(bank=(3, None, 3, 3)))
+    assert any("bank for 5-8 has no stored count" in p for p in result.problems)
+    assert review(tmp_path, registry, template(bank=(3, 3, 3, 3))).exportable
+
+
+def test_lookup_ranges_ending_outside_the_sheet_are_rejected(tmp_path, registry):
+    for usage_range in ("$CM$0", "$CM$1048577"):
+        with pytest.raises(SubmissionExportError, match="unsupported_template_formulas"):
+            review(tmp_path, registry, template(usage_range=usage_range))
+
+
+def test_use_counts_match_labels_case_insensitively_like_excel(tmp_path, registry):
+    result = review(tmp_path, registry,
+                    template(uses={41: 5}, usage_labels={41: "PLAYER 41"}))
+    assert any("five uses for atp:p41" in p for p in result.problems)
+
+
+def test_wildcard_characters_in_list_labels_are_rejected(tmp_path, registry):
+    with pytest.raises(SubmissionExportError, match="unsupported_template_player_list"):
+        review(tmp_path, registry, template(tamper={"B3": "Play?r 1"}))
+
+
+def test_an_uninspectable_output_path_returns_a_safe_error(tmp_path, registry, monkeypatch):
+    result = review(tmp_path, registry)
+
+    def denied(self, *args, **kwargs):
+        raise PermissionError("private path")
+
+    monkeypatch.setattr(Path, "exists", denied)
+    with pytest.raises(SubmissionExportError) as error:
+        export_submission(result, tmp_path / "out.xlsx", now=NOW)
+    assert str(error.value) == "output_not_writable" and error.value.__cause__ is None
