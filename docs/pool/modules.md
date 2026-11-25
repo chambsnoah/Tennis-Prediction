@@ -406,6 +406,8 @@ participant and writes a new local file. It never emails, sends, submits or
 accepts anything. Install the `excel` extra.
 
 ```python
+from datetime import datetime, timezone
+
 from tennis_pool.submission import export_submission, review_submission
 
 review = review_submission(
@@ -416,7 +418,8 @@ review = review_submission(
 )
 print(review.describe())          # slots, banks, uses, deadline, problems, warnings
 if review.exportable:
-    export = export_submission(review, output_path, now=now)
+    # A fresh time, so a deadline or freshness limit passed while reading counts.
+    export = export_submission(review, output_path, now=datetime.now(timezone.utc))
 ```
 
 **How the template stores a sheet.** The `VosChoix` sheet holds eleven
@@ -427,20 +430,33 @@ in its control part and in a linked `InputChoix` cell (`S1`, `U1`, `W1`, `Y1`,
 List index *i* is `InputChoix` row *i* + 2 (player label in column B, band in
 column C), and participant *i* is the `Banques (Solde restant)` row whose
 column A holds *i*. The template's formulas turn these indices into names, so
-pair *k* fills slot *k*. A different control set, list position or a formula
-in a linked cell is rejected as an unsupported template.
+pair *k* fills slot *k*. The formulas that turn an index into a shown name
+(columns E to L of each list row and the picked-name cells in row 1) must match
+the 2026 layout exactly, so the file cannot display a name other than the
+verified label. A different control set, list position, display formula,
+dropdown range past the row limit or a formula in a linked cell is rejected as
+an unsupported template. Padding rows after the list may keep a band label but
+not a name.
 
 **Review.** `review_submission` reads the template without evaluating
 formulas and checks the five pairs three ways. Against the ledger, it runs
 `validate_roster` on the replayed entry state (every activation combination,
 both banks and the five-use cap). Against the draw, every player must be in
 the template list once, under a reviewed alias, with the template's band equal
-to the draw seed's band. Against the template's own formulas, which blank a
+to the draw seed's band. Draws carry no pool event ID, so the draw's format
+must fit the event and its dates must span the deadline (from a week before the
+start to the end). The template is tied to the event by its Slam or Masters
+header and by a player list that matches the draw (more than a 10% mismatch
+blocks). Against the template's own formulas, which blank a
 pick whose band shows no tokens left or whose player shows five uses in
 `ChoixSommaire`, and which count primaries per band against the participant's
 bank row. Any of these, an unknown or ambiguous participant label, a slot
 without a substitute (the template has no empty option), an input dated after
-`now` or a passed deadline is a problem, and problems block export. Warnings
+`now`, a passed deadline, or a sheet the writer cannot record and read back
+unchanged (checked by a dry run) is a problem, and problems block export.
+When the event already has an accepted sheet, the roster is checked against
+the entry state before that sheet, since replay charges only the final
+accepted sheet. Warnings
 cover inputs older than `stale_after` (24 hours by default) and a deadline
 under an hour away. They also cover template banks or use counts that differ
 from the ledger, template players outside the draw or draw players missing from
@@ -451,7 +467,7 @@ name.
 
 **Export.** `export_submission` refuses a review with problems, a review older
 than its `stale_after`, a template changed since review, a passed deadline, an
-existing output file or a suffix other than the template's. It copies every
+existing output file or a suffix other than the template's. Pass a fresh `now`. It copies every
 ZIP member byte for byte, with the same order and compression, and rewrites
 only the eleven control indices, their linked cells and the workbook's
 `fullCalcOnLoad` flag. Cached formula results still describe the old picks
@@ -461,11 +477,13 @@ macros are copied as opaque bytes and never loaded or run. Before and after
 writing, the output is re-imported with `read_submission`: participant, the
 five pairs with their bands, the event's bank kind (Slam or Masters header)
 and the template's player list must match the review, and every other member
-must be byte-identical, or the file is removed.
+must be byte-identical, or the file is removed. The read-back bytes must equal
+the bytes written, and a failed write removes its partial file.
 
 **Not a submission.** Export changes no season state. Once the participant has
 sent the file themself, `submitted_record(export, ...)` builds the ledger's
-`Submitted` record (Excel attachment, sent before the deadline). That record
+`Submitted` record (Excel attachment, sent before the deadline) for the
+reviewed entry. That record
 still debits nothing and counts toward nothing. Only a separate `Accepted` record from the
 commissioner debits the bank and player uses and counts the event toward the
 seven-sheet bonus. `confirmed_qualifying_events` in the review counts accepted

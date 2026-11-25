@@ -16,7 +16,7 @@ need ledger evidence of what was actually sent and what the commissioner accepte
 from __future__ import annotations
 
 from contextlib import ExitStack
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 import hashlib
 from io import BytesIO
@@ -100,8 +100,8 @@ class _Template:
     labels: tuple[tuple[str, Band], ...]    # list index - 1 -> (label, band)
     participants: tuple[str, ...]           # participant index - 1 -> label
     banks: tuple[tuple[int | None, ...], ...]
-    usage_headers: tuple[Any, ...] | None
-    usage: dict[str, tuple[Any, ...]] | None
+    usage_headers: tuple[Any, ...]
+    usage: dict[str, tuple[Any, ...]]
     repeated_usage: frozenset[str]
 
     @property
@@ -216,7 +216,9 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         raise SubmissionExportError("unsupported_template_controls")
     last_row = list_end.pop()
     participant_end = ranges[_PARTICIPANT_LINK][4]
-    if last_row is None or participant_end is None:
+    if (last_row is None or participant_end is None
+            or not _FIRST_ROW <= last_row <= limits.rows
+            or not _FIRST_ROW <= participant_end <= limits.rows):
         raise SubmissionExportError("unsupported_template_controls")
 
     with ExitStack() as stack:
@@ -228,7 +230,9 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         stack.callback(formulas.close)
         lists, list_formulas = _rows(values, _LISTS), _rows(formulas, _LISTS)
         banks, bank_formulas = _rows(values, _BANKS), _rows(formulas, _BANKS)
-        usage_rows = _rows(values, _USAGE) if _USAGE in values.sheetnames else None
+        if _USAGE not in values.sheetnames:
+            raise SubmissionExportError("unsupported_template_layout")
+        usage_rows = _rows(values, _USAGE)
 
     links = {}
     for link in expected:
@@ -241,18 +245,20 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
     for row in range(_FIRST_ROW, last_row + 1):
         name, band = _cell(list_formulas, row, 2), _cell(list_formulas, row, 3)
         index = _cell(list_formulas, row, 4)
-        if name is None and band is None:
-            break
+        if name is None and band in (None, *_BAND_LABELS):
+            break  # padding rows may keep a band label but never a name
         # Labels must be stored constants; the D column must number rows from 1.
         if (_label(name) is None or name.startswith("=") or band not in _BAND_LABELS
                 or index not in (row - 2, f"=D{row - 1}+1")):
             raise SubmissionExportError("unsupported_template_player_list")
         labels.append((name.strip(), _BAND_LABELS[band]))
-    if any(_cell(list_formulas, row, column) is not None
-           for row in range(_FIRST_ROW + len(labels), last_row + 1) for column in (2, 3)):
+    if any(_cell(list_formulas, row, 2) is not None
+           or _cell(list_formulas, row, 3) not in (None, *_BAND_LABELS)
+           for row in range(_FIRST_ROW + len(labels), last_row + 1)):
         raise SubmissionExportError("unsupported_template_player_list")
     if not labels:
         raise SubmissionExportError("unsupported_template_player_list")
+    _check_display(list_formulas, labels)
 
     header = _cell(bank_formulas, 1, 3)
     if (header not in _BANK_HEADERS or tuple(
@@ -274,19 +280,18 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
     if not participants:
         raise SubmissionExportError("unsupported_template_participants")
 
-    usage_headers: tuple[Any, ...] | None = None
-    usage: dict[str, tuple[Any, ...]] | None = None
+    if len(usage_rows) < 3:
+        raise SubmissionExportError("unsupported_template_usage")
+    usage_headers = usage_rows[2]
+    usage: dict[str, tuple[Any, ...]] = {}
     repeated: set[str] = set()
-    if usage_rows is not None and len(usage_rows) >= 3:
-        usage_headers = usage_rows[2]
-        usage = {}
-        for record in usage_rows[4:]:
-            player = _label(record[0])
-            if player is not None:
-                # VLOOKUP reads the first matching row; remember ambiguous labels.
-                if player in usage:
-                    repeated.add(player)
-                usage.setdefault(player, record)
+    for record in usage_rows[4:]:
+        player = _label(record[0])
+        if player is not None:
+            # VLOOKUP reads the first matching row; remember ambiguous labels.
+            if player in usage:
+                repeated.add(player)
+            usage.setdefault(player, record)
     return _Template(
         digest=hashlib.sha256(data).hexdigest(), bank_kind=_BANK_HEADERS[header],
         control_parts=control_parts, selections=selections, links=links,
@@ -294,6 +299,59 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         banks=tuple(bank_rows), usage_headers=usage_headers, usage=usage,
         repeated_usage=frozenset(repeated),
     )
+
+
+_USAGE_LOOKUP = "VLOOKUP($B{r},ChoixSommaire!$A$3:{usage},$S$5+1,FALSE)"
+_SHOWN = 'IF(ISERROR({lookup}),${column}{r},IF({lookup}=5,"",${column}{r}))'
+_BANK_GUARD = "IF(VLOOKUP($S$5,'Banques (Solde restant)'!$A$3:{bank},{index},FALSE)=0,\"\",{shown})"
+_NAME_CELLS = {"S1": ("R1", None), "U1": ("T1", "R1"), "W1": ("V1", "T1"), "Y1": ("X1", "V1"),
+               "AA1": ("Z1", "X1"), "AD1": ("AC1", None), "AF1": ("AE1", None),
+               "AH1": ("AG1", None), "AJ1": ("AI1", None), "AL1": ("AK1", None)}
+
+
+def _check_display(rows: list[tuple[Any, ...]], labels: list[tuple[str, Band]]) -> None:
+    """Pin every formula that turns a selected index into a shown pick name.
+
+    The 2026 template shows list row ``r`` through E (label or blank), F (band
+    or blank), G (both) and the dropdown lists H to L, and the picked names in
+    row 1 through VLOOKUPs on D:E. Only this exact layout is accepted, so the
+    exported workbook cannot display a name other than the verified label.
+    """
+    first = _cell(rows, 1, _column("R"))
+    match = re.fullmatch(r"=VLOOKUP\(\$S1,\$D\$3:\$E\$([0-9]+),2,FALSE\)", str(first))
+    found = re.search(r"ChoixSommaire!\$A\$3:(\$[A-Z]+\$[0-9]+)", str(_cell(rows, 3, 5)))
+    guard = next((re.search(r"!\$A\$3:(\$F\$[0-9]+),", str(_cell(rows, r, 5)))
+                  for r in range(_FIRST_ROW, _FIRST_ROW + len(labels))
+                  if labels[r - _FIRST_ROW][1] is not Band.UNSEEDED), None)
+    if (match is None or found is None or int(match[1]) < _FIRST_ROW + len(labels) - 1
+            or (guard is None and any(band is not Band.UNSEEDED for _, band in labels))):
+        raise SubmissionExportError("unsupported_template_formulas")
+    lookup_range = f"$D$3:$E${match[1]}"
+    for link, (cell, previous) in _NAME_CELLS.items():
+        lookup = f"VLOOKUP(${link[:-1]}1,{lookup_range},2,FALSE)"
+        expected = ("=" + lookup if previous is None
+                    else f'=IF({lookup}={previous},"",{lookup})')
+        row, column = int(cell.lstrip("ABCDEFGHIJKLMNOPQRSTUVWXYZ")), cell.rstrip("0123456789")
+        if _cell(rows, row, _column(column)) != expected:
+            raise SubmissionExportError("unsupported_template_formulas")
+    links = [link for link, _ in _PRIMARY_LINKS]
+    for r, (_, band) in enumerate(labels, _FIRST_ROW):
+        shown = {}
+        for column in "BC":
+            lookup = _USAGE_LOOKUP.format(r=r, usage=found[1])
+            text = _SHOWN.format(lookup=lookup, column=column, r=r)
+            if band is not Band.UNSEEDED and guard is not None:
+                text = _BANK_GUARD.format(bank=guard[1], index=3 + _SEEDED.index(band), shown=text)
+            shown[column] = "=" + text
+        cells = {
+            "E": shown["B"], "F": shown["C"], "G": f'=F{r}&"  "&E{r}',
+            "H": f'=IF(VLOOKUP(${links[0][:-1]}$1,{lookup_range},2,FALSE)=$E{r},"",$G{r})',
+        }
+        for previous, column, link in zip("HIJK", "IJKL", links[1:]):
+            cells[column] = (f'=IF({previous}{r}="","",IF(VLOOKUP(${link[:-1]}$1,'
+                                f'{lookup_range},2,FALSE)=$E{r},"",$G{r}))')
+        if any(_cell(rows, r, _column(column)) != text for column, text in cells.items()):
+            raise SubmissionExportError("unsupported_template_formulas")
 
 
 def _guarded(call: Any) -> Any:
@@ -408,6 +466,7 @@ class SubmissionReview:
     confirmed_qualifying_events: int
     rule_register_version: str
     submission_decisions: tuple[tuple[str, str, str], ...]
+    entry_id: str = field(repr=False)
     participant: str = field(repr=False)
     template_path: Path = field(repr=False)
     template_digest: str = field(repr=False)
@@ -487,6 +546,13 @@ def review_submission(
     notes: list[str] = []
     if template.bank_kind != kind:
         problems.append(f"Template is for a {template.bank_kind} event, not {event_id}")
+    # Draw events carry no pool ID; their format and dates must fit this event.
+    rounds = 6 if event_id in ("monte_carlo", "paris") else 7
+    if (draw.event.best_of, draw.event.round_count) != ((5 if kind == "slam" else 3), rounds):
+        problems.append(f"Draw format does not match {event_id}")
+    if not (draw.event.start_date - timedelta(days=7) <= terms.deadline.date()
+            <= draw.event.end_date):
+        problems.append(f"Draw dates do not fit the {event_id} deadline")
 
     # Who the template's list rows are, through reviewed aliases only.
     rows: dict[PlayerId, list[int]] = {}
@@ -505,6 +571,8 @@ def review_submission(
     missing = sum(player not in rows for player in seeds)
     differing = sum(player in seeds and template.labels[i[0] - 1][1] is not seed_band(seeds[player])
                     for player, i in rows.items())
+    if (outside + missing) * 10 > len(seeds):
+        problems.append("Template player list does not match this draw")
     if outside:
         notes.append(f"Template lists {outside} player(s) who are not in the draw")
     if missing:
@@ -531,6 +599,19 @@ def review_submission(
                              "replaces it only once the commissioner accepts it")
             elif state.submitted:
                 notes.append(f"{len(state.submitted)} earlier submission(s) recorded for this event")
+            if state.selections and entry is not None:
+                # Replay charges only the final accepted sheet, so check a
+                # correction against the state before the one it replaces.
+                bank = list(remaining)
+                for charged in state.selections:
+                    uses[charged.player_id] -= 1
+                    if charged.band in _SEEDED:
+                        bank[_SEEDED.index(charged.band)] += 1
+                remaining = tuple(bank)
+                uses = {player: count for player, count in uses.items() if count}
+                usage = tuple(sorted(uses.items()))
+                entry = (replace(entry, usage=usage, slam=remaining) if kind == "slam"
+                         else replace(entry, usage=usage, masters=remaining))
 
     roster = None
     if len(pairs) != 5 or not all(isinstance(pair, Pair) for pair in pairs):
@@ -551,10 +632,8 @@ def review_submission(
     if participant_index is not None:
         if template_bank != remaining:
             notes.append(f"Template bank {template_bank} differs from the ledger bank {remaining}")
-        if template.usage is None or template.usage_headers is None:
-            notes.append("Template has no usage summary; its five-use blanking was not checked")
-        elif (participant_index >= len(template.usage_headers)
-              or template.usage_headers[participant_index] != participant.strip()):
+        if (participant_index >= len(template.usage_headers)
+                or template.usage_headers[participant_index] != participant.strip()):
             notes.append("Template usage column header does not name this participant")
     edits: list[tuple[str, int]] = []
     slots: list[SlotReview] = []
@@ -580,20 +659,19 @@ def review_submission(
                 if band in _SEEDED and template_bank[_SEEDED.index(band)] == 0:
                     problems.append(f"Template shows no {band.value} tokens left, so it would "
                                     f"blank {role} {player}")
-                if template.usage is not None:
-                    row = template.usage.get(label)
-                    count = (None if row is None or participant_index >= len(row)
-                             else _count(row[participant_index], 5))
-                    template_uses[player] = 0 if row is None else count
-                    if label in template.repeated_usage:
-                        notes.append(f"Template usage repeats the label for {player}; Excel "
-                                     "reads its first row")
-                    if count is not None and count >= 5:
-                        problems.append(f"Template shows five uses for {player}, so it would "
-                                        f"blank that {role}")
-                    if count is not None and count != uses.get(player, 0):
-                        notes.append(f"Template shows {count} uses for {player}; the ledger "
-                                     f"shows {uses.get(player, 0)}")
+                row = template.usage.get(label)
+                count = (None if row is None or participant_index >= len(row)
+                         else _count(row[participant_index], 5))
+                template_uses[player] = 0 if row is None else count
+                if label in template.repeated_usage:
+                    notes.append(f"Template usage repeats the label for {player}; Excel "
+                                 "reads its first row")
+                if count is not None and count >= 5:
+                    problems.append(f"Template shows five uses for {player}, so it would "
+                                    f"blank that {role}")
+                if count is not None and count != uses.get(player, 0):
+                    notes.append(f"Template shows {count} uses for {player}; the ledger "
+                                 f"shows {uses.get(player, 0)}")
         if len(indices) == 2:
             edits += [(_PRIMARY_LINKS[number - 1][0], indices[0]),
                       (_SUBSTITUTE_LINKS[number - 1][0], indices[1])]
@@ -616,6 +694,16 @@ def review_submission(
         notes.append("Template bank cells have no stored values; its bank was not checked")
     if participant_index is not None:
         edits.append((_PARTICIPANT_LINK, participant_index))
+    if not problems:
+        # Dry run: the review passes only if the writer can record this exact
+        # sheet in this template and read it back unchanged.
+        try:
+            output, changed = _fill(data, template, tuple(edits))
+            _verify(data, output, changed, _Expected(
+                participant.strip(), tuple(pairs), kind, template.players_digest,
+                registry, template_provenance, limits))
+        except SubmissionExportError as error:
+            problems.append(f"Template cannot record this sheet ({error})")
 
     after = tuple(remaining[i] - primaries.count(band) for i, band in enumerate(_SEEDED))
     worst = after
@@ -647,7 +735,8 @@ def review_submission(
         warnings=tuple(dict.fromkeys(notes)),
         confirmed_qualifying_events=0 if entry is None else len(entry.qualifying_events),
         rule_register_version=version, submission_decisions=decisions,
-        participant=participant.strip(), template_path=path, template_digest=template.digest,
+        entry_id=entry_id, participant=participant.strip(), template_path=path,
+        template_digest=template.digest,
         players_digest=template.players_digest, stale_after=stale_after,
         _edits=tuple(edits), _registry=registry, _provenance=template_provenance,
         _limits=limits,
@@ -740,14 +829,24 @@ class SubmissionExport:
         return self.reimported.pairs
 
 
-def _verify(
-    review: SubmissionReview, data: bytes, output: bytes, changed: tuple[str, ...],
-) -> SubmissionSheet:
+@dataclass(frozen=True)
+class _Expected:
+    participant: str = field(repr=False)
+    pairs: tuple[Pair, ...]
+    kind: str
+    players_digest: str
+    registry: IdentityRegistry = field(repr=False)
+    provenance: Provenance = field(repr=False)
+    limits: WorkbookLimits = field(repr=False)
+
+
+def _verify(data: bytes, output: bytes, changed: tuple[str, ...], expected: _Expected,
+            ) -> SubmissionSheet:
     sheet: SubmissionSheet = _guarded(
-        lambda: _read_sheet(output, review._registry, review._provenance, review._limits))
-    if (sheet.participant != review.participant or sheet.pairs != review.pairs
-            or sheet.bank_kind != review.bank.kind
-            or sheet.players_digest != review.players_digest):
+        lambda: _read_sheet(output, expected.registry, expected.provenance, expected.limits))
+    if (sheet.participant != expected.participant or sheet.pairs != expected.pairs
+            or sheet.bank_kind != expected.kind
+            or sheet.players_digest != expected.players_digest):
         raise SubmissionExportError("reimport_mismatch")
     with ZipFile(BytesIO(data)) as before, ZipFile(BytesIO(output)) as after:
         if [i.filename for i in before.infolist()] != [i.filename for i in after.infolist()]:
@@ -781,18 +880,28 @@ def export_submission(
     template: _Template = _guarded(lambda: _read_template(data, review._limits))
     if template.digest != review.template_digest:
         raise SubmissionExportError("template_changed_since_review")
+    expected = _Expected(review.participant, review.pairs, review.bank.kind,
+                         review.players_digest, review._registry, review._provenance,
+                         review._limits)
     output, changed = _guarded(lambda: _fill(data, template, review._edits))
-    _verify(review, data, output, changed)
+    _verify(data, output, changed, expected)
     try:
-        with output_path.open("xb") as target:
-            target.write(output)
+        target = output_path.open("xb")
     except FileExistsError:
         raise SubmissionExportError("output_exists") from None
     except OSError:
         raise SubmissionExportError("output_not_writable") from None
     try:
+        with target:
+            target.write(output)
+    except OSError:
+        os.unlink(output_path)
+        raise SubmissionExportError("output_not_writable") from None
+    try:
         written: bytes = _guarded(lambda: _bounded_bytes(output_path, review._limits))
-        sheet = _verify(review, data, written, changed)
+        if written != output:
+            raise SubmissionExportError("output_changed_after_write")
+        sheet = _verify(data, written, changed, expected)
     except SubmissionExportError:
         os.unlink(output_path)
         raise
@@ -806,10 +915,9 @@ def export_submission(
 
 
 def submitted_record(
-    export: SubmissionExport, *, record_id: str, entry_id: str, sent_at: datetime,
-    evidence: Provenance,
+    export: SubmissionExport, *, record_id: str, sent_at: datetime, evidence: Provenance,
 ) -> LedgerRecord:
-    """Ledger record for a sheet the participant has emailed themself.
+    """Ledger record, for the reviewed entry, of a sheet its participant emailed themself.
 
     Call only with evidence that the exported file was actually sent. A
     ``Submitted`` record debits nothing and earns no bonus; replay counts it
@@ -821,7 +929,7 @@ def submitted_record(
     if sent_at >= export.review.deadline:
         raise ValueError("Sheet sent after the deadline cannot be a voluntary submission")
     return LedgerRecord(
-        record_id=record_id, entry_id=entry_id, event_id=export.review.event_id,
+        record_id=record_id, entry_id=export.review.entry_id, event_id=export.review.event_id,
         effective_at=sent_at, evidence=evidence,
         payload=Submitted(picks=export.pairs, submitted_at=sent_at, excel=True),
     )

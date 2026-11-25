@@ -3,6 +3,7 @@
 from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
+from pathlib import Path
 import re
 import warnings
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -127,8 +128,32 @@ def snapshot(book=None, at=NOW - timedelta(hours=1)):
     return (book or ledger(*history())).replay(at)
 
 
+CHAINED = {"U1": "R1", "W1": "T1", "Y1": "V1", "AA1": "X1"}
+
+
+def display(r, number, last):
+    """The reference template's display formulas for list row r."""
+    lookup = f"VLOOKUP($B{r},ChoixSommaire!$A$3:$CM$228,$S$5+1,FALSE)"
+    seed = number if number <= 32 else None
+    cells = {}
+    for target, column in (("E", "B"), ("F", "C")):
+        text = f'IF(ISERROR({lookup}),${column}{r},IF({lookup}=5,"",${column}{r}))'
+        if seed is not None:
+            index = 3 + (0 if seed <= 4 else 1 if seed <= 8 else 2 if seed <= 16 else 3)
+            text = (f"IF(VLOOKUP($S$5,'Banques (Solde restant)'!$A$3:$F$79,{index},FALSE)=0,"
+                    f'"",{text})')
+        cells[target] = "=" + text
+    cells["G"] = f'=F{r}&"  "&E{r}'
+    cells["H"] = f'=IF(VLOOKUP($S$1,$D$3:$E${last},2,FALSE)=$E{r},"",$G{r})'
+    for previous, column, link in zip("HIJK", "IJKL", ("U", "W", "Y", "AA")):
+        cells[column] = (f'=IF({previous}{r}="","",IF(VLOOKUP(${link}$1,$D$3:$E${last},2,FALSE)'
+                         f'=$E{r},"",$G{r}))')
+    return cells
+
+
 def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Grand Chelem",
-             full_calc=False, macro=False, formula_link=False, controls=None, pad=0):
+             full_calc=False, macro=False, formula_link=False, controls=None, pad=0,
+             tamper=None, drop_link=None):
     """A synthetic pick template: dropdown parts, linked cells, banks and use counts."""
     players = list(range(1, 129)) if players is None else players
     uses = {3: 1, 4: 0, 7: 1, 11: 1, 19: 1, 50: 1} if uses is None else uses
@@ -154,18 +179,21 @@ def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Gra
         lists.cell(row, 2, label(number))
         lists.cell(row, 3, band_label(number))
         lists.cell(row, 4, 1 if i == 0 else f"=D{row - 1}+1")
-        lists.cell(row, 5, f"=$B{row}")
-        lists.cell(row, 7, f'=C{row}&"  "&E{row}')
-        for column in "HIJKL":
-            lists[f"{column}{row}"] = f"=$G{row}"
+        for column, text in display(row, number, last).items():
+            lists[f"{column}{row}"] = text
     lists["G2"], lists["L2"] = "Choix #1", "Remplacements"
     for number, (link, _) in enumerate(PRIMARY_LINKS + SUBSTITUTE_LINKS, 1):
         lists[link] = number
-        lists[NAME_CELLS[link]] = f"=VLOOKUP(${link[:-1]}1,$D$3:$E${last},2,FALSE)"
+        lookup = f"VLOOKUP(${link[:-1]}1,$D$3:$E${last},2,FALSE)"
+        previous = CHAINED.get(link)
+        lists[NAME_CELLS[link]] = ("=" + lookup if previous is None
+                                   else f'=IF({lookup}={previous},"",{lookup})')
     lists["S5"] = 2
     lists["R5"] = "=VLOOKUP($S$5,'Banques (Solde restant)'!$A$3:$B$79,2,FALSE)"
     if formula_link:
         lists["W1"] = "=1+1"
+    for cell, value in (tamper or {}).items():
+        lists[cell] = value
     banks = wb.create_sheet("Banques (Solde restant)")
     banks["C1"], banks["H1"] = header, "Nombre de joueurs ATP ayant été choisis 5 fois"
     for column, text in zip("CDEF", ("1-4", "5-8", "9-16", "17-32")):
@@ -228,6 +256,8 @@ def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Gra
                     b'Target="vbaProject.bin"/></Relationships>')
             if member.filename == "xl/worksheets/sheet1.xml":
                 content = content.replace(b"</worksheet>", ANCHORS)
+            if member.filename == "xl/worksheets/sheet3.xml" and drop_link:
+                content = re.sub(rb'<c r="' + drop_link.encode() + rb'"[^>]*>.*?</c>', b"", content)
             target.writestr(member, content)
         for name, content in parts.items():
             target.writestr(name, content)
@@ -462,14 +492,15 @@ def test_export_neither_consumes_season_state_nor_claims_the_excel_bonus(tmp_pat
 
     sent_at = NOW + timedelta(minutes=10)
     with pytest.raises(ValueError, match="before it was exported"):
-        submitted_record(exported, record_id="x", entry_id="me", sent_at=NOW - timedelta(seconds=1),
+        submitted_record(exported, record_id="x", sent_at=NOW - timedelta(seconds=1),
                          evidence=evidence(NOW))
     with pytest.raises(ValueError, match="after the deadline"):
-        submitted_record(exported, record_id="x", entry_id="me", sent_at=DEADLINE,
+        submitted_record(exported, record_id="x", sent_at=DEADLINE,
                          evidence=evidence(DEADLINE))
-    record = submitted_record(exported, record_id="u-sub", entry_id="me", sent_at=sent_at,
+    record = submitted_record(exported, record_id="u-sub", sent_at=sent_at,
                               evidence=evidence(sent_at, "u-sub"))
     assert record.payload == Submitted(picks=pairs(), submitted_at=sent_at, excel=True)
+    assert (record.entry_id, record.event_id) == ("me", "us_open")
     submitted = book.append(record).replay(sent_at + timedelta(hours=1))
     mine = next(e for e in submitted.entries if e.entry_id == "me")
     old = next(e for e in before.entries if e.entry_id == "me")
@@ -525,3 +556,101 @@ def test_padded_list_rows_are_allowed_but_never_selected(tmp_path, registry):
     exported = export_submission(review(tmp_path, registry, template(pad=8)),
                                  tmp_path / "out.xlsx", now=NOW)
     assert exported.pairs == pairs()
+
+
+def test_correction_is_checked_against_the_state_before_the_sheet_it_replaces(tmp_path, registry):
+    at = NOW - timedelta(hours=5)
+    first = pairs((1, 2, 9, 17, 40), (3, 4, 10, 18, 41))
+    sent = LedgerRecord(record_id="u-sub", entry_id="me", event_id="us_open", effective_at=at,
+                        evidence=evidence(at, "u-sub"),
+                        payload=Submitted(picks=first, submitted_at=at, excel=True))
+    accepted = LedgerRecord(record_id="u-acc", entry_id="me", event_id="us_open", effective_at=at,
+                            evidence=evidence(at, "u-acc"),
+                            payload=Accepted(submission_id="u-sub", approved_by="synthetic"))
+    book = ledger(*history(), sent, accepted)
+    mine = next(e for e in book.replay(NOW).entries if e.entry_id == "me")
+    assert mine.slam[0] == 1    # the accepted sheet already spent two 1-4 tokens
+    result = review(tmp_path, registry, snapshot=snapshot(book), pairs=first)
+    assert result.exportable, result.problems
+    assert result.bank.remaining == (3, 3, 3, 3)
+    assert [slot.primary_uses for slot in result.slots] == [0, 0, 0, 0, 0]
+
+
+def test_draw_must_fit_the_event_format_dates_and_template_list(tmp_path, registry):
+    masters = replace(draw(), event=replace(draw().event, best_of=3))
+    assert any("Draw format does not match us_open" in p
+               for p in review(tmp_path, registry, draw=masters).problems)
+    later = replace(draw(), event=replace(draw().event, start_date=date(2026, 10, 1),
+                                          end_date=date(2026, 10, 12)))
+    assert any("Draw dates do not fit" in p for p in review(tmp_path, registry, draw=later).problems)
+    other = review(tmp_path, registry, template(players=list(range(1, 100))))
+    assert "Template player list does not match this draw" in other.problems
+
+
+@pytest.mark.parametrize("tamper", [
+    {"E3": '="Player 2"'},
+    {"H5": "=$G6"},
+    {"R1": "=VLOOKUP($S1,$D$3:$E$130,2,FALSE)&\"x\""},
+    {"T1": "=VLOOKUP($U1,$D$3:$E$130,2,FALSE)"},
+])
+def test_display_formulas_that_could_show_another_name_are_rejected(tmp_path, registry, tamper):
+    with pytest.raises(SubmissionExportError, match="unsupported_template_formulas"):
+        review(tmp_path, registry, template(tamper=tamper))
+
+
+def test_dropdown_ranges_beyond_the_row_limit_are_rejected(tmp_path, registry):
+    links = [(link, f"InputChoix!${column}$3:${column}$20000")
+             for link, column in PRIMARY_LINKS + SUBSTITUTE_LINKS]
+    links.append(("S5", "'Banques (Solde restant)'!$B$3:$B$80"))
+    with pytest.raises(SubmissionExportError, match="unsupported_template_controls"):
+        review(tmp_path, registry, template(controls=links))
+
+
+def test_absent_linked_cell_blocks_the_review_not_just_the_export(tmp_path, registry):
+    result = review(tmp_path, registry, template(drop_link="S1"))
+    assert "Template cannot record this sheet (template_link_cell_absent)" in result.problems
+
+
+def test_output_changed_after_write_is_removed(tmp_path, registry, monkeypatch):
+    import tennis_pool.submission as module
+
+    result = review(tmp_path, registry)
+    output = tmp_path / "out.xlsx"
+    real = module._bounded_bytes
+
+    def altered(path, limits):
+        data = real(path, limits)
+        return data + b"\0" if Path(path) == output else data
+
+    monkeypatch.setattr(module, "_bounded_bytes", altered)
+    with pytest.raises(SubmissionExportError, match="output_changed_after_write"):
+        export_submission(result, output, now=NOW)
+    assert not output.exists()
+
+
+def test_failed_write_removes_the_partial_file(tmp_path, registry, monkeypatch):
+    result = review(tmp_path, registry)
+    output = tmp_path / "out.xlsx"
+    real = Path.open
+
+    class Failing:
+        def __init__(self, handle):
+            self.handle = handle
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            self.handle.close()
+
+        def write(self, _):
+            raise OSError("disk full")
+
+    def opener(self, mode="r", *args, **kwargs):
+        handle = real(self, mode, *args, **kwargs)
+        return Failing(handle) if mode == "xb" else handle
+
+    monkeypatch.setattr(Path, "open", opener)
+    with pytest.raises(SubmissionExportError, match="output_not_writable"):
+        export_submission(result, output, now=NOW)
+    assert not output.exists()
