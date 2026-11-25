@@ -201,7 +201,7 @@ These are in-sample estimates that depend on the provider, the withdrawal and
 ownership assumptions, and the search limits, not predictions of the winning
 roster. `sample_rival_field` ignores rival substitutes and quotas, and a withdrawn
 rival pick scores zero there; `model_rival_field` models both. The objectives cover one event only and do not value
-quota or player uses saved for later events. The legacy web team optimizer still
+quota or player uses saved for later events; Season Planning below does. The legacy web team optimizer still
 uses annealing over a budget format. It is not 2026 decision support.
 
 ## Rival Selection Model
@@ -282,6 +282,122 @@ scenarios or player-performance quality enter them, so match-prediction quality
 must be evaluated separately. Appeal snapshots used in backtests must be
 pre-cutoff signals without overrides, head-to-head or injury flags. Tests use
 synthetic entries only; no private pool history is published.
+
+## Season Planning
+
+`tennis_pool.season` plans each event as part of the season. It values the band
+tokens and player uses a sheet spends against what they would be worth later.
+It needs the `simulation` extra (NumPy).
+
+```python
+from tennis_pool.season import FutureEvent, Prospect, plan_event, replay_season
+
+snapshot = ledger.replay(cutoff)
+mine = next(e for e in snapshot.entries if e.entry_id == my_entry)
+plan = plan_event(
+    scenarios, draw, event_terms, cutoff=cutoff, entry=mine, calendar=ledger.events,
+    future=later_events, seed=2026, rival_states=other_entries,
+    season_payout=config, allow_provisional=True,
+)
+plan.recommendation          # the chosen policy's optimizer result
+plan.token_costs, plan.use_costs
+```
+
+**Future events stay uncertain.** Each later event is a `FutureEvent` of
+`Prospect` records: entry probability, a seeding rank and expected pool points
+if the player enters. Every world samples who enters, seeds entrants by a noisy
+rank (32 seeds, 16 at Monte Carlo and Paris) and draws gamma outcome noise
+around the expected points. Participation and seeds become known only at that
+event's own decision and outcomes never do. Players missing from the prospects
+are worth zero. They are still real entrants (the draw has 56 to 128), so they can
+complete a legal sheet, and such a sheet counts toward the submission bonus.
+The calendar is the ledger's single deduplicated `events`
+tuple. Its deadlines must be distinct, and `future` must cover every later
+event in it exactly once. Prospects, the draw and every calendar entry's terms
+must all be available before the cutoff, which must precede the deadline.
+
+**Policies.** `GREEDY` optimizes the event on the whole remaining bank.
+`RATIONED` caps each seeded band at `ration(bank, events_left)`: the remaining
+tokens divided by the events left in that bank that seed the band, rounded up,
+with everything spendable at the last one. When that share cannot fill a legal
+sheet, the whole bank is allowed and the projection's `notes` say so.
+`HORIZON` runs a backward dynamic
+programme over every bank state of each bank (Slam, Masters) on planning
+worlds. It picks this event's band structure to maximize expected points now
+plus the expected value of the tokens left, and tokens expire after the last
+event of their bank. The programme picks the best expected scorers within a
+structure and ignores later use caps. All three policies hand their bank caps
+to `optimizer.optimize`, which still chooses the exact primaries and
+substitutes, and every sheet is checked again against the real entry state.
+
+**Opportunity costs.** A forward simulation of the horizon policy on separate
+evaluation worlds, with common random numbers, measures the later value of one
+token or one player use. `TokenCost` compares the expected points the marginal
+token of each band adds now with its value later. `UseCost` compares a
+player's edge now (the plan's value with him minus without him, with the bands
+re-chosen) with the later value of keeping one of his uses, and names the
+events where that use would go. A use is preserved only when its later value
+exceeds the edge now by more than two standard errors. On a tie the advice is
+to spend it, since a player's uses can be stranded by injuries and skipped
+events while band tokens cannot. Preservations are kept most valuable first and
+dropped, with a note, when keeping them all would leave no legal sheet. A
+player without whom no legal sheet exists has `edge_now=None` and is spent. A
+token the sheet cannot do without is reported the same way. Costs start from
+the same per-world charges as the projection, so a substitute that activates
+is charged in those worlds and its cover value now is shown. Each cost carries
+a plain-language explanation.
+
+**Season objectives.** Each policy's projection pairs this event's scenario
+columns with evaluation worlds and reports expected season points with a
+standard error, the expected number of tokens left unused, and this event's
+and later expected points. Given `rival_states` (the other entries' ledger
+states at the same cutoff) it also reports P(season top 3), P(first), expected
+season prize money from a `PayoutConfig` for every participant, and gaps to
+named rivals (current gap, expected final gap and P(finishing ahead)). Without
+`named_rivals`, the three entries just ahead are named. Rivals keep the
+fair-share ration of their own bank and use caps and pick the best expected
+scorers under lognormal choice noise, an unfitted prior. A rival with no legal
+sheet submits nothing and scores zero. Their picks share each world's outcomes
+with yours. When there are fewer scenario columns than evaluation worlds,
+worlds sharing a column are treated as one independent draw in every standard
+error (cluster-robust). Every legal sheet is assumed to be an Excel
+submission, so the 250-point bonus is added in each world where an entry's
+qualifying sheets reach seven; an event without a legal sheet does not count.
+`SeasonObjective` selects expected points, expected season payout or P(top 3).
+Policies within two paired standard errors (or 1.5 points of P(top 3)) tie, and
+a tie goes to the policy spending fewer seeded tokens now.
+
+**Sequential replay.** `replay_season(events, ledger=..., entry_id=...)` replays
+`ReplayEvent` records in deadline order. Each policy decides from that event's
+pre-cutoff inputs and its own ledger replayed at the cutoff. The replay then
+appends the policy's own submission, acceptance, approved activations of
+withdrawn primaries with substitutes and audited points, so later events see
+the banks and uses that policy left. A substitute from an earlier sheet whose
+outcome is not yet revealed at a cutoff has one use reserved there (listed in
+`ReplayStep.reserved`, once per pending activation), so a late activation cannot break the five-use cap.
+Outcomes must be revealed at or after the deadline and score every draw player
+exactly once. Rival results must not include your own entry, and a payout
+configuration must match its versioned derivation. Rival totals are the supplied
+`rival_start` plus each event's `rival_points` (include their bonuses there).
+Event and season prizes use the tie-sharing `split_prizes`. The comparison is
+one realized season per policy. It must not be summed with independent weekly
+backtests; use `plan_event` projections for expected differences.
+
+**Repairs to the reference sequential script.** The old script appended a
+hard-coded US Open, Shanghai and Paris to its workbook list, so the US Open
+was counted twice once its workbook existed. It also ranked the season against
+standings copied from a mid-season workbook while adding a later total and an
+assumed bonus. Here the calendar comes from the ledger and the season total
+comes from the policy's own ledger, bonus included. Banks also count activated
+substitutes, ties share prizes, and each decision reads only pre-cutoff inputs.
+Its chalk and variance event classes were not ported.
+
+On a synthetic 13-event calendar the planner takes about four seconds per
+event at default sizes (100 planning and 200 evaluation worlds). These are
+model-conditional estimates. `PlanningParameters` (rank noise, outcome shape,
+rival choice noise) are unfitted priors disclosed in every plan. Fitting them
+and validating policies on real history needs the chronological backtesting
+harness. Tests use synthetic entries only.
 
 ## Workbook Preview
 
