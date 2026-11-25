@@ -932,17 +932,18 @@ def export_submission(
     _verify(data, output, changed, expected)
     if output_path.exists() or output_path.is_symlink():
         raise SubmissionExportError("output_exists")
-    # Stage under a fresh private name, verify the staged bytes, then publish
-    # with an atomic hard link that refuses an existing path. Only the staged
-    # file is ever removed, so no file at the output path is ever deleted.
+    # Stage inside a fresh owner-only (0700) folder next to the output, verify
+    # the staged bytes, then publish with an atomic hard link that refuses an
+    # existing path. Only the staged file and its folder are ever removed, so
+    # no file at the output path, or swapped in by another user, is deleted.
     try:
-        handle, name = tempfile.mkstemp(prefix=".submission-", suffix=output_path.suffix,
-                                        dir=output_path.parent)
+        folder = Path(tempfile.mkdtemp(prefix=".submission-", dir=output_path.parent))
     except OSError:
         raise SubmissionExportError("output_not_writable") from None
-    staged = Path(name)
+    staged = folder / ("export" + output_path.suffix)
     try:
         try:
+            handle = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
             with os.fdopen(handle, "wb") as target:
                 os.fchmod(target.fileno(), 0o644)
                 target.write(output)
@@ -961,6 +962,8 @@ def export_submission(
     finally:
         with suppress(OSError):
             staged.unlink()
+        with suppress(OSError):
+            folder.rmdir()
     with ZipFile(BytesIO(written)) as archive:
         members = len(archive.infolist())
     return SubmissionExport(

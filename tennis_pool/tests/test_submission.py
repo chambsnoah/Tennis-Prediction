@@ -729,7 +729,7 @@ def test_read_back_differing_from_the_written_bytes_publishes_nothing(
 
     def altered(path, limits):
         data = real(path, limits)
-        return data + b"\0" if Path(path).name.startswith(".submission-") else data
+        return data + b"\0" if Path(path).parent.name.startswith(".submission-") else data
 
     monkeypatch.setattr(module, "_bounded_bytes", altered)
     with pytest.raises(SubmissionExportError, match="output_changed_after_write"):
@@ -798,8 +798,20 @@ def test_a_file_appearing_at_the_output_path_is_never_overwritten_or_removed(
     assert leftovers(tmp_path) == []
 
 
-def test_exported_file_is_readable_and_no_staged_file_remains(tmp_path, registry):
+def test_exported_file_is_readable_and_no_staged_file_remains(tmp_path, registry, monkeypatch):
+    import tennis_pool.submission as module
+
+    folders = []
+    real = module.tempfile.mkdtemp
+
+    def recording(**kwargs):
+        folders.append(Path(real(**kwargs)))
+        assert folders[-1].stat().st_mode & 0o777 == 0o700
+        return str(folders[-1])
+
+    monkeypatch.setattr(module.tempfile, "mkdtemp", recording)
     exported = export_submission(review(tmp_path, registry), tmp_path / "out.xlsx", now=NOW)
+    assert len(folders) == 1 and not folders[0].exists()
     assert exported.output_path.stat().st_mode & 0o777 == 0o644
     assert leftovers(tmp_path) == []
 

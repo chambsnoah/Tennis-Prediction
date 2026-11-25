@@ -490,11 +490,11 @@ macros are copied as opaque bytes and never loaded or run. Before and after
 writing, the output is re-imported with `read_submission`: participant, the
 five pairs with their bands, the event's bank kind (Slam or Masters header)
 and the template's player list must match the review, and every other member
-must be byte-identical, or the file is removed. The file is written under a
-fresh private name in the output folder, read back (the bytes must equal those
+must be byte-identical, or the file is removed. The file is written in a fresh
+owner-only staging folder next to the output, read back (the bytes must equal those
 written) and verified there, and only then published with an atomic hard link
-that refuses an existing path. Export only ever removes its own staged file,
-never a file at the output path.
+that refuses an existing path. Export only ever removes its own staged file
+and folder, never a file at the output path.
 
 **Not a submission.** Export changes no season state. Once the participant has
 sent the file themself, `submitted_record(export, ...)` builds the ledger's
