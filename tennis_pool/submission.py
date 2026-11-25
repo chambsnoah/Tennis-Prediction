@@ -15,7 +15,7 @@ need ledger evidence of what was actually sent and what the commissioner accepte
 
 from __future__ import annotations
 
-from contextlib import ExitStack
+from contextlib import ExitStack, suppress
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 import hashlib
@@ -100,6 +100,7 @@ class _Template:
     labels: tuple[tuple[str, Band], ...]    # list index - 1 -> (label, band)
     participants: tuple[str, ...]           # participant index - 1 -> label
     banks: tuple[tuple[int | None, ...], ...]
+    bank_computed: tuple[bool, ...]
     usage_headers: tuple[Any, ...]
     usage: dict[str, tuple[Any, ...]]
     repeated_usage: frozenset[str]
@@ -232,7 +233,7 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         banks, bank_formulas = _rows(values, _BANKS), _rows(formulas, _BANKS)
         if _USAGE not in values.sheetnames:
             raise SubmissionExportError("unsupported_template_layout")
-        usage_rows = _rows(values, _USAGE)
+        usage_rows, usage_formulas = _rows(values, _USAGE), _rows(formulas, _USAGE)
 
     links = {}
     for link in expected:
@@ -258,7 +259,7 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         raise SubmissionExportError("unsupported_template_player_list")
     if not labels:
         raise SubmissionExportError("unsupported_template_player_list")
-    _check_display(list_formulas, labels)
+    usage_columns, usage_end, bank_end = _check_display(list_formulas, labels)
 
     header = _cell(bank_formulas, 1, 3)
     if (header not in _BANK_HEADERS or tuple(
@@ -267,6 +268,7 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         raise SubmissionExportError("unsupported_template_banks")
     participants: list[str] = []
     bank_rows: list[tuple[int | None, ...]] = []
+    bank_computed: list[bool] = []
     for row in range(_FIRST_ROW, participant_end + 1):
         name = _cell(bank_formulas, row, 2)
         if name is None:
@@ -277,30 +279,42 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
         maxima = _FULL_BANKS[_BANK_HEADERS[header]]
         bank_rows.append(tuple(_count(_cell(banks, row, column), maxima[column - 3])
                                for column in range(3, 7)))
+        # A cached formula result may change once Excel recalculates.
+        bank_computed.append(any(isinstance(_cell(bank_formulas, row, column), str)
+                                 for column in range(3, 7)))
     if not participants:
         raise SubmissionExportError("unsupported_template_participants")
+    # The display guards look participant k up in bank row k + 2 and usage
+    # column k + 1; both lookup ranges must reach every participant.
+    if ((bank_end is not None and bank_end < _FIRST_ROW + len(participants) - 1)
+            or usage_columns < len(participants) + 1):
+        raise SubmissionExportError("unsupported_template_formulas")
 
     if len(usage_rows) < 3:
         raise SubmissionExportError("unsupported_template_usage")
     usage_headers = usage_rows[2]
     usage: dict[str, tuple[Any, ...]] = {}
     repeated: set[str] = set()
-    for record in usage_rows[4:]:
-        player = _label(record[0])
+    # VLOOKUP searches rows 3 to the range end and reads the first match.
+    for row in range(_FIRST_ROW, min(usage_end, len(usage_rows)) + 1):
+        player = _label(_cell(usage_formulas, row, 1))
         if player is not None:
-            # VLOOKUP reads the first matching row; remember ambiguous labels.
             if player in usage:
                 repeated.add(player)
-            usage.setdefault(player, record)
+                continue
+            usage[player] = tuple(
+                _COMPUTED if isinstance(formula, str) and formula.startswith("=") else value
+                for value, formula in zip(usage_rows[row - 1], usage_formulas[row - 1]))
     return _Template(
         digest=hashlib.sha256(data).hexdigest(), bank_kind=_BANK_HEADERS[header],
         control_parts=control_parts, selections=selections, links=links,
         lists_part=parts[_LISTS], labels=tuple(labels), participants=tuple(participants),
-        banks=tuple(bank_rows), usage_headers=usage_headers, usage=usage,
-        repeated_usage=frozenset(repeated),
+        banks=tuple(bank_rows), bank_computed=tuple(bank_computed),
+        usage_headers=usage_headers, usage=usage, repeated_usage=frozenset(repeated),
     )
 
 
+_COMPUTED = object()  # a usage cell holding a formula rather than a stored count
 _USAGE_LOOKUP = "VLOOKUP($B{r},ChoixSommaire!$A$3:{usage},$S$5+1,FALSE)"
 _SHOWN = 'IF(ISERROR({lookup}),${column}{r},IF({lookup}=5,"",${column}{r}))'
 _BANK_GUARD = "IF(VLOOKUP($S$5,'Banques (Solde restant)'!$A$3:{bank},{index},FALSE)=0,\"\",{shown})"
@@ -309,17 +323,20 @@ _NAME_CELLS = {"S1": ("R1", None), "U1": ("T1", "R1"), "W1": ("V1", "T1"), "Y1":
                "AH1": ("AG1", None), "AJ1": ("AI1", None), "AL1": ("AK1", None)}
 
 
-def _check_display(rows: list[tuple[Any, ...]], labels: list[tuple[str, Band]]) -> None:
+def _check_display(
+    rows: list[tuple[Any, ...]], labels: list[tuple[str, Band]],
+) -> tuple[int, int, int | None]:
     """Pin every formula that turns a selected index into a shown pick name.
 
     The 2026 template shows list row ``r`` through E (label or blank), F (band
     or blank), G (both) and the dropdown lists H to L, and the picked names in
     row 1 through VLOOKUPs on D:E. Only this exact layout is accepted, so the
     exported workbook cannot display a name other than the verified label.
+    Returns the usage lookup's last column and row and the bank lookup's last row.
     """
     first = _cell(rows, 1, _column("R"))
     match = re.fullmatch(r"=VLOOKUP\(\$S1,\$D\$3:\$E\$([0-9]+),2,FALSE\)", str(first))
-    found = re.search(r"ChoixSommaire!\$A\$3:(\$[A-Z]+\$[0-9]+)", str(_cell(rows, 3, 5)))
+    found = re.search(r"ChoixSommaire!\$A\$3:(\$([A-Z]+)\$([0-9]+))", str(_cell(rows, 3, 5)))
     guard = next((re.search(r"!\$A\$3:(\$F\$[0-9]+),", str(_cell(rows, r, 5)))
                   for r in range(_FIRST_ROW, _FIRST_ROW + len(labels))
                   if labels[r - _FIRST_ROW][1] is not Band.UNSEEDED), None)
@@ -352,6 +369,8 @@ def _check_display(rows: list[tuple[Any, ...]], labels: list[tuple[str, Band]]) 
                                 f'{lookup_range},2,FALSE)=$E{r},"",$G{r}))')
         if any(_cell(rows, r, _column(column)) != text for column, text in cells.items()):
             raise SubmissionExportError("unsupported_template_formulas")
+    return (_column(found[2]), int(found[3]),
+            None if guard is None else int(guard[1].rsplit("$", 1)[1]))
 
 
 def _guarded(call: Any) -> Any:
@@ -517,7 +536,7 @@ def review_submission(
     template_path: str | Path, *, pairs: tuple[Pair, ...], participant: str, draw: Draw,
     terms: EventTerms, snapshot: LedgerSnapshot, entry_id: str, registry: IdentityRegistry,
     template_provenance: Provenance, now: datetime, event_ids: Mapping[str, str],
-    template_events: Mapping[str, str],
+    template_events: Mapping[str, str], participants: Mapping[str, str],
     stale_after: timedelta = timedelta(hours=24),
     allow_provisional: bool = False, register_path: str | Path | None = None,
     limits: WorkbookLimits = WorkbookLimits(),
@@ -535,7 +554,9 @@ def review_submission(
     ``template_events`` maps the SHA-256 of each commissioner template file, as
     received, to the pool event it was sent for. The template names no event,
     so this reviewed binding is what ties it to ``terms``; export then refuses
-    any template whose digest differs from the reviewed one.
+    any template whose digest differs from the reviewed one. ``participants``
+    maps template participant labels to ledger entry IDs; ``participant`` must
+    map to ``entry_id`` so the template row and the ledger state are one entry.
     """
     version, decisions = _gate(allow_provisional, register_path)
     _aware(now, "Review time")
@@ -594,6 +615,8 @@ def review_submission(
     if len(matches) != 1:
         problems.append("Participant label matches no unique template participant")
     participant_index = matches[0] if len(matches) == 1 else None
+    if participants.get(participant.strip()) != entry_id:
+        problems.append("Reviewed participant mapping does not tie this participant to the entry")
 
     # Ledger state at the review cut.
     entry = next((e for e in snapshot.entries if e.entry_id == entry_id), None)
@@ -640,6 +663,9 @@ def review_submission(
                      else (None,) * 4)
     template_uses: dict[PlayerId, int | None] = {}
     if participant_index is not None:
+        if template.bank_computed[participant_index - 1]:
+            problems.append("Template bank for this participant is computed by formulas; its "
+                            "value after recalculation cannot be verified")
         if template_bank != remaining:
             notes.append(f"Template bank {template_bank} differs from the ledger bank {remaining}")
         if (participant_index >= len(template.usage_headers)
@@ -670,8 +696,12 @@ def review_submission(
                     problems.append(f"Template shows no {band.value} tokens left, so it would "
                                     f"blank {role} {player}")
                 row = template.usage.get(label)
-                count = (None if row is None or participant_index >= len(row)
-                         else _count(row[participant_index], 5))
+                cached = (None if row is None or participant_index >= len(row)
+                          else row[participant_index])
+                if cached is _COMPUTED:
+                    problems.append(f"Template use count for {player} is computed by a formula; "
+                                    "its value after recalculation cannot be verified")
+                count = None if cached is _COMPUTED else _count(cached, 5)
                 template_uses[player] = 0 if row is None else count
                 if label in template.repeated_usage:
                     notes.append(f"Template usage repeats the label for {player}; Excel "
@@ -867,6 +897,14 @@ def _verify(data: bytes, output: bytes, changed: tuple[str, ...], expected: _Exp
     return sheet
 
 
+def _discard(path: Path, created: os.stat_result) -> None:
+    """Remove the file this export created, never a replacement, without masking errors."""
+    with suppress(OSError):
+        current = os.stat(path)
+        if (current.st_dev, current.st_ino) == (created.st_dev, created.st_ino):
+            os.unlink(path)
+
+
 def export_submission(
     review: SubmissionReview, output_path: str | Path, *, now: datetime,
 ) -> SubmissionExport:
@@ -901,11 +939,12 @@ def export_submission(
         raise SubmissionExportError("output_exists") from None
     except OSError:
         raise SubmissionExportError("output_not_writable") from None
+    created = os.fstat(target.fileno())
     try:
         with target:
             target.write(output)
     except OSError:
-        os.unlink(output_path)
+        _discard(output_path, created)
         raise SubmissionExportError("output_not_writable") from None
     try:
         written: bytes = _guarded(lambda: _bounded_bytes(output_path, review._limits))
@@ -913,7 +952,7 @@ def export_submission(
             raise SubmissionExportError("output_changed_after_write")
         sheet = _verify(data, written, changed, expected)
     except SubmissionExportError:
-        os.unlink(output_path)
+        _discard(output_path, created)
         raise
     with ZipFile(BytesIO(written)) as archive:
         members = len(archive.infolist())

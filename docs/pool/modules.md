@@ -416,6 +416,7 @@ review = review_submission(
     registry=registry, template_provenance=template_evidence, now=now,
     event_ids=reviewed_event_ids,  # canonical draw event ID -> pool event ID
     template_events=reviewed_templates,  # template file SHA-256 -> pool event ID
+    participants=reviewed_participants,  # template participant label -> entry ID
     allow_provisional=True,
 )
 print(review.describe())          # slots, banks, uses, deadline, problems, warnings
@@ -456,7 +457,12 @@ Slam or Masters header must also fit, and its player list must match the
 mapped draw (more than a 10% mismatch blocks). Against the template's own formulas, which blank a
 pick whose band shows no tokens left or whose player shows five uses in
 `ChoixSommaire`, and which count primaries per band against the participant's
-bank row. Any of these, an unknown or ambiguous participant label, a slot
+bank row. Those bank and use cells must be stored values: a formula's cached
+result could change when Excel recalculates, so it blocks. Both lookup ranges
+must reach every participant, and use counts past the usage range's last row
+are treated as absent, as Excel's lookup would. A reviewed `participants`
+mapping must tie the template participant to `entry_id`, so the template row
+and the ledger state describe the same entry. Any of these, an unknown or ambiguous participant label, a slot
 without a substitute (the template has no empty option), an input dated after
 `now`, a passed deadline, or a sheet the writer cannot record and read back
 unchanged (checked by a dry run) is a problem, and problems block export.
@@ -484,7 +490,9 @@ writing, the output is re-imported with `read_submission`: participant, the
 five pairs with their bands, the event's bank kind (Slam or Masters header)
 and the template's player list must match the review, and every other member
 must be byte-identical, or the file is removed. The read-back bytes must equal
-the bytes written, and a failed write removes its partial file.
+the bytes written. A failed write or check removes the file this export
+created, never a file that replaced it, and a cleanup failure never hides the
+export error.
 
 **Not a submission.** Export changes no season state. Once the participant has
 sent the file themself, `submitted_record(export, ...)` builds the ledger's

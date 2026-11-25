@@ -132,16 +132,16 @@ def snapshot(book=None, at=NOW - timedelta(hours=1)):
 CHAINED = {"U1": "R1", "W1": "T1", "Y1": "V1", "AA1": "X1"}
 
 
-def display(r, number, last):
+def display(r, number, last, bank_end=79, usage_range="$CM$228"):
     """The reference template's display formulas for list row r."""
-    lookup = f"VLOOKUP($B{r},ChoixSommaire!$A$3:$CM$228,$S$5+1,FALSE)"
+    lookup = f"VLOOKUP($B{r},ChoixSommaire!$A$3:{usage_range},$S$5+1,FALSE)"
     seed = number if number <= 32 else None
     cells = {}
     for target, column in (("E", "B"), ("F", "C")):
         text = f'IF(ISERROR({lookup}),${column}{r},IF({lookup}=5,"",${column}{r}))'
         if seed is not None:
             index = 3 + (0 if seed <= 4 else 1 if seed <= 8 else 2 if seed <= 16 else 3)
-            text = (f"IF(VLOOKUP($S$5,'Banques (Solde restant)'!$A$3:$F$79,{index},FALSE)=0,"
+            text = (f"IF(VLOOKUP($S$5,'Banques (Solde restant)'!$A$3:$F${bank_end},{index},FALSE)=0,"
                     f'"",{text})')
         cells[target] = "=" + text
     cells["G"] = f'=F{r}&"  "&E{r}'
@@ -154,7 +154,8 @@ def display(r, number, last):
 
 def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Grand Chelem",
              full_calc=False, macro=False, formula_link=False, controls=None, pad=0,
-             tamper=None, drop_link=None):
+             tamper=None, drop_link=None, bank_end=79, usage_range="$CM$228",
+             usage_formula=None, bank_formula=False):
     """A synthetic pick template: dropdown parts, linked cells, banks and use counts."""
     players = list(range(1, 129)) if players is None else players
     uses = {3: 1, 4: 0, 7: 1, 11: 1, 19: 1, 50: 1} if uses is None else uses
@@ -180,7 +181,7 @@ def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Gra
         lists.cell(row, 2, label(number))
         lists.cell(row, 3, band_label(number))
         lists.cell(row, 4, 1 if i == 0 else f"=D{row - 1}+1")
-        for column, text in display(row, number, last).items():
+        for column, text in display(row, number, last, bank_end, usage_range).items():
             lists[f"{column}{row}"] = text
     lists["G2"], lists["L2"] = "Choix #1", "Remplacements"
     for number, (link, _) in enumerate(PRIMARY_LINKS + SUBSTITUTE_LINKS, 1):
@@ -208,6 +209,10 @@ def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Gra
     usage.append(["Nombre joueurs max 5", 0, 0])
     for number in players:
         usage.append([label(number), 0, uses.get(number, 0)])
+        if number == usage_formula:
+            usage.cell(usage.max_row, 3, "=IF(InputChoix!$S$5=2,5,4)")
+    if bank_formula:
+        banks["C4"] = "=1+2"
     source = BytesIO()
     wb.save(source)
     wb.close()
@@ -289,7 +294,7 @@ def review(tmp_path, registry, data=None, *, name="template.xlsx", **kwargs):
                    snapshot=snapshot(), entry_id="me", registry=registry,
                    template_provenance=evidence(NOW - timedelta(hours=3)), now=NOW,
                    event_ids={"test:slam": "us_open"}, template_events={digest: "us_open"},
-                   allow_provisional=True)
+                   participants={ME: "me", OTHER: "other"}, allow_provisional=True)
     options.update(kwargs)
     return review_submission(path, **options)
 
@@ -646,6 +651,9 @@ def test_failed_write_removes_the_partial_file(tmp_path, registry, monkeypatch):
         def __exit__(self, *_):
             self.handle.close()
 
+        def fileno(self):
+            return self.handle.fileno()
+
         def write(self, _):
             raise OSError("disk full")
 
@@ -724,3 +732,69 @@ def test_template_must_be_bound_to_the_event_even_with_an_identical_list(tmp_pat
         assert any("does not tie this template to us_open" in p for p in result.problems)
         with pytest.raises(SubmissionExportError, match="review_has_problems"):
             export_submission(result, tmp_path / "out.xlsx", now=NOW)
+
+
+def test_participant_must_map_to_the_reviewed_entry(tmp_path, registry):
+    for mapping in ({}, {ME: "other", OTHER: "me"}):
+        result = review(tmp_path, registry, participants=mapping)
+        assert ("Reviewed participant mapping does not tie this participant to the entry"
+                in result.problems)
+
+
+def test_computed_bank_or_use_counts_cannot_approve_a_pick(tmp_path, registry):
+    result = review(tmp_path, registry, template(usage_formula=41))
+    assert any("use count for atp:p41 is computed by a formula" in p for p in result.problems)
+    result = review(tmp_path, registry, template(bank_formula=True))
+    assert any("bank for this participant is computed" in p for p in result.problems)
+
+
+@pytest.mark.parametrize("options", [{"bank_end": 3}, {"usage_range": "$B$228"}])
+def test_lookup_ranges_must_reach_every_participant(tmp_path, registry, options):
+    with pytest.raises(SubmissionExportError, match="unsupported_template_formulas"):
+        review(tmp_path, registry, template(**options))
+
+
+def test_use_counts_outside_the_lookup_range_are_not_read(tmp_path, registry):
+    # Row 45 (player 41) lies past $CM$10, so Excel shows the name and ignores the count.
+    result = review(tmp_path, registry, template(usage_range="$CM$10", uses={41: 5}))
+    assert not any("five uses" in p for p in result.problems)
+    assert result.slots[4].template_substitute_uses == 0
+
+
+@pytest.mark.parametrize("replace_path", [True, False])
+def test_cleanup_never_removes_a_replacement_or_masks_the_error(
+        tmp_path, registry, monkeypatch, replace_path):
+    result = review(tmp_path, registry)
+    output = tmp_path / "out.xlsx"
+    real = Path.open
+
+    class Swapping:
+        def __init__(self, handle):
+            self.handle = handle
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            self.handle.close()
+
+        def fileno(self):
+            return self.handle.fileno()
+
+        def write(self, _):
+            output.unlink()
+            if replace_path:
+                output.write_bytes(b"someone else's file")
+            raise OSError("disk full")
+
+    def opener(self, mode="r", *args, **kwargs):
+        handle = real(self, mode, *args, **kwargs)
+        return Swapping(handle) if mode == "xb" else handle
+
+    monkeypatch.setattr(Path, "open", opener)
+    with pytest.raises(SubmissionExportError, match="output_not_writable"):
+        export_submission(result, output, now=NOW)
+    if replace_path:
+        assert output.read_bytes() == b"someone else's file"
+    else:
+        assert not output.exists()
