@@ -26,7 +26,7 @@ from pathlib import Path
 import posixpath
 import re
 import warnings
-from typing import Any
+from typing import Any, Mapping
 from xml.etree import ElementTree
 from zipfile import ZipFile, ZipInfo
 
@@ -249,7 +249,7 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
             break  # padding rows may keep a band label but never a name
         # Labels must be stored constants; the D column must number rows from 1.
         if (_label(name) is None or name.startswith("=") or band not in _BAND_LABELS
-                or index not in (row - 2, f"=D{row - 1}+1")):
+                or index != (1 if row == _FIRST_ROW else f"=D{row - 1}+1")):
             raise SubmissionExportError("unsupported_template_player_list")
         labels.append((name.strip(), _BAND_LABELS[band]))
     if any(_cell(list_formulas, row, 2) is not None
@@ -516,7 +516,7 @@ def _age(hours: timedelta) -> str:
 def review_submission(
     template_path: str | Path, *, pairs: tuple[Pair, ...], participant: str, draw: Draw,
     terms: EventTerms, snapshot: LedgerSnapshot, entry_id: str, registry: IdentityRegistry,
-    template_provenance: Provenance, now: datetime,
+    template_provenance: Provenance, now: datetime, event_ids: Mapping[str, str],
     stale_after: timedelta = timedelta(hours=24),
     allow_provisional: bool = False, register_path: str | Path | None = None,
     limits: WorkbookLimits = WorkbookLimits(),
@@ -529,7 +529,8 @@ def review_submission(
     a template bank or five-use count that would make the commissioner's sheet
     blank a pick, inputs dated after ``now`` and a passed deadline. Warnings flag
     inputs older than ``stale_after``, template/ledger disagreements and earlier
-    submissions for this event.
+    submissions for this event. ``event_ids`` is a reviewed mapping from canonical
+    draw event IDs to pool event IDs; the draw's event must map to ``terms``.
     """
     version, decisions = _gate(allow_provisional, register_path)
     _aware(now, "Review time")
@@ -546,7 +547,9 @@ def review_submission(
     notes: list[str] = []
     if template.bank_kind != kind:
         problems.append(f"Template is for a {template.bank_kind} event, not {event_id}")
-    # Draw events carry no pool ID; their format and dates must fit this event.
+    # A reviewed mapping names the draw's pool event; format and dates must fit too.
+    if event_ids.get(draw.event.event_id) != event_id:
+        problems.append(f"Reviewed event mapping does not map the draw's event to {event_id}")
     rounds = 6 if event_id in ("monte_carlo", "paris") else 7
     if (draw.event.best_of, draw.event.round_count) != ((5 if kind == "slam" else 3), rounds):
         problems.append(f"Draw format does not match {event_id}")

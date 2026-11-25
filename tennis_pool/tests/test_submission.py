@@ -286,7 +286,7 @@ def review(tmp_path, registry, data=None, *, name="template.xlsx", **kwargs):
     options = dict(pairs=pairs(), participant=ME, draw=draw(), terms=terms(),
                    snapshot=snapshot(), entry_id="me", registry=registry,
                    template_provenance=evidence(NOW - timedelta(hours=3)), now=NOW,
-                   allow_provisional=True)
+                   event_ids={"test:slam": "us_open"}, allow_provisional=True)
     options.update(kwargs)
     return review_submission(path, **options)
 
@@ -654,3 +654,60 @@ def test_failed_write_removes_the_partial_file(tmp_path, registry, monkeypatch):
     with pytest.raises(SubmissionExportError, match="output_not_writable"):
         export_submission(result, output, now=NOW)
     assert not output.exists()
+
+
+def test_correction_keeping_a_player_whose_fifth_use_it_recorded(tmp_path, registry):
+    earlier = (("australian_open", 200), ("indian_wells", 170), ("miami", 150),
+               ("wimbledon", 50))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ProvisionalRulesWarning)
+        book = SeasonLedger.create(tuple(
+            EventTerms(event_id=event, deadline=START - timedelta(days=days),
+                       provenance=evidence(START - timedelta(days=days + 5)))
+            for event, days in earlier) + (terms(),), allow_provisional=True)
+    records = []
+    for event, days in earlier:
+        at = START - timedelta(days=days + 1)
+        records += [
+            LedgerRecord(record_id=f"{event}-sub", entry_id="me", event_id=event, effective_at=at,
+                         evidence=evidence(at, f"{event}-sub"), payload=Submitted(
+                             picks=pairs((40, 41, 42, 43, 44), (None,) * 5),
+                             submitted_at=at, excel=True)),
+            LedgerRecord(record_id=f"{event}-acc", entry_id="me", event_id=event, effective_at=at,
+                         evidence=evidence(at, f"{event}-acc"),
+                         payload=Accepted(submission_id=f"{event}-sub", approved_by="synthetic")),
+        ]
+    at = NOW - timedelta(hours=5)
+    sheet = pairs((1, 5, 9, 17, 40), (2, 6, 10, 18, 45))
+    records += [
+        LedgerRecord(record_id="u-sub", entry_id="me", event_id="us_open", effective_at=at,
+                     evidence=evidence(at, "u-sub"),
+                     payload=Submitted(picks=sheet, submitted_at=at, excel=True)),
+        LedgerRecord(record_id="u-acc", entry_id="me", event_id="us_open", effective_at=at,
+                     evidence=evidence(at, "u-acc"),
+                     payload=Accepted(submission_id="u-sub", approved_by="synthetic")),
+    ]
+    book = book.append(*records)
+    assert dict(next(e for e in book.replay(NOW).entries if e.entry_id == "me").usage)[pid(40)] == 5
+    data = template(bank=(4, 4, 4, 4), uses={n: 4 for n in (40, 41, 42, 43, 44)})
+    result = review(tmp_path, registry, data, snapshot=snapshot(book), pairs=sheet)
+    assert result.exportable, result.problems
+    assert result.slots[4].primary_uses == 4
+    assert not any("uses for" in w for w in result.warnings)
+
+
+def test_draw_event_must_map_to_the_requested_event(tmp_path, registry):
+    for mapping in ({}, {"test:slam": "wimbledon"}):
+        result = review(tmp_path, registry, event_ids=mapping)
+        assert any("does not map the draw's event to us_open" in p for p in result.problems)
+
+
+def test_same_kind_template_from_another_event_is_blocked(tmp_path, registry):
+    other = list(range(1, 33)) + list(range(200, 232)) + list(range(65, 129))
+    result = review(tmp_path, registry, template(players=other))
+    assert "Template player list does not match this draw" in result.problems
+
+
+def test_list_numbering_must_start_at_one_in_row_three(tmp_path, registry):
+    with pytest.raises(SubmissionExportError, match="unsupported_template_player_list"):
+        review(tmp_path, registry, template(tamper={"D2": 1, "D3": "=D2+1"}))

@@ -414,6 +414,7 @@ review = review_submission(
     template_path, pairs=plan.recommendation.best.pairs, participant=my_label,
     draw=draw, terms=event_terms, snapshot=ledger.replay(now), entry_id=my_entry,
     registry=registry, template_provenance=template_evidence, now=now,
+    event_ids=reviewed_event_ids,  # canonical draw event ID -> pool event ID
     allow_provisional=True,
 )
 print(review.describe())          # slots, banks, uses, deadline, problems, warnings
@@ -428,7 +429,7 @@ and the five substitutes beside them. Each dropdown keeps a 1-based list index
 in its control part and in a linked `InputChoix` cell (`S1`, `U1`, `W1`, `Y1`,
 `AA1` for primaries, `AD1` to `AL1` for substitutes, `S5` for the participant).
 List index *i* is `InputChoix` row *i* + 2 (player label in column B, band in
-column C), and participant *i* is the `Banques (Solde restant)` row whose
+column C, and column D numbering rows from a constant 1 in row 3), and participant *i* is the `Banques (Solde restant)` row whose
 column A holds *i*. The template's formulas turn these indices into names, so
 pair *k* fills slot *k*. The formulas that turn an index into a shown name
 (columns E to L of each list row and the picked-name cells in row 1) must match
@@ -443,11 +444,12 @@ formulas and checks the five pairs three ways. Against the ledger, it runs
 `validate_roster` on the replayed entry state (every activation combination,
 both banks and the five-use cap). Against the draw, every player must be in
 the template list once, under a reviewed alias, with the template's band equal
-to the draw seed's band. Draws carry no pool event ID, so the draw's format
-must fit the event and its dates must span the deadline (from a week before the
-start to the end). The template is tied to the event by its Slam or Masters
-header and by a player list that matches the draw (more than a 10% mismatch
-blocks). Against the template's own formulas, which blank a
+to the draw seed's band. Draws carry a canonical event ID, so a reviewed
+`event_ids` mapping must map it to the requested pool event. The draw's format
+must also fit the event and its dates must span the deadline (from a week
+before the start to the end). The template file names no event. It is tied to
+the event by its Slam or Masters header and by a player list that matches the
+mapped draw (more than a 10% mismatch blocks). Against the template's own formulas, which blank a
 pick whose band shows no tokens left or whose player shows five uses in
 `ChoixSommaire`, and which count primaries per band against the participant's
 bank row. Any of these, an unknown or ambiguous participant label, a slot
