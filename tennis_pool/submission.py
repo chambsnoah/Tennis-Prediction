@@ -323,7 +323,7 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
     )
 
 
-_EXCEL_ROWS = 1_048_576
+_EXCEL_ROWS, _EXCEL_COLUMNS = 1_048_576, 16_384  # last cell XFD1048576
 _COMPUTED = object()  # a usage cell holding a formula rather than a stored count
 _USAGE_LOOKUP = "VLOOKUP($B{r},ChoixSommaire!$A$3:{usage},$S$5+1,FALSE)"
 _SHOWN = 'IF(ISERROR({lookup}),${column}{r},IF({lookup}=5,"",${column}{r}))'
@@ -352,6 +352,7 @@ def _check_display(
                   if labels[r - _FIRST_ROW][1] is not Band.UNSEEDED), None)
     if (match is None or found is None or int(match[1]) < _FIRST_ROW + len(labels) - 1
             or max(int(match[1]), int(found[3])) > _EXCEL_ROWS
+            or _column(found[2]) > _EXCEL_COLUMNS
             or (guard is not None and int(guard[1].rsplit("$", 1)[1]) > _EXCEL_ROWS)
             or (guard is None and any(band is not Band.UNSEEDED for _, band in labels))):
         raise SubmissionExportError("unsupported_template_formulas")

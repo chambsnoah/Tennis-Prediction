@@ -842,7 +842,7 @@ def test_a_used_seeded_band_without_a_stored_template_count_blocks(tmp_path, reg
 
 
 def test_lookup_ranges_ending_outside_the_sheet_are_rejected(tmp_path, registry):
-    for usage_range in ("$CM$0", "$CM$1048577"):
+    for usage_range in ("$CM$0", "$CM$1048577", "$XFE$228"):
         with pytest.raises(SubmissionExportError, match="unsupported_template_formulas"):
             review(tmp_path, registry, template(usage_range=usage_range))
 
