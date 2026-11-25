@@ -309,7 +309,9 @@ if the player enters. Every world samples who enters, seeds entrants by a noisy
 rank (32 seeds, 16 at Monte Carlo and Paris) and draws gamma outcome noise
 around the expected points. Participation and seeds become known only at that
 event's own decision and outcomes never do. Players missing from the prospects
-are worth zero. The calendar is the ledger's single deduplicated `events`
+are worth zero. They are still real entrants (the draw has 56 to 128), so they can
+complete a legal sheet, and such a sheet counts toward the submission bonus.
+The calendar is the ledger's single deduplicated `events`
 tuple. Its deadlines must be distinct, and `future` must cover every later
 event in it exactly once. Prospects, the draw and every calendar entry's terms
 must all be available before the cutoff, which must precede the deadline.

@@ -73,7 +73,9 @@ _FUTURE_MODEL = (
     "independent entry draws, seeds by noisy rank among entrants (32 seeds, 16 at "
     "Monte Carlo and Paris), and gamma outcome noise around each entrant's expected "
     "points. Participation and seeds are known only at that event's own decision, "
-    "outcomes never. Players outside the prospects are worth zero."
+    "outcomes never. Players outside the prospects are real entrants worth zero: "
+    "they can always complete a legal sheet (the draw has 56 to 128 entrants), so "
+    "such a sheet still counts toward the submission bonus."
 )
 _HORIZON_MODEL = (
     "Band tokens: a backward dynamic programme over each bank (Slam, Masters) on "
@@ -420,6 +422,8 @@ def _play(event: _Event, bank: NDArray[np.int64], usage: NDArray[np.int64], *, r
         later = np.append(horizon.values[position], -np.inf)
         values = values + later[_next_index(bank, horizon.strides, len(later) - 1)]
     # A state with no legal sheet submits nothing: no picks, points or charges.
+    # At future events, zero-value fillers are unlisted real entrants, so a sheet
+    # they complete is legal and counts as submitted.
     feasible = np.isfinite(values.max(axis=2))[..., None]
     counts = np.where(feasible, _STRUCTURES[np.argmax(values, axis=2)], 0)
     take = np.concatenate((counts, np.where(feasible, _SLOTS - counts.sum(
