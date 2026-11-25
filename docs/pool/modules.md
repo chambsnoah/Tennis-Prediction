@@ -399,6 +399,83 @@ rival choice noise) are unfitted priors disclosed in every plan. Fitting them
 and validating policies on real history needs the chronological backtesting
 harness. Tests use synthetic entries only.
 
+## Submission Export
+
+`tennis_pool.submission` fills the commissioner's pick template for one
+participant and writes a new local file. It never emails, sends, submits or
+accepts anything. Install the `excel` extra.
+
+```python
+from tennis_pool.submission import export_submission, review_submission
+
+review = review_submission(
+    template_path, pairs=plan.recommendation.best.pairs, participant=my_label,
+    draw=draw, terms=event_terms, snapshot=ledger.replay(now), entry_id=my_entry,
+    registry=registry, template_provenance=template_evidence, now=now,
+    allow_provisional=True,
+)
+print(review.describe())          # slots, banks, uses, deadline, problems, warnings
+if review.exportable:
+    export = export_submission(review, output_path, now=now)
+```
+
+**How the template stores a sheet.** The `VosChoix` sheet holds eleven
+dropdown form controls: the participant, five primaries (`Joueur #1` to `#5`)
+and the five substitutes beside them. Each dropdown keeps a 1-based list index
+in its control part and in a linked `InputChoix` cell (`S1`, `U1`, `W1`, `Y1`,
+`AA1` for primaries, `AD1` to `AL1` for substitutes, `S5` for the participant).
+List index *i* is `InputChoix` row *i* + 2 (player label in column B, band in
+column C), and participant *i* is the `Banques (Solde restant)` row whose
+column A holds *i*. The template's formulas turn these indices into names, so
+pair *k* fills slot *k*. A different control set, list position or a formula
+in a linked cell is rejected as an unsupported template.
+
+**Review.** `review_submission` reads the template without evaluating
+formulas and checks the five pairs three ways. Against the ledger, it runs
+`validate_roster` on the replayed entry state (every activation combination,
+both banks and the five-use cap). Against the draw, every player must be in
+the template list once, under a reviewed alias, with the template's band equal
+to the draw seed's band. Against the template's own formulas, which blank a
+pick whose band shows no tokens left or whose player shows five uses in
+`ChoixSommaire`, and which count primaries per band against the participant's
+bank row. Any of these, an unknown or ambiguous participant label, a slot
+without a substitute (the template has no empty option), an input dated after
+`now` or a passed deadline is a problem, and problems block export. Warnings
+cover inputs older than `stale_after` (24 hours by default) and a deadline
+under an hour away. They also cover template banks or use counts that differ
+from the ledger, template players outside the draw or draw players missing from
+it, unreviewed labels, and earlier submitted or accepted sheets for the event.
+The review shows the bank now, after the primaries and if every substitute
+activates. Its repr and `describe()` leave out the participant label and file
+name.
+
+**Export.** `export_submission` refuses a review with problems, a review older
+than its `stale_after`, a template changed since review, a passed deadline, an
+existing output file or a suffix other than the template's. It copies every
+ZIP member byte for byte, with the same order and compression, and rewrites
+only the eleven control indices, their linked cells and the workbook's
+`fullCalcOnLoad` flag. Cached formula results still describe the old picks
+until Excel recalculates them on open. Styles, data validation, conditional
+formatting, the controls and any `.xlsm` VBA project are therefore unchanged;
+macros are copied as opaque bytes and never loaded or run. Before and after
+writing, the output is re-imported with `read_submission`: participant, the
+five pairs with their bands, the event's bank kind (Slam or Masters header)
+and the template's player list must match the review, and every other member
+must be byte-identical, or the file is removed.
+
+**Not a submission.** Export changes no season state. Once the participant has
+sent the file themself, `submitted_record(export, ...)` builds the ledger's
+`Submitted` record (Excel attachment, sent before the deadline). That record
+still debits nothing and counts toward nothing. Only a separate `Accepted` record from the
+commissioner debits the bank and player uses and counts the event toward the
+seven-sheet bonus. `confirmed_qualifying_events` in the review counts accepted
+sheets only. Strict mode blocks on the provisional `submission` decisions, and
+changed decision texts need an implementation review.
+
+Tests build synthetic templates at runtime. The layout follows the 2026
+reference template; real templates have only been exercised locally, not
+certified. Opening an export in Excel has not been automated.
+
 ## Workbook Preview
 
 `tennis_pool.workbooks.preview_workbook` is a read-only adapter for

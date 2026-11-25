@@ -1,0 +1,527 @@
+"""Commissioner-template export, using only runtime-generated synthetic templates."""
+
+from dataclasses import replace
+from datetime import date, datetime, timedelta, timezone
+from io import BytesIO
+import re
+import warnings
+from zipfile import ZIP_DEFLATED, ZipFile
+
+from openpyxl import Workbook, load_workbook
+from openpyxl.formatting.rule import CellIsRule
+from openpyxl.styles import Font, PatternFill
+from openpyxl.worksheet.datavalidation import DataValidation
+import pytest
+
+from tennis_api.models.canonical import (
+    Draw, DrawSlot, EntryKind, Event, EventId, Player, PlayerId, Provenance, Surface, Tour,
+)
+from tennis_api.models.identity import IdentityRegistry, ReviewedAlias
+from tennis_pool.ledger import (
+    Accepted, Band, EventTerms, LedgerRecord, Pair, SeasonLedger, Selection, Submitted,
+)
+from tennis_pool.rules import ProvisionalRulesWarning, UnresolvedRulesError
+from tennis_pool.submission import (
+    SubmissionExportError, export_submission, read_submission, review_submission,
+    submitted_record,
+)
+from tennis_pool.substitutions import seed_band
+
+
+START = datetime(2026, 8, 20, tzinfo=timezone.utc)
+NOW = START + timedelta(days=2)
+DEADLINE = START + timedelta(days=3)
+SOURCE = "synthetic-template"
+ME, OTHER = "Synthetic Entry A", "Synthetic Entry B"
+PRIMARIES = (1, 5, 9, 17, 40)
+SUBSTITUTES = (2, 6, 10, 18, 41)
+CTRL = b"application/vnd.ms-excel.controlproperties+xml"
+NAME_CELLS = {"S1": "R1", "U1": "T1", "W1": "V1", "Y1": "X1", "AA1": "Z1",
+              "AD1": "AC1", "AF1": "AE1", "AH1": "AG1", "AJ1": "AI1", "AL1": "AK1"}
+PRIMARY_LINKS = (("S1", "G"), ("U1", "H"), ("W1", "I"), ("Y1", "J"), ("AA1", "K"))
+SUBSTITUTE_LINKS = (("AD1", "L"), ("AF1", "L"), ("AH1", "L"), ("AJ1", "L"), ("AL1", "L"))
+
+pytestmark = pytest.mark.filterwarnings("ignore::tennis_pool.rules.ProvisionalRulesWarning")
+
+
+def evidence(at=NOW, key="synthetic"):
+    return Provenance(source=SOURCE, source_version="fixture-1", source_record_id=key,
+                      observed_at=at, available_at=at, ingested_at=at)
+
+
+def pid(number):
+    return PlayerId(f"atp:p{number}")
+
+
+def label(number):
+    return f"Player {number}"
+
+
+def band_label(number):
+    return {Band.TOP4: "#1-4", Band.TOP8: "#5-8", Band.TOP16: "#9-16", Band.TOP32: "#17-32",
+            Band.UNSEEDED: "NC"}[seed_band(number if number <= 32 else None)]
+
+
+def make_registry(unreviewed=()):
+    players = tuple(Player(player_id=pid(i), display_name=label(i), tour=Tour.ATP,
+                           provenance=evidence(START)) for i in range(1, 130))
+    return IdentityRegistry(revision="synthetic-review-1", players=players, aliases=tuple(
+        ReviewedAlias(source=SOURCE, player_id=p.player_id, tour=Tour.ATP, name=p.display_name,
+                      reviewed_by="fixture-reviewer", reviewed_at=START, provenance=evidence(START))
+        for p in players if p.player_id not in unreviewed))
+
+
+@pytest.fixture
+def registry():
+    return make_registry()
+
+
+def draw(at=NOW - timedelta(hours=2)):
+    event = Event(event_id=EventId("test:slam"), name="Synthetic slam", tour=Tour.ATP,
+                  start_date=date(2026, 8, 24), end_date=date(2026, 9, 6), surface=Surface.HARD,
+                  best_of=5, round_count=7, level="grand_slam", provenance=evidence(START))
+    return Draw(event=event, slots=tuple(
+        DrawSlot(position=i, kind=EntryKind.PLAYER, player_id=pid(i), seed=i if i <= 32 else None)
+        for i in range(1, 129)), provenance=evidence(at))
+
+
+def pick(number):
+    return Selection(player_id=pid(number), band=seed_band(number if number <= 32 else None))
+
+
+def pairs(primaries=PRIMARIES, substitutes=SUBSTITUTES):
+    return tuple(Pair(primary=pick(p), substitute=None if s is None else pick(s))
+                 for p, s in zip(primaries, substitutes))
+
+
+def terms(deadline=DEADLINE, event_id="us_open"):
+    return EventTerms(event_id=event_id, deadline=deadline, provenance=evidence(START))
+
+
+def ledger(*records):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ProvisionalRulesWarning)
+        book = SeasonLedger.create((
+            EventTerms(event_id="wimbledon", deadline=START - timedelta(days=50),
+                       provenance=evidence(START - timedelta(days=60))),
+            terms(),
+        ), allow_provisional=True)
+    return book.append(*records) if records else book
+
+
+def history():
+    """One accepted Wimbledon Excel sheet: debits a 1-4, 5-8, 9-16 and a 17-32 token."""
+    at = START - timedelta(days=52)
+    picks = pairs((3, 7, 11, 19, 50), (4, 8, 12, 20, 51))
+    return (
+        LedgerRecord(record_id="w-sub", entry_id="me", event_id="wimbledon", effective_at=at,
+                     evidence=evidence(at, "w-sub"),
+                     payload=Submitted(picks=picks, submitted_at=at, excel=True)),
+        LedgerRecord(record_id="w-acc", entry_id="me", event_id="wimbledon",
+                     effective_at=at + timedelta(hours=1), evidence=evidence(at, "w-acc"),
+                     payload=Accepted(submission_id="w-sub", approved_by="synthetic authority")),
+    )
+
+
+def snapshot(book=None, at=NOW - timedelta(hours=1)):
+    return (book or ledger(*history())).replay(at)
+
+
+def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Grand Chelem",
+             full_calc=False, macro=False, formula_link=False, controls=None, pad=0):
+    """A synthetic pick template: dropdown parts, linked cells, banks and use counts."""
+    players = list(range(1, 129)) if players is None else players
+    uses = {3: 1, 4: 0, 7: 1, 11: 1, 19: 1, 50: 1} if uses is None else uses
+    wb = Workbook()
+    form = wb.active
+    form.title = "VosChoix"
+    form["A1"] = "Quel est votre nom ?"
+    form["A1"].font = Font(bold=True, size=14)
+    form["B10"], form["D10"] = "Vos choix", "Joueurs de remplacement (si forfait)"
+    for row in (12, 14, 16, 18, 20):
+        form.cell(row, 1, f"Joueur #{(row - 10) // 2}").fill = PatternFill("solid", fgColor="FFFF00")
+    validation = DataValidation(type="whole", operator="between", formula1="1", formula2="5")
+    validation.add("F12:F20")
+    form.add_data_validation(validation)
+    form.conditional_formatting.add("E12:E20", CellIsRule(operator="equal", formula=['"x"'],
+                                                          fill=PatternFill("solid", fgColor="FF0000")))
+    wb.create_sheet("NE PAS UTILISER ->")
+    lists = wb.create_sheet("InputChoix")
+    last = 2 + len(players) + pad
+    for i, number in enumerate(players):
+        row = 3 + i
+        lists.cell(row, 1, i + 1 if i == 0 else f"=A{row - 1}+1")
+        lists.cell(row, 2, label(number))
+        lists.cell(row, 3, band_label(number))
+        lists.cell(row, 4, 1 if i == 0 else f"=D{row - 1}+1")
+        lists.cell(row, 5, f"=$B{row}")
+        lists.cell(row, 7, f'=C{row}&"  "&E{row}')
+        for column in "HIJKL":
+            lists[f"{column}{row}"] = f"=$G{row}"
+    lists["G2"], lists["L2"] = "Choix #1", "Remplacements"
+    for number, (link, _) in enumerate(PRIMARY_LINKS + SUBSTITUTE_LINKS, 1):
+        lists[link] = number
+        lists[NAME_CELLS[link]] = f"=VLOOKUP(${link[:-1]}1,$D$3:$E${last},2,FALSE)"
+    lists["S5"] = 2
+    lists["R5"] = "=VLOOKUP($S$5,'Banques (Solde restant)'!$A$3:$B$79,2,FALSE)"
+    if formula_link:
+        lists["W1"] = "=1+1"
+    banks = wb.create_sheet("Banques (Solde restant)")
+    banks["C1"], banks["H1"] = header, "Nombre de joueurs ATP ayant été choisis 5 fois"
+    for column, text in zip("CDEF", ("1-4", "5-8", "9-16", "17-32")):
+        banks[f"{column}2"] = text
+    for row, (who, remaining) in enumerate(((OTHER, (4, 4, 4, 4)), (ME, bank)), 3):
+        banks.append([row - 2, who, *remaining, None, 0, None])
+    usage = wb.create_sheet("ChoixSommaire")
+    usage.append([30, 4, 4])
+    usage.append(["", 50, 50])
+    usage.append([None, OTHER, ME])
+    usage.append(["Nombre joueurs max 5", 0, 0])
+    for number in players:
+        usage.append([label(number), 0, uses.get(number, 0)])
+    source = BytesIO()
+    wb.save(source)
+    wb.close()
+
+    links = controls if controls is not None else [
+        (link, f"InputChoix!${column}$3:${column}${last}")
+        for link, column in PRIMARY_LINKS + SUBSTITUTE_LINKS
+    ] + [("S5", "'Banques (Solde restant)'!$B$3:$B$80")]
+    selected = {link: value for value, (link, _) in enumerate(PRIMARY_LINKS + SUBSTITUTE_LINKS, 1)}
+    selected["S5"] = 2
+    parts = {
+        f"xl/ctrlProps/ctrlProp{i}.xml":
+            ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+             '<formControlPr xmlns="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main" '
+             'objectType="Drop" dropLines="15" dropStyle="combo" dx="22" '
+             f'fmlaLink="InputChoix!${link.rstrip("0123456789")}${link.lstrip("ABCDEFGHIJKLMNOPQRSTUVWXYZ")}" '
+             f'fmlaRange="{source_range}" noThreeD="1" sel="{selected.get(link, 1)}" val="0"/>').encode()
+        for i, (link, source_range) in enumerate(links, 1)
+    }
+    parts["xl/worksheets/_rels/sheet1.xml.rels"] = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        + "".join(f'<Relationship Id="rId{i}" Type="http://schemas.microsoft.com/office/2007/'
+                  f'relationships/ctrlProp" Target="../ctrlProps/ctrlProp{i}.xml"/>'
+                  for i in range(1, len(links) + 1))
+        + "</Relationships>").encode()
+    if macro:
+        parts["xl/vbaProject.bin"] = b"synthetic VBA project bytes, never executed"
+    output = BytesIO()
+    with ZipFile(source) as original, ZipFile(output, "w", ZIP_DEFLATED) as target:
+        for member in original.infolist():
+            content = original.read(member)
+            if member.filename == "[Content_Types].xml":
+                content = content.replace(b"</Types>", b"".join(
+                    b'<Override PartName="/' + name.encode() + b'" ContentType="' + CTRL + b'"/>'
+                    for name in parts if "ctrlProp" in name and name.endswith(".xml")
+                ) + b"</Types>")
+                if macro:
+                    content = content.replace(
+                        b"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+                        b"application/vnd.ms-excel.sheet.macroEnabled.main+xml")
+            if member.filename == "xl/workbook.xml" and not full_calc:
+                content = re.sub(rb'\s*fullCalcOnLoad="1"', b"", content)
+            if member.filename == "xl/_rels/workbook.xml.rels" and macro:
+                content = content.replace(b"</Relationships>", b'<Relationship Id="rId99" '
+                    b'Type="http://schemas.microsoft.com/office/2006/relationships/vbaProject" '
+                    b'Target="vbaProject.bin"/></Relationships>')
+            if member.filename == "xl/worksheets/sheet1.xml":
+                content = content.replace(b"</worksheet>", ANCHORS)
+            target.writestr(member, content)
+        for name, content in parts.items():
+            target.writestr(name, content)
+    return output.getvalue()
+
+
+ANCHORS = (
+    b'<mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">'
+    b'<mc:Choice Requires="x14" xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/'
+    b'spreadsheetDrawing"><controls><control shapeId="2049" name="Drop Down 1"><controlPr>'
+    b'<anchor><from><xdr:col>1</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>11</xdr:row>'
+    b'<xdr:rowOff>0</xdr:rowOff></from><to><xdr:col>2</xdr:col><xdr:colOff>0</xdr:colOff>'
+    b'<xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff></to></anchor></controlPr></control>'
+    b'</controls></mc:Choice></mc:AlternateContent></worksheet>'
+)
+
+
+def write(tmp_path, data, name="template.xlsx"):
+    path = tmp_path / name
+    path.write_bytes(data)
+    return path
+
+
+def review(tmp_path, registry, data=None, *, name="template.xlsx", **kwargs):
+    path = kwargs.pop("path", None) or write(tmp_path, data or template(), name)
+    options = dict(pairs=pairs(), participant=ME, draw=draw(), terms=terms(),
+                   snapshot=snapshot(), entry_id="me", registry=registry,
+                   template_provenance=evidence(NOW - timedelta(hours=3)), now=NOW,
+                   allow_provisional=True)
+    options.update(kwargs)
+    return review_submission(path, **options)
+
+
+def members(data):
+    with ZipFile(BytesIO(data)) as archive:
+        return [(info.filename, archive.read(info)) for info in archive.infolist()]
+
+
+def test_clean_review_exports_verified_file_that_preserves_every_other_part(tmp_path, registry):
+    data = template()
+    result = review(tmp_path, registry, data)
+    assert result.exportable and result.problems == () and result.warnings == ()
+    assert result.bank.remaining == (3, 3, 3, 3)
+    assert result.bank.after_primaries == (2, 2, 2, 2)
+    assert result.bank.worst_case == (2, 2, 2, 2)
+    assert result.bank.template == (3, 3, 3, 3)
+    assert result.confirmed_qualifying_events == 1
+    assert [slot.primary_uses for slot in result.slots] == [0, 0, 0, 0, 0]
+    assert ME not in repr(result) and ME not in result.describe()
+    assert "template.xlsx" not in repr(result)
+
+    output = tmp_path / "filled.xlsx"
+    exported = export_submission(result, output, now=NOW + timedelta(minutes=5))
+    assert exported.pairs == pairs()
+    assert exported.reimported.participant == ME
+    assert exported.reimported.bank_kind == "slam"
+    assert "xl/worksheets/sheet3.xml" in exported.changed_members
+    assert "xl/workbook.xml" in exported.changed_members
+    before, after = members(data), members(output.read_bytes())
+    assert [name for name, _ in before] == [name for name, _ in after]
+    for (name, old), (_, new) in zip(before, after):
+        if name not in exported.changed_members:
+            assert old == new, name
+    assert exported.preserved_members == len(before) - len(exported.changed_members)
+    assert re.search(rb'<calcPr[^>]*fullCalcOnLoad="1"', dict(after)["xl/workbook.xml"])
+
+    # Styles, validation and conditional formatting survive and the file still opens.
+    wb = load_workbook(output)
+    form = wb["VosChoix"]
+    assert form["A1"].font.bold and form["A12"].fill.fgColor.rgb.endswith("FFFF00")
+    assert [str(v.sqref) for v in form.data_validations.dataValidation] == ["F12:F20"]
+    assert [str(r.sqref) for r in form.conditional_formatting] == ["E12:E20"]
+    assert [wb["InputChoix"][link].value for link, _ in PRIMARY_LINKS] == [1, 5, 9, 17, 40]
+    assert [wb["InputChoix"][link].value for link, _ in SUBSTITUTE_LINKS] == [2, 6, 10, 18, 41]
+    assert wb["InputChoix"]["S5"].value == 2
+    wb.close()
+
+    sheet = read_submission(output, registry=registry, provenance=evidence())
+    assert sheet.pairs == pairs() and sheet.participant == ME
+    assert sheet.players_digest == result.players_digest
+
+
+def test_xlsm_macros_are_copied_as_opaque_bytes_and_never_loaded(tmp_path, registry):
+    data = template(macro=True)
+    result = review(tmp_path, registry, data, name="template.xlsm")
+    with pytest.raises(SubmissionExportError, match="output_suffix_must_match_template"):
+        export_submission(result, tmp_path / "filled.xlsx", now=NOW)
+    exported = export_submission(result, tmp_path / "filled.xlsm", now=NOW)
+    after = dict(members(exported.output_path.read_bytes()))
+    assert after["xl/vbaProject.bin"] == dict(members(data))["xl/vbaProject.bin"]
+    assert after["[Content_Types].xml"] == dict(members(data))["[Content_Types].xml"]
+    assert b"macroEnabled" in after["[Content_Types].xml"]
+    assert "xl/vbaProject.bin" not in exported.changed_members
+
+
+def test_existing_recalculation_flag_and_matching_selections_are_left_untouched(tmp_path, registry):
+    result = review(tmp_path, registry, template(full_calc=True))
+    exported = export_submission(result, tmp_path / "out.xlsx", now=NOW)
+    assert "xl/workbook.xml" not in exported.changed_members
+
+
+@pytest.mark.parametrize("bad, message", [
+    (pairs((1, 1, 9, 17, 40)), "distinct primaries"),
+    (pairs(substitutes=(5, 6, 10, 18, 41)), "same selection band"),
+    (pairs((1, 2, 3, 4, 40), (None, None, None, None, 41)), "slam bank 1-4 has 3 left; needs 4"),
+    (pairs()[:4], "exactly five slot pairs"),
+])
+def test_illegal_rosters_are_blocked_and_nothing_is_written(tmp_path, registry, bad, message):
+    result = review(tmp_path, registry, pairs=bad)
+    assert not result.exportable
+    assert any(message in problem for problem in result.problems), result.problems
+    with pytest.raises(SubmissionExportError, match="review_has_problems"):
+        export_submission(result, tmp_path / "out.xlsx", now=NOW)
+    assert not (tmp_path / "out.xlsx").exists()
+
+
+def test_unresolved_players_participant_and_empty_substitutes_block(tmp_path, registry):
+    missing = template(players=list(range(1, 128)) + [129])
+    result = review(tmp_path, registry, missing, pairs=pairs((1, 5, 9, 17, 128)))
+    assert any("atp:p128 is missing from the template" in p for p in result.problems)
+    assert any("not in the draw" in w for w in result.warnings)
+    assert any("missing from the template" in w for w in result.warnings)
+
+    result = review(tmp_path, registry, participant="Somebody Else")
+    assert "Participant label matches no unique template participant" in result.problems
+
+    result = review(tmp_path, registry, pairs=pairs(substitutes=(2, 6, None, 18, 41)))
+    assert any("Slot 3 has no substitute" in p for p in result.problems)
+
+    result = review(tmp_path, make_registry(unreviewed=(pid(1),)))
+    assert any("lack a reviewed alias" in w for w in result.warnings)
+    assert any("atp:p1 is missing from the template" in p for p in result.problems)
+
+
+def test_template_semantics_that_would_blank_a_pick_block_export(tmp_path, registry):
+    result = review(tmp_path, registry, template(bank=(3, 0, 3, 3)))
+    assert any("no 5-8 tokens left" in p for p in result.problems)
+    assert any("differs from the ledger bank" in w for w in result.warnings)
+
+    result = review(tmp_path, registry, template(uses={3: 1, 7: 1, 11: 1, 19: 1, 50: 1, 41: 5}))
+    assert any("five uses for atp:p41" in p for p in result.problems)
+    assert any("ledger shows 0" in w for w in result.warnings)
+
+    result = review(tmp_path, registry, template(bank=(1, 3, 3, 3)),
+                    pairs=pairs((1, 2, 9, 17, 40), (3, 4, 10, 18, 41)))
+    assert any("Template shows 1 1-4 token(s) left; the sheet uses 2" in p
+               for p in result.problems)
+
+    result = review(tmp_path, registry, template(header="Tournois Masters", bank=(3, 3, 3, 3)))
+    assert any("masters event" in p for p in result.problems)
+
+
+def test_template_band_disagreeing_with_draw_blocks_that_pick(tmp_path, registry):
+    data = template()
+    # Reseeded draw: player 40 is now seeded 32, so the template's NC label is stale.
+    slots = tuple(replace(slot, seed=None) if slot.seed == 32 else
+                  replace(slot, seed=32) if slot.player_id == pid(40) else slot
+                  for slot in draw().slots)
+    reseeded = replace(draw(), slots=slots)
+    bad = pairs((1, 5, 9, 17, 40), (2, 6, 10, 18, 31))
+    bad = tuple(Pair(primary=Selection(player_id=p.primary.player_id, band=Band.TOP32)
+                     if p.primary.player_id == pid(40) else p.primary, substitute=p.substitute)
+                for p in bad)
+    result = review(tmp_path, registry, data, draw=reseeded, pairs=bad)
+    assert any("Template lists atp:p40 in band NF, not 17-32" in p for p in result.problems)
+    assert any("Template band differs from the draw seed" in w for w in result.warnings)
+
+
+def test_deadlines_and_stale_or_future_inputs(tmp_path, registry):
+    late = review(tmp_path, registry, terms=terms(deadline=NOW - timedelta(minutes=1)))
+    assert any("has passed" in p for p in late.problems)
+
+    soon = review(tmp_path, registry, terms=terms(deadline=NOW + timedelta(minutes=30)))
+    assert soon.exportable and any("Deadline is 0.5 h away" in w for w in soon.warnings)
+    with pytest.raises(SubmissionExportError, match="deadline_passed"):
+        export_submission(soon, tmp_path / "out.xlsx", now=NOW + timedelta(minutes=31))
+
+    stale = review(tmp_path, registry, draw=draw(NOW - timedelta(days=2)),
+                   snapshot=snapshot(at=NOW - timedelta(days=2)),
+                   template_provenance=evidence(NOW - timedelta(days=3)))
+    assert stale.exportable
+    assert {w.split(" is ")[0] for w in stale.warnings} >= {"Draw", "Ledger snapshot", "Template"}
+
+    future = review(tmp_path, registry, draw=draw(NOW + timedelta(hours=1)))
+    assert "Draw is dated after the review time" in future.problems
+
+    fresh = review(tmp_path, registry)
+    with pytest.raises(SubmissionExportError, match="review_stale"):
+        export_submission(fresh, tmp_path / "out.xlsx", now=NOW + timedelta(days=1, seconds=1))
+    with pytest.raises(SubmissionExportError, match="review_stale"):
+        export_submission(fresh, tmp_path / "out.xlsx", now=NOW - timedelta(seconds=1))
+    with pytest.raises(ValueError, match="timezone"):
+        review(tmp_path, registry, now=NOW.replace(tzinfo=None))
+
+
+def test_changed_template_and_existing_output_are_refused(tmp_path, registry):
+    path = write(tmp_path, template())
+    result = review(tmp_path, registry, path=path)
+    output = tmp_path / "out.xlsx"
+    output.write_bytes(b"keep me")
+    with pytest.raises(SubmissionExportError, match="output_exists"):
+        export_submission(result, output, now=NOW)
+    assert output.read_bytes() == b"keep me"
+    path.write_bytes(template(bank=(3, 3, 3, 2)))
+    with pytest.raises(SubmissionExportError, match="template_changed_since_review"):
+        export_submission(result, tmp_path / "other.xlsx", now=NOW)
+
+
+def test_prior_submissions_and_acceptance_are_flagged(tmp_path, registry):
+    at = NOW - timedelta(hours=5)
+    sent = LedgerRecord(record_id="u-sub", entry_id="me", event_id="us_open", effective_at=at,
+                        evidence=evidence(at, "u-sub"),
+                        payload=Submitted(picks=pairs(), submitted_at=at, excel=True))
+    result = review(tmp_path, registry, snapshot=snapshot(ledger(*history(), sent)))
+    assert any("1 earlier submission(s)" in w for w in result.warnings)
+    accepted = LedgerRecord(record_id="u-acc", entry_id="me", event_id="us_open", effective_at=at,
+                            evidence=evidence(at, "u-acc"),
+                            payload=Accepted(submission_id="u-sub", approved_by="synthetic"))
+    result = review(tmp_path, registry, snapshot=snapshot(ledger(*history(), sent, accepted)))
+    assert any("accepted sheet already exists" in w for w in result.warnings)
+
+    result = review(tmp_path, registry, snapshot=snapshot(ledger()), data=template(bank=(4, 4, 4, 4)))
+    assert any("full banks and no uses assumed" in w for w in result.warnings)
+
+
+def test_export_neither_consumes_season_state_nor_claims_the_excel_bonus(tmp_path, registry):
+    book = ledger(*history())
+    before = book.replay(NOW + timedelta(hours=1))
+    exported = export_submission(review(tmp_path, registry, snapshot=book.replay(NOW)),
+                                 tmp_path / "out.xlsx", now=NOW)
+    assert book.replay(NOW + timedelta(hours=1)) == before
+
+    sent_at = NOW + timedelta(minutes=10)
+    with pytest.raises(ValueError, match="before it was exported"):
+        submitted_record(exported, record_id="x", entry_id="me", sent_at=NOW - timedelta(seconds=1),
+                         evidence=evidence(NOW))
+    with pytest.raises(ValueError, match="after the deadline"):
+        submitted_record(exported, record_id="x", entry_id="me", sent_at=DEADLINE,
+                         evidence=evidence(DEADLINE))
+    record = submitted_record(exported, record_id="u-sub", entry_id="me", sent_at=sent_at,
+                              evidence=evidence(sent_at, "u-sub"))
+    assert record.payload == Submitted(picks=pairs(), submitted_at=sent_at, excel=True)
+    submitted = book.append(record).replay(sent_at + timedelta(hours=1))
+    mine = next(e for e in submitted.entries if e.entry_id == "me")
+    old = next(e for e in before.entries if e.entry_id == "me")
+    assert (mine.slam, mine.usage, mine.qualifying_events) == (old.slam, old.usage,
+                                                               old.qualifying_events)
+    state = next(s for s in submitted.events if s.event_id == "us_open")
+    assert state.accepted_submission_id is None and not state.qualifying_excel
+
+    acceptance = LedgerRecord(record_id="u-acc", entry_id="me", event_id="us_open",
+                              effective_at=sent_at + timedelta(hours=2),
+                              evidence=evidence(sent_at + timedelta(hours=2), "u-acc"),
+                              payload=Accepted(submission_id="u-sub", approved_by="synthetic"))
+    accepted = book.append(record, acceptance).replay(sent_at + timedelta(hours=3))
+    mine = next(e for e in accepted.entries if e.entry_id == "me")
+    assert mine.slam == (2, 2, 2, 2)
+    assert mine.qualifying_events == ("wimbledon", "us_open")
+
+
+def test_strict_mode_blocks_and_opt_in_must_be_boolean(tmp_path, registry):
+    with pytest.raises(UnresolvedRulesError):
+        review(tmp_path, registry, allow_provisional=False)
+    with pytest.raises(ValueError, match="explicit boolean"):
+        review(tmp_path, registry, allow_provisional=1)
+
+
+@pytest.mark.parametrize("data, code", [
+    (lambda: template(controls=[("S1", "InputChoix!$G$3:$G$130")]), "unsupported_template_controls"),
+    (lambda: template(formula_link=True), "template_link_cell_not_constant"),
+    (lambda: b"Private participant content", "invalid_template"),
+])
+def test_unsupported_templates_fail_with_safe_reason_codes(tmp_path, registry, data, code):
+    with pytest.raises(SubmissionExportError) as error:
+        review(tmp_path, registry, data(), name="Synthetic Entry A.xlsx")
+    assert str(error.value) == code
+    assert error.value.__cause__ is None
+
+
+def test_reimport_rejects_controls_that_disagree_with_their_linked_cells(tmp_path, registry):
+    exported = export_submission(review(tmp_path, registry), tmp_path / "out.xlsx", now=NOW)
+    output = BytesIO()
+    with ZipFile(exported.output_path) as source, ZipFile(output, "w") as target:
+        for info in source.infolist():
+            content = source.read(info)
+            if b'fmlaLink="InputChoix!$S$1"' in content:
+                content = re.sub(rb'sel="\d+"', b'sel="3"', content)
+            target.writestr(info, content)
+    path = write(tmp_path, output.getvalue(), "tampered.xlsx")
+    with pytest.raises(SubmissionExportError, match="template_selection_unset_or_inconsistent"):
+        read_submission(path, registry=registry, provenance=evidence())
+
+
+def test_padded_list_rows_are_allowed_but_never_selected(tmp_path, registry):
+    exported = export_submission(review(tmp_path, registry, template(pad=8)),
+                                 tmp_path / "out.xlsx", now=NOW)
+    assert exported.pairs == pairs()
