@@ -25,6 +25,7 @@ import os
 from pathlib import Path
 import posixpath
 import re
+import tempfile
 import warnings
 from typing import Any, Mapping
 from xml.etree import ElementTree
@@ -297,7 +298,11 @@ def _read_template(data: bytes, limits: WorkbookLimits) -> _Template:
     repeated: set[str] = set()
     # VLOOKUP searches rows 3 to the range end and reads the first match.
     for row in range(_FIRST_ROW, min(usage_end, len(usage_rows)) + 1):
-        player = _label(_cell(usage_formulas, row, 1))
+        lookup_label = _cell(usage_formulas, row, 1)
+        if isinstance(lookup_label, str) and lookup_label.startswith("="):
+            # A computed label could match a pick only after recalculation.
+            raise SubmissionExportError("unsupported_template_usage")
+        player = _label(lookup_label)
         if player is not None:
             if player in usage:
                 repeated.add(player)
@@ -897,14 +902,6 @@ def _verify(data: bytes, output: bytes, changed: tuple[str, ...], expected: _Exp
     return sheet
 
 
-def _discard(path: Path, created: os.stat_result) -> None:
-    """Remove the file this export created, never a replacement, without masking errors."""
-    with suppress(OSError):
-        current = os.stat(path)
-        if (current.st_dev, current.st_ino) == (created.st_dev, created.st_ino):
-            os.unlink(path)
-
-
 def export_submission(
     review: SubmissionReview, output_path: str | Path, *, now: datetime,
 ) -> SubmissionExport:
@@ -933,27 +930,37 @@ def export_submission(
                          review._limits)
     output, changed = _guarded(lambda: _fill(data, template, review._edits))
     _verify(data, output, changed, expected)
+    if output_path.exists() or output_path.is_symlink():
+        raise SubmissionExportError("output_exists")
+    # Stage under a fresh private name, verify the staged bytes, then publish
+    # with an atomic hard link that refuses an existing path. Only the staged
+    # file is ever removed, so no file at the output path is ever deleted.
     try:
-        target = output_path.open("xb")
-    except FileExistsError:
-        raise SubmissionExportError("output_exists") from None
+        handle, name = tempfile.mkstemp(prefix=".submission-", suffix=output_path.suffix,
+                                        dir=output_path.parent)
     except OSError:
         raise SubmissionExportError("output_not_writable") from None
-    created = os.fstat(target.fileno())
+    staged = Path(name)
     try:
-        with target:
-            target.write(output)
-    except OSError:
-        _discard(output_path, created)
-        raise SubmissionExportError("output_not_writable") from None
-    try:
-        written: bytes = _guarded(lambda: _bounded_bytes(output_path, review._limits))
+        try:
+            with os.fdopen(handle, "wb") as target:
+                os.fchmod(target.fileno(), 0o644)
+                target.write(output)
+        except OSError:
+            raise SubmissionExportError("output_not_writable") from None
+        written: bytes = _guarded(lambda: _bounded_bytes(staged, review._limits))
         if written != output:
             raise SubmissionExportError("output_changed_after_write")
         sheet = _verify(data, written, changed, expected)
-    except SubmissionExportError:
-        _discard(output_path, created)
-        raise
+        try:
+            os.link(staged, output_path)
+        except FileExistsError:
+            raise SubmissionExportError("output_exists") from None
+        except OSError:
+            raise SubmissionExportError("output_not_writable") from None
+    finally:
+        with suppress(OSError):
+            staged.unlink()
     with ZipFile(BytesIO(written)) as archive:
         members = len(archive.infolist())
     return SubmissionExport(

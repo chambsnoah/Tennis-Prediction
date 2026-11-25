@@ -457,7 +457,8 @@ Slam or Masters header must also fit, and its player list must match the
 mapped draw (more than a 10% mismatch blocks). Against the template's own formulas, which blank a
 pick whose band shows no tokens left or whose player shows five uses in
 `ChoixSommaire`, and which count primaries per band against the participant's
-bank row. Those bank and use cells must be stored values: a formula's cached
+bank row. Those bank and use cells, and the use labels the
+lookup searches, must be stored values: a formula's cached
 result could change when Excel recalculates, so it blocks. Both lookup ranges
 must reach every participant, and use counts past the usage range's last row
 are treated as absent, as Excel's lookup would. A reviewed `participants`
@@ -489,10 +490,11 @@ macros are copied as opaque bytes and never loaded or run. Before and after
 writing, the output is re-imported with `read_submission`: participant, the
 five pairs with their bands, the event's bank kind (Slam or Masters header)
 and the template's player list must match the review, and every other member
-must be byte-identical, or the file is removed. The read-back bytes must equal
-the bytes written. A failed write or check removes the file this export
-created, never a file that replaced it, and a cleanup failure never hides the
-export error.
+must be byte-identical, or the file is removed. The file is written under a
+fresh private name in the output folder, read back (the bytes must equal those
+written) and verified there, and only then published with an atomic hard link
+that refuses an existing path. Export only ever removes its own staged file,
+never a file at the output path.
 
 **Not a submission.** Export changes no season state. Once the participant has
 sent the file themself, `submitted_record(export, ...)` builds the ledger's

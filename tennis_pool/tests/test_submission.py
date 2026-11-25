@@ -155,7 +155,7 @@ def display(r, number, last, bank_end=79, usage_range="$CM$228"):
 def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Grand Chelem",
              full_calc=False, macro=False, formula_link=False, controls=None, pad=0,
              tamper=None, drop_link=None, bank_end=79, usage_range="$CM$228",
-             usage_formula=None, bank_formula=False):
+             usage_formula=None, bank_formula=False, usage_label_formula=False):
     """A synthetic pick template: dropdown parts, linked cells, banks and use counts."""
     players = list(range(1, 129)) if players is None else players
     uses = {3: 1, 4: 0, 7: 1, 11: 1, 19: 1, 50: 1} if uses is None else uses
@@ -213,6 +213,8 @@ def template(*, players=None, bank=(3, 3, 3, 3), uses=None, header="Tournois Gra
             usage.cell(usage.max_row, 3, "=IF(InputChoix!$S$5=2,5,4)")
     if bank_formula:
         banks["C4"] = "=1+2"
+    if usage_label_formula:
+        usage.cell(usage.max_row + 1, 1, '="Player "&(40+1)')
     source = BytesIO()
     wb.save(source)
     wb.close()
@@ -619,54 +621,6 @@ def test_absent_linked_cell_blocks_the_review_not_just_the_export(tmp_path, regi
     assert "Template cannot record this sheet (template_link_cell_absent)" in result.problems
 
 
-def test_output_changed_after_write_is_removed(tmp_path, registry, monkeypatch):
-    import tennis_pool.submission as module
-
-    result = review(tmp_path, registry)
-    output = tmp_path / "out.xlsx"
-    real = module._bounded_bytes
-
-    def altered(path, limits):
-        data = real(path, limits)
-        return data + b"\0" if Path(path) == output else data
-
-    monkeypatch.setattr(module, "_bounded_bytes", altered)
-    with pytest.raises(SubmissionExportError, match="output_changed_after_write"):
-        export_submission(result, output, now=NOW)
-    assert not output.exists()
-
-
-def test_failed_write_removes_the_partial_file(tmp_path, registry, monkeypatch):
-    result = review(tmp_path, registry)
-    output = tmp_path / "out.xlsx"
-    real = Path.open
-
-    class Failing:
-        def __init__(self, handle):
-            self.handle = handle
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_):
-            self.handle.close()
-
-        def fileno(self):
-            return self.handle.fileno()
-
-        def write(self, _):
-            raise OSError("disk full")
-
-    def opener(self, mode="r", *args, **kwargs):
-        handle = real(self, mode, *args, **kwargs)
-        return Failing(handle) if mode == "xb" else handle
-
-    monkeypatch.setattr(Path, "open", opener)
-    with pytest.raises(SubmissionExportError, match="output_not_writable"):
-        export_submission(result, output, now=NOW)
-    assert not output.exists()
-
-
 def test_correction_keeping_a_player_whose_fifth_use_it_recorded(tmp_path, registry):
     earlier = (("australian_open", 200), ("indian_wells", 170), ("miami", 150),
                ("wimbledon", 50))
@@ -761,14 +715,36 @@ def test_use_counts_outside_the_lookup_range_are_not_read(tmp_path, registry):
     assert result.slots[4].template_substitute_uses == 0
 
 
-@pytest.mark.parametrize("replace_path", [True, False])
-def test_cleanup_never_removes_a_replacement_or_masks_the_error(
-        tmp_path, registry, monkeypatch, replace_path):
+def leftovers(tmp_path):
+    return sorted(path.name for path in tmp_path.iterdir() if path.name.startswith(".submission-"))
+
+
+def test_read_back_differing_from_the_written_bytes_publishes_nothing(
+        tmp_path, registry, monkeypatch):
+    import tennis_pool.submission as module
+
     result = review(tmp_path, registry)
     output = tmp_path / "out.xlsx"
-    real = Path.open
+    real = module._bounded_bytes
 
-    class Swapping:
+    def altered(path, limits):
+        data = real(path, limits)
+        return data + b"\0" if Path(path).name.startswith(".submission-") else data
+
+    monkeypatch.setattr(module, "_bounded_bytes", altered)
+    with pytest.raises(SubmissionExportError, match="output_changed_after_write"):
+        export_submission(result, output, now=NOW)
+    assert not output.exists() and leftovers(tmp_path) == []
+
+
+def test_failed_write_publishes_nothing_and_leaves_no_staged_file(tmp_path, registry, monkeypatch):
+    import tennis_pool.submission as module
+
+    result = review(tmp_path, registry)
+    output = tmp_path / "out.xlsx"
+    real = module.os.fdopen
+
+    class Failing:
         def __init__(self, handle):
             self.handle = handle
 
@@ -782,19 +758,52 @@ def test_cleanup_never_removes_a_replacement_or_masks_the_error(
             return self.handle.fileno()
 
         def write(self, _):
-            output.unlink()
-            if replace_path:
-                output.write_bytes(b"someone else's file")
             raise OSError("disk full")
 
-    def opener(self, mode="r", *args, **kwargs):
-        handle = real(self, mode, *args, **kwargs)
-        return Swapping(handle) if mode == "xb" else handle
-
-    monkeypatch.setattr(Path, "open", opener)
+    monkeypatch.setattr(module.os, "fdopen", lambda fd, mode: Failing(real(fd, mode)))
     with pytest.raises(SubmissionExportError, match="output_not_writable"):
         export_submission(result, output, now=NOW)
-    if replace_path:
-        assert output.read_bytes() == b"someone else's file"
-    else:
-        assert not output.exists()
+    assert not output.exists() and leftovers(tmp_path) == []
+
+
+def test_a_file_appearing_at_the_output_path_is_never_overwritten_or_removed(
+        tmp_path, registry, monkeypatch):
+    import tennis_pool.submission as module
+
+    result = review(tmp_path, registry)
+    output = tmp_path / "out.xlsx"
+    real = module.os.fdopen
+
+    class Racing:
+        def __init__(self, handle):
+            self.handle = handle
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            self.handle.close()
+
+        def fileno(self):
+            return self.handle.fileno()
+
+        def write(self, data):
+            output.write_bytes(b"someone else's file")
+            return self.handle.write(data)
+
+    monkeypatch.setattr(module.os, "fdopen", lambda fd, mode: Racing(real(fd, mode)))
+    with pytest.raises(SubmissionExportError, match="output_exists"):
+        export_submission(result, output, now=NOW)
+    assert output.read_bytes() == b"someone else's file"
+    assert leftovers(tmp_path) == []
+
+
+def test_exported_file_is_readable_and_no_staged_file_remains(tmp_path, registry):
+    exported = export_submission(review(tmp_path, registry), tmp_path / "out.xlsx", now=NOW)
+    assert exported.output_path.stat().st_mode & 0o777 == 0o644
+    assert leftovers(tmp_path) == []
+
+
+def test_computed_labels_in_the_usage_lookup_column_are_rejected(tmp_path, registry):
+    with pytest.raises(SubmissionExportError, match="unsupported_template_usage"):
+        review(tmp_path, registry, template(usage_label_formula=True))
