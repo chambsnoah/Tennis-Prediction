@@ -975,6 +975,7 @@ def plan_event(
                                  * worlds]),
         }
         usage = np.array([[context.usage_vector(u) for u in used]], dtype=np.int64)
+        after_event = usage[0].copy()  # _forward adds future picks to ``usage`` in place.
         expected, realized, _ = _forward(context, policy, own_banks, usage)
         unused = (own_banks["slam"].sum(axis=-1) + own_banks["masters"].sum(axis=-1))[0]
         own_start = entry.season_points + _pending_bonus(entry, remaining)
@@ -989,7 +990,7 @@ def plan_event(
             sample["final"] = final
             if prizes is not None:
                 sample["payout"] = (prizes[ahead + tied + 1] - prizes[ahead]) / (tied + 1)
-        sample["usage"] = usage[0]
+        sample["usage"] = after_event
         samples[policy] = sample
 
     key = {SeasonObjective.EXPECTED_POINTS: "points", SeasonObjective.SEASON_PAYOUT: "payout",
@@ -1239,10 +1240,12 @@ def replay_season(
                                    masters=_FULL_BANKS["masters"], usage=())
             # A substitute of an earlier sheet may still activate after this cutoff:
             # reserve its use so a later activation cannot break the five-use cap.
-            reserved = tuple(sorted({
+            # One reservation per pending activation; a player covering several
+            # unresolved sheets is listed (and reserved) once for each.
+            reserved = tuple(sorted(
                 pair.substitute.player_id for earlier, step in zip(events, steps)
                 if earlier.outcome.revealed_at >= event.cutoff
-                for pair in step.pairs if pair.substitute is not None}))
+                for pair in step.pairs if pair.substitute is not None))
             if reserved:
                 usage = dict(entry.usage)
                 for player in reserved:

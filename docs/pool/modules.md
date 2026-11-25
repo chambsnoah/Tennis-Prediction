@@ -371,7 +371,7 @@ appends the policy's own submission, acceptance, approved activations of
 withdrawn primaries with substitutes and audited points, so later events see
 the banks and uses that policy left. A substitute from an earlier sheet whose
 outcome is not yet revealed at a cutoff has one use reserved there (listed in
-`ReplayStep.reserved`), so a late activation cannot break the five-use cap.
+`ReplayStep.reserved`, once per pending activation), so a late activation cannot break the five-use cap.
 Outcomes must be revealed at or after the deadline and score every draw player
 exactly once. Rival results must not include your own entry, and a payout
 configuration must match its versioned derivation. Rival totals are the supplied

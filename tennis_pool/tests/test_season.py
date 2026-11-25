@@ -352,6 +352,15 @@ def test_replay_reserves_substitutes_whose_activation_is_still_pending():
     first = result.steps[0]
     covers = tuple(sorted(p.substitute.player_id for p in first.pairs if p.substitute))
     assert covers and result.steps[1].reserved == covers and result.steps[2].reserved == ()
+    # Two unresolved sheets naming the same cover reserve two uses.
+    both = list(events)
+    both[1] = replace(both[1], outcome=replace(both[1].outcome,
+                                               revealed_at=both[2].cutoff + timedelta(days=1)))
+    both[0] = replace(both[0], outcome=replace(both[0].outcome,
+                                               revealed_at=both[2].cutoff + timedelta(days=1)))
+    steps = replay(both, policies=(Policy.GREEDY,)).trajectories[0].steps
+    pending = sorted(p.substitute.player_id for s in steps[:2] for p in s.pairs if p.substitute)
+    assert list(steps[2].reserved) == pending
 
 
 def test_replay_rejects_conflicting_or_self_referential_results():
@@ -456,6 +465,24 @@ def test_a_rival_without_a_legal_sheet_scores_nothing():
         assert item.rival_gaps[0].p_finish_ahead == 1
         assert item.rival_gaps[0].expected_final_gap == pytest.approx(
             item.season_expected_points - 699)
+
+
+def test_cost_baseline_holds_only_this_events_charges(monkeypatch):
+    import tennis_pool.season as season_module
+
+    seen = []
+    original = season_module._use_costs
+
+    def spy(context, slam, masters, base, charges, excluded):
+        seen.append(np.array(base, copy=True))
+        return original(context, slam, masters, base, charges, excluded)
+
+    monkeypatch.setattr(season_module, "_use_costs", spy)
+    result = plan(event="roland_garros", policies=(Policy.GREEDY,))
+    pairs = result.recommendation.best.pairs
+    final = seen[-1]
+    # Five uses charged in every world: this event only, never later simulated picks.
+    assert (final.sum(axis=1) == len(pairs)).all()
 
 
 def test_activated_substitutes_are_charged_in_the_use_advice():
