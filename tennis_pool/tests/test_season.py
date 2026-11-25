@@ -12,7 +12,7 @@ from tennis_api.models.canonical import (
 )
 from tennis_pool.ledger import Band, EntryState, EventTerms, SeasonLedger
 from tennis_pool.optimizer import ScenarioAssumptions, ScenarioSet
-from tennis_pool.payouts import payout_config
+from tennis_pool.payouts import payout_config, split_prizes
 from tennis_pool.rules import ProvisionalRulesWarning, UnresolvedRulesError
 from tennis_pool.season import (
     EventOutcome, FutureEvent, PlanningParameters, Policy, Prospect, ReplayEvent,
@@ -129,7 +129,7 @@ def test_horizon_preserves_a_top_band_token_for_a_dominant_future_favourite():
     result = plan(own=entry(slam=(1, 4, 4, 4)), special=star_at_wimbledon())
     greedy, horizon = projection(result, Policy.GREEDY), projection(result, Policy.HORIZON)
     assert greedy.spend[0] == 1 and horizon.spend[0] == 0
-    assert horizon.season_expected_points > greedy.season_expected_points + 2 * horizon.gap_se
+    assert horizon.gap_to_best == 0 and greedy.gap_to_best > 2 * greedy.gap_se > 0
     assert result.chosen is Policy.HORIZON
     assert result.recommendation == horizon.recommendation
     top4 = next(c for c in result.token_costs if c.band is Band.TOP4)
@@ -201,6 +201,12 @@ def test_calendar_and_information_cutoffs_fail_closed():
                    parameters=PARAMS, allow_provisional=True)
     with pytest.raises(ValueError, match="precede"):
         attempt(cutoff=event.deadline)
+    tied = CALENDAR[:3] + (replace(CALENDAR[3], deadline=CALENDAR[2].deadline),)
+    with pytest.raises(ValueError, match="distinct"):
+        attempt(calendar=tied)
+    unknown = CALENDAR[:3] + (replace(CALENDAR[3], provenance=evidence(59, "us_open")),)
+    with pytest.raises(ValueError, match="Calendar event terms"):
+        attempt(calendar=unknown)
 
 
 def test_strict_mode_blocks_on_provisional_rules():
@@ -338,6 +344,36 @@ def test_replay_activates_the_substitute_of_a_withdrawn_primary():
     assert result.pairs == pairs and result.realized_points == expected
 
 
+def test_replay_reserves_substitutes_whose_activation_is_still_pending():
+    events = season()
+    late = events[1].cutoff + timedelta(days=1)
+    events[0] = replace(events[0], outcome=replace(events[0].outcome, revealed_at=late))
+    result = replay(events, policies=(Policy.GREEDY,)).trajectories[0]
+    first = result.steps[0]
+    covers = tuple(sorted(p.substitute.player_id for p in first.pairs if p.substitute))
+    assert covers and result.steps[1].reserved == covers and result.steps[2].reserved == ()
+
+
+def test_replay_rejects_conflicting_or_self_referential_results():
+    events = season()
+    duplicate = list(events)
+    points = events[0].outcome.points
+    duplicate[0] = replace(events[0], outcome=replace(
+        events[0].outcome, points=points + ((points[0][0], points[0][1] + 50),)))
+    with pytest.raises(ValueError, match="exactly once"):
+        replay(duplicate)
+    own = [replace(e, outcome=replace(e.outcome, rival_points=e.outcome.rival_points
+                                      + (("entry:own", 1),))) for e in events]
+    with pytest.raises(ValueError, match="own entry"):
+        replay(own)
+    config = payout_config(40, allow_provisional=True)
+    rivals = tuple((f"entry:r{k}", 10) for k in range(39))
+    field = [replace(e, outcome=replace(e.outcome, rival_points=rivals)) for e in events]
+    tampered = replace(config, event_prizes_cents=(10**9,) + config.event_prizes_cents[1:])
+    with pytest.raises(ValueError, match="versioned derivation"):
+        replay(field, payout=tampered)
+
+
 def test_replay_pays_ties_and_ranks_against_the_supplied_field():
     config = payout_config(40, allow_provisional=True)
     events = season()
@@ -347,6 +383,19 @@ def test_replay_pays_ties_and_ranks_against_the_supplied_field():
     trajectory = result.trajectories[0]
     assert trajectory.season_rank == 1 and trajectory.event_payout_cents > 0
     assert trajectory.season_payout_cents == config.season_prizes_cents[0]
+    # Tie the own entry with one rival for first at the opening event.
+    own_first = trajectory.steps[0].realized_points
+    tied_rivals = ((f"entry:r0", own_first),) + rivals[1:]
+    tied = [replace(events[0], outcome=replace(events[0].outcome, rival_points=tied_rivals))]
+    tied += events[1:]
+    shared = replay(tied, policies=(Policy.HORIZON,), payout=config).trajectories[0].steps[0]
+    pool = sum(config.event_prizes_cents[:2])
+    assert shared.event_rank == 1
+    assert shared.event_payout_cents == pool // 2 + pool % 2
+    assert shared.event_payout_cents == next(
+        a.payout_cents for a in split_prizes({"entry:own": own_first, **dict(tied_rivals)},
+                                             config.event_prizes_cents)
+        if a.entry_id == "entry:own")
     with pytest.raises(ValueError, match="same distinct rivals"):
         broken = list(events)
         broken[1] = replace(broken[1], outcome=replace(broken[1].outcome, rival_points=()))
@@ -360,3 +409,82 @@ def test_replay_pays_ties_and_ranks_against_the_supplied_field():
         bad[0] = replace(bad[0], outcome=replace(bad[0].outcome,
                                                  revealed_at=bad[0].cutoff))
         replay(bad)
+
+
+def narrow_entry(last_uses=0, spare=()):
+    """Only p1, p2 (1-4 seeds), p9-p11 (unseeded) and ``spare`` are still pickable."""
+    capped = [n for n in (3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 16) if n not in spare]
+    usage = tuple(sorted([(pid(n), 5) for n in capped]
+                         + ([(pid(1), last_uses), (pid(2), last_uses)] if last_uses else [])))
+    return entry(usage=usage)
+
+
+def test_fair_share_falls_back_to_the_bank_when_it_cannot_fill_a_sheet():
+    result = plan(own=narrow_entry())
+    rationed = projection(result, Policy.RATIONED)
+    assert rationed.spend == (2, 0, 0, 0) and "cannot fill a legal sheet" in rationed.notes[0]
+    top4 = next(c for c in result.token_costs if c.band is Band.TOP4)
+    assert top4.gain_now is None and top4.advice == "spend"
+    assert "none exists with one fewer" in top4.explanation
+    required = [c for c in result.use_costs if c.player_id in (pid(1), pid(2))]
+    assert required and all(c.edge_now is None and c.advice == "spend" for c in required)
+    assert all("No legal sheet exists without him" in c.explanation for c in required)
+
+
+def test_joint_preservation_keeps_a_legal_horizon_sheet():
+    def absent(event):
+        base = future(event)
+        return replace(base, prospects=tuple(
+            replace(p, entry_probability=0.0) if p.player_id in (pid(1), pid(2)) else p
+            for p in base.prospects))
+
+    stars = {"roland_garros": absent("roland_garros"), "us_open": absent("us_open"),
+             "wimbledon": future("wimbledon", means=[220, 210] + BASE[2:], entry=0.95)}
+    result = plan(own=narrow_entry(last_uses=4, spare=(12,)), special=stars)
+    horizon = projection(result, Policy.HORIZON)
+    assert len(horizon.preserved) == 1 and len(horizon.notes) == 1
+    assert "would leave no legal sheet" in horizon.notes[0]
+    picked = {p.primary.player_id for p in horizon.recommendation.best.pairs}
+    assert picked.isdisjoint(horizon.preserved) and len(picked) == 5
+
+
+def test_a_rival_without_a_legal_sheet_scores_nothing():
+    stuck = replace(standings()[0], entry_id="entry:stuck", season_points=699,
+                    usage=tuple((pid(n), 5) for n in range(1, 14)))
+    result = plan(event="us_open", own=entry(points=700), rival_states=(stuck,))
+    for item in result.projections:
+        assert item.rival_gaps[0].p_finish_ahead == 1
+        assert item.rival_gaps[0].expected_final_gap == pytest.approx(
+            item.season_expected_points - 699)
+
+
+def test_activated_substitutes_are_charged_in_the_use_advice():
+    event = terms("roland_garros")
+    result = plan_event(
+        scenarios(BASE, withdraw=0.3), draw(), event,
+        cutoff=event.deadline - timedelta(days=1), entry=entry(), calendar=CALENDAR,
+        future=futures("roland_garros"), seed=11, parameters=PARAMS, allow_provisional=True)
+    pairs = result.recommendation.best.pairs
+    covers = {p.substitute.player_id for p in pairs if p.substitute is not None}
+    by_player = {c.player_id: c for c in result.use_costs}
+    assert covers and covers <= by_player.keys()
+    for player in covers:
+        cost = by_player[player]
+        assert cost.in_plan and cost.edge_now > 0
+        assert "As a substitute he is charged in" in cost.explanation
+    assert {p.primary.player_id for p in pairs} <= by_player.keys()
+
+
+def test_repeated_scenario_columns_are_not_counted_as_independent():
+    sparse = plan_event(
+        scenarios(BASE, runs=4), draw(), terms("us_open"),
+        cutoff=terms("us_open").deadline - timedelta(days=1), entry=entry(),
+        calendar=CALENDAR, future=(), seed=11, parameters=PARAMS, allow_provisional=True)
+    dense = plan_event(
+        scenarios(BASE, runs=PARAMS.evaluation_worlds), draw(), terms("us_open"),
+        cutoff=terms("us_open").deadline - timedelta(days=1), entry=entry(),
+        calendar=CALENDAR, future=(), seed=11, parameters=PARAMS, allow_provisional=True)
+    naive = [p.season_points_se for p in sparse.projections]
+    assert all(se > 0 for se in naive)
+    # Four independent draws spread over 120 worlds must not look like 120 draws.
+    assert min(naive) > 2 * max(p.season_points_se for p in dense.projections) / 3

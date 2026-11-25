@@ -195,7 +195,7 @@ class UseCost(Contract):
     player_id: PlayerId
     uses_left: int
     in_plan: bool
-    edge_now: float
+    edge_now: float | None
     value_later: float
     value_later_se: float
     later_events: tuple[tuple[str, float], ...]
@@ -231,6 +231,7 @@ class PolicyProjection(Contract):
     gap_to_best: float
     gap_se: float
     tie_with_best: bool
+    notes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -375,6 +376,18 @@ def _tops(choice: NDArray[np.float64], bands: NDArray[np.int64], kind: str, fill
     return values - _EPSILON * _TOKENS, indexes, reals
 
 
+def _blocked(cap: NDArray[np.int64]) -> NDArray[np.bool_]:
+    """Structures exceeding a per-state cap (states x structures)."""
+    result: NDArray[np.bool_] = (_STRUCTURES > cap[..., None, :]).any(axis=-1)
+    return result
+
+
+def _fair_share(bank: NDArray[np.int64], events_left: Sequence[int]) -> NDArray[np.int64]:
+    left = np.array(events_left)
+    share: NDArray[np.int64] = np.where(left <= 1, bank, -(-bank // np.maximum(left, 1)))
+    return share
+
+
 def _next_index(bank: NDArray[np.int64], strides: NDArray[np.int64],
                 states: int) -> NDArray[np.int64]:
     after = bank[..., None, :] - _STRUCTURES
@@ -392,16 +405,20 @@ def _play(event: _Event, bank: NDArray[np.int64], usage: NDArray[np.int64], *, r
         choice = choice * noise
     values, indexes, reals = _tops(np.where(ok, choice, -np.inf), event.bands.T, event.kind,
                                    event.fillers)
-    allowed = bank
+    within = np.where(_blocked(bank), -np.inf, values)
     if rule is Policy.RATIONED:
-        left = np.array(events_left)
-        allowed = np.where(left <= 1, bank, -(-bank // np.maximum(left, 1)))
-    values = np.where((_STRUCTURES > allowed[:, :, None, :]).any(axis=-1), -np.inf, values)
+        shared = np.where(_blocked(_fair_share(bank, events_left)), -np.inf, values)
+        # Fair share, or the whole bank when the share cannot fill a sheet.
+        within = np.where(np.isfinite(shared.max(axis=2, keepdims=True)), shared, within)
+    values = within
     if rule is Policy.HORIZON and horizon is not None:
         later = np.append(horizon.values[position], -np.inf)
         values = values + later[_next_index(bank, horizon.strides, len(later) - 1)]
-    counts = _STRUCTURES[np.argmax(values, axis=2)]
-    take = np.concatenate((counts, _SLOTS - counts.sum(axis=-1, keepdims=True)), axis=-1)
+    # A state with no legal sheet submits nothing: no picks, points or charges.
+    feasible = np.isfinite(values.max(axis=2))[..., None]
+    counts = np.where(feasible, _STRUCTURES[np.argmax(values, axis=2)], 0)
+    take = np.concatenate((counts, np.where(feasible, _SLOTS - counts.sum(
+        axis=-1, keepdims=True), 0)), axis=-1)
     picked = np.zeros(ok.shape, dtype=np.bool_)
     for band in range(len(_BANDS)):
         chosen = (np.arange(_SLOTS) < take[..., band:band + 1]) & reals[band]
@@ -481,6 +498,10 @@ def _context(scenarios: ScenarioSet, draw: Draw, terms: EventTerms, cutoff: date
     ids = [t.event_id for t in calendar]
     if len(set(ids)) != len(ids) or terms not in calendar:
         raise ValueError("The calendar must list each event once, including this one")
+    if len({t.deadline for t in calendar}) != len(calendar):
+        raise ValueError("Calendar deadlines must be distinct to order the season")
+    for known in calendar:
+        _check_time(known.provenance.available_at, cutoff, "Calendar event terms")
     remaining = sorted((t for t in calendar if t.deadline > terms.deadline),
                        key=lambda t: (t.deadline, t.event_id))
     future_ids = [f.event_id for f in future]
@@ -545,7 +566,8 @@ def _rows(context: _Context, rows: Sequence[tuple[tuple[int, ...], tuple[int, ..
     w = context.params.evaluation_worlds
     banks = {name: np.array([[row[i]] * w for row in rows], dtype=np.int64)
              for i, name in enumerate(("slam", "masters"))}
-    usage = np.array([np.tile(row[2], (w, 1)) for row in rows], dtype=np.int64)
+    usage = np.array([np.broadcast_to(row[2], (w, len(context.universe))) for row in rows],
+                     dtype=np.int64)
     expected, _, picks = _forward(context, Policy.HORIZON, banks, usage)
     return expected, picks
 
@@ -578,27 +600,48 @@ def _horizon_choice(context: _Context, excluded: set[PlayerId]) -> tuple[int, fl
     return best, float(total[best])
 
 
+@dataclass
+class _Charge:
+    """One player's use charged by a sheet in the worlds marked by ``worlds``."""
+
+    player: PlayerId
+    worlds: NDArray[np.bool_]
+    substitute: bool = False
+    cover_now: float = 0.0
+
+
 def _use_costs(context: _Context, slam: tuple[int, ...], masters: tuple[int, ...],
-               roster: Sequence[int], excluded: set[PlayerId]) -> list[UseCost]:
-    """Edge now (plan value with versus without the player, bands re-chosen) against
-    the later value of keeping one use (forward simulation, common worlds)."""
-    now = context.now
-    chosen = [context.ids[now.players[i]] for i in roster]
-    base = context.usage_vector(chosen)
+               base: NDArray[np.int64], charges: Sequence[_Charge],
+               excluded: set[PlayerId]) -> list[UseCost]:
+    """Edge now against the later value of keeping one use (common worlds).
+
+    ``base`` is the per-world usage after this event (evaluation worlds x
+    players). A primary's edge is the plan value with versus without him, bands
+    re-chosen; a substitute's is his expected cover now.
+    """
+    base = np.array(np.broadcast_to(base, (context.params.evaluation_worlds,
+                                           len(context.universe))), dtype=np.int64)
     rows = [(slam, masters, base)]
-    for i in roster:
+    for charge in charges:
         less = base.copy()
-        less[now.players[i]] -= 1
+        less[charge.worlds, context.universe[charge.player]] -= 1
         rows.append((slam, masters, less))
     expected, picks = _rows(context, rows)
+    entry_usage = dict(context.entry.usage)
     costs = []
-    for k, i in enumerate(roster, start=1):
-        player = context.ids[now.players[i]]
+    for k, charge in enumerate(charges, start=1):
+        player = charge.player
         gain = expected[k] - expected[0]
-        value, se = float(gain.mean()), float(gain.std(ddof=1) / math.sqrt(len(gain)))
-        edge = _horizon_choice(context, excluded)[1] - _horizon_choice(
-            context, excluded | {player})[1]
-        local = int(now.players[i])
+        value, se = float(gain.mean()), _se(gain)
+        edge: float | None
+        if charge.substitute:
+            edge = charge.cover_now
+        else:
+            edge = _horizon_choice(context, excluded)[1] - _horizon_choice(
+                context, excluded | {player})[1]
+            if not math.isfinite(edge):
+                edge = None  # No legal sheet exists without him.
+        local = context.universe[player]
         shares = []
         for event, chosen_picks in zip(context.evaluation, picks):
             where = np.nonzero(event.players == local)[0]
@@ -607,32 +650,38 @@ def _use_costs(context: _Context, slam: tuple[int, ...], masters: tuple[int, ...
                 if extra.mean() >= 0.005:
                     shares.append((event.event_id, float(extra.mean())))
         shares.sort(key=lambda item: -item[1])
-        left = _USE_CAP - int(base[local]) + 1
-        if abs(edge - value) <= _TIE_Z * se:
+        left = _USE_CAP - entry_usage.get(player, 0)
+        if edge is None:
+            advice = "spend"
+        elif abs(edge - value) <= _TIE_Z * se:
             advice = "tie"
         else:
             advice = "preserve" if value > edge else "spend"
         where_text = ", ".join("{} ({:.0%})".format(e, s) for e, s in shares[:3]) or "nowhere"
+        role = ("As a substitute he is charged in {:.0%} of worlds and his cover adds {:.1f} "
+                "expected points now".format(float(charge.worlds.mean()), charge.cover_now)
+                if charge.substitute else
+                "No legal sheet exists without him now" if edge is None else
+                "Having him now adds {:.1f} expected season points (bands re-planned "
+                "without him)".format(edge))
         costs.append(UseCost(
             player_id=player, uses_left=left, in_plan=True, edge_now=edge, value_later=value,
             value_later_se=se, later_events=tuple(shares[:3]), advice=advice,
             explanation=(
-                "{} has {} use(s) left. Having him now adds {:.1f} expected season points "
-                "(bands re-planned without him); keeping the use is worth {:.1f} ± {:.1f} "
-                "later, mostly at {}. "
-                "{}.".format(player, left, edge, value, se, where_text, {
+                "{} has {} use(s) left. {}; keeping the use is worth {:.1f} ± {:.1f} later, "
+                "mostly at {}. {}.".format(player, left, role, value, se, where_text, {
                     "tie": "Within noise: spend it now (never hoard a fragile asset)",
                     "preserve": "Preserve the use", "spend": "Spend the use now"}[advice])),
         ))
     return costs
 
 
-def _token_costs(context: _Context, spend: tuple[int, ...], usage_ids: Sequence[PlayerId],
+def _token_costs(context: _Context, spend: tuple[int, ...], usage: NDArray[np.int64],
                  values: NDArray[np.float64]) -> list[TokenCost]:
     bank = context.bank()
     base = tuple(b - s for b, s in zip(bank, spend))
     other = context.entry.masters if context.bank_name == "slam" else context.entry.slam
-    usage = context.usage_vector(usage_ids)
+    legal = (_STRUCTURES <= np.array(bank)).all(axis=1)
 
     def row(own: tuple[int, ...]) -> tuple[tuple[int, ...], tuple[int, ...], NDArray[np.int64]]:
         return (own, other, usage) if context.bank_name == "slam" else (other, own, usage)
@@ -650,7 +699,6 @@ def _token_costs(context: _Context, spend: tuple[int, ...], usage_ids: Sequence[
         variants.append((band, delta))
     expected, _ = _rows(context, rows)
     index = {tuple(s): i for i, s in enumerate(_STRUCTURES.tolist())}
-    structure = list(spend)
     costs = []
     for band in range(4):
         variant = next((k for k, (b, _) in enumerate(variants) if b == band), None)
@@ -663,23 +711,27 @@ def _token_costs(context: _Context, spend: tuple[int, ...], usage_ids: Sequence[
             continue
         delta = variants[variant][1]
         diff = (expected[variant + 1] - expected[0]) * delta
-        later, se = float(diff.mean()), float(diff.std(ddof=1) / math.sqrt(diff.shape[0]))
-        neighbour = list(structure)
-        neighbour[band] -= delta
-        current = values[index[tuple(structure)]]
-        alternative = values[index[tuple(neighbour)]] if tuple(neighbour) in index else -np.inf
+        later, se = float(diff.mean()), _se(diff)
+        # The best legal sheet structure with one token fewer (or more) in this band.
+        mask = legal & (_STRUCTURES[:, band] == spend[band] - delta)
+        current = values[index[tuple(spend)]]
+        alternative = float(values[mask].max()) if mask.any() else -np.inf
         gain = float(current - alternative) if delta > 0 else float(alternative - current)
         gain_now = gain if math.isfinite(gain) else None
         if gain_now is None:
-            advice = "preserve"
+            advice = "spend" if delta > 0 else "preserve"
         elif abs(gain_now - later) <= _TIE_Z * se:
             advice = "tie"
         else:
             advice = "spend" if gain_now > later else "preserve"
         what = ("the last of {} planned".format(spend[band]) if delta > 0
                 else "one more than planned")
-        now_text = ("{:.1f} expected points now".format(gain_now) if gain_now is not None
-                    else "nothing now (this event cannot use it)")
+        if gain_now is not None:
+            now_text = "{:.1f} expected points now".format(gain_now)
+        elif delta > 0:
+            now_text = "a legal sheet (none exists with one fewer)"
+        else:
+            now_text = "nothing now (this event cannot use it)"
         costs.append(TokenCost(
             bank=context.bank_name, band=label, remaining=bank[band],
             planned_spend=spend[band], gain_now=gain_now, value_later=later,
@@ -701,6 +753,7 @@ class _Decision:
     spend: tuple[int, ...]
     preserved: tuple[PlayerId, ...]
     preserved_costs: list[UseCost]
+    notes: tuple[str, ...]
 
 
 def _spend(pairs: tuple[Pair, ...]) -> tuple[int, ...]:
@@ -715,9 +768,15 @@ def _decide(context: _Context, policy: Policy, scenarios: ScenarioSet, draw: Dra
     bank = context.bank()
     preserved: tuple[PlayerId, ...] = ()
     preserved_costs: list[UseCost] = []
+    notes: list[str] = []
     caps = bank
     if policy is Policy.RATIONED:
         caps = ration(bank, context.events_left)
+        values, _, _ = _structure_now(context, set())
+        if not np.isfinite(values[~_blocked(np.array(caps))]).any():
+            caps = bank
+            notes.append("The fair share {} cannot fill a legal sheet, so the whole bank "
+                         "was allowed.".format(ration(bank, context.events_left)))
     elif policy is Policy.HORIZON:
         _, indexes, reals = _structure_now(context, set())
         structure = _horizon_choice(context, set())[0]
@@ -726,11 +785,21 @@ def _decide(context: _Context, policy: Policy, scenarios: ScenarioSet, draw: Dra
         base = tuple(b - s for b, s in zip(bank, spend))
         slam, masters = ((base, entry.masters) if context.bank_name == "slam"
                          else (entry.slam, base))
-        costs = _use_costs(context, slam, masters, roster, set())
-        preserved_costs = [c for c in costs if c.advice == "preserve"]
+        everywhere = np.ones(context.params.evaluation_worlds, dtype=np.bool_)
+        chosen = [context.ids[context.now.players[i]] for i in roster]
+        costs = _use_costs(context, slam, masters, context.usage_vector(chosen),
+                           [_Charge(player=p, worlds=everywhere) for p in chosen], set())
+        # Most valuable preservations first; drop the rest if the sheet needs them.
+        preserved_costs = sorted((c for c in costs if c.advice == "preserve"),
+                                 key=lambda c: ((c.edge_now or 0.0) - c.value_later,
+                                                c.player_id))
+        while preserved_costs and not math.isfinite(_horizon_choice(
+                context, {c.player_id for c in preserved_costs})[1]):
+            dropped = preserved_costs.pop()
+            notes.append("Preserving {} would leave no legal sheet, so his use is spent."
+                         .format(dropped.player_id))
         preserved = tuple(sorted(c.player_id for c in preserved_costs))
-        if preserved:
-            structure = _horizon_choice(context, set(preserved))[0]
+        structure = _horizon_choice(context, set(preserved))[0]
         caps = tuple(int(x) for x in _STRUCTURES[structure])
     usage = dict(entry.usage)
     usage.update({p: _USE_CAP for p in preserved})
@@ -749,7 +818,8 @@ def _decide(context: _Context, policy: Policy, scenarios: ScenarioSet, draw: Dra
         raise AssertionError("Season planning produced a sheet illegal for the real state")
     return _Decision(policy=policy, recommendation=recommendation, spend=_spend(pairs),
                      preserved=preserved, preserved_costs=[
-                         replace(c, in_plan=False) for c in preserved_costs])
+                         replace(c, in_plan=False) for c in preserved_costs],
+                     notes=tuple(notes))
 
 
 def _own_current(scenarios: ScenarioSet, pairs: tuple[Pair, ...], worlds: int,
@@ -773,13 +843,33 @@ def _own_current(scenarios: ScenarioSet, pairs: tuple[Pair, ...], worlds: int,
     return totals, used
 
 
+def _check_payout(config: PayoutConfig, participants: int, allow_provisional: bool,
+                  register_path: str | Path | None) -> None:
+    if config != payout_config(config.participants, override=config.override,
+                               allow_provisional=allow_provisional,
+                               register_path=register_path):
+        raise ValueError("Payout configuration does not match its versioned derivation")
+    if config.participants != participants:
+        raise ValueError("Payouts need every other participant's results")
+
+
 def _pending_bonus(entry: EntryState, events: int) -> int:
     return _BONUS if (entry.submission_bonus == 0
                       and len(entry.qualifying_events) + events >= _BONUS_EVENTS) else 0
 
 
-def _se(values: NDArray[np.float64]) -> float:
-    return float(values.std(ddof=1) / math.sqrt(len(values))) if len(values) > 1 else 0.0
+def _se(values: NDArray[np.float64], clusters: NDArray[np.int64] | None = None) -> float:
+    """Standard error of the mean; with ``clusters``, worlds sharing one current
+    scenario column are one independent draw (cluster-robust)."""
+    n = len(values)
+    if n < 2:
+        return 0.0
+    groups = 0 if clusters is None else len(np.unique(clusters))
+    if groups < 2 or groups == n:
+        return float(values.std(ddof=1) / math.sqrt(n))
+    assert clusters is not None
+    sums = np.bincount(clusters, weights=values - values.mean())
+    return float(math.sqrt(groups / (groups - 1) * float((sums ** 2).sum())) / n)
 
 
 def plan_event(
@@ -829,13 +919,7 @@ def plan_event(
     if objective is SeasonObjective.SEASON_PAYOUT and season_payout is None:
         raise ValueError("The season payout objective needs a payout configuration")
     if season_payout is not None:
-        if season_payout != payout_config(season_payout.participants,
-                                          override=season_payout.override,
-                                          allow_provisional=allow_provisional,
-                                          register_path=register_path):
-            raise ValueError("Payout configuration does not match its versioned derivation")
-        if season_payout.participants != len(rival_states) + 1:
-            raise ValueError("Season payouts need every other participant's state")
+        _check_payout(season_payout, len(rival_states) + 1, allow_provisional, register_path)
     if not set(named_rivals) <= set(rival_ids):
         raise ValueError("Named rivals must be among the rival states")
     context = _context(scenarios, draw, terms, cutoff, entry, calendar, future, params,
@@ -849,6 +933,7 @@ def plan_event(
 
     worlds = params.evaluation_worlds
     remaining = 1 + len(context.evaluation)
+    clusters = np.arange(worlds) % scenarios.simulations
     rival_totals = None
     if rival_states:
         banks = {name: np.array([[getattr(r, name)] * worlds for r in rival_states],
@@ -904,6 +989,7 @@ def plan_event(
             sample["final"] = final
             if prizes is not None:
                 sample["payout"] = (prizes[ahead + tied + 1] - prizes[ahead]) / (tied + 1)
+        sample["usage"] = usage[0]
         samples[policy] = sample
 
     key = {SeasonObjective.EXPECTED_POINTS: "points", SeasonObjective.SEASON_PAYOUT: "payout",
@@ -913,7 +999,7 @@ def plan_event(
     gaps: dict[Policy, tuple[float, float, bool]] = {}
     for policy in policies:
         diff = samples[best][key] - samples[policy][key]
-        mean, se = float(diff.mean()), _se(diff)
+        mean, se = float(diff.mean()), _se(diff, clusters)
         gaps[policy] = (mean, se, policy is not best and mean <= max(_TIE_Z * se, materiality))
     tied = [p for p in policies if p is best or gaps[p][2]]
     chosen = min(tied, key=lambda p: (sum(decisions_by_policy[p].spend), _PREFERENCE.index(p)))
@@ -929,7 +1015,7 @@ def plan_event(
                 rival_gaps.append(RivalGap(
                     entry_id=name,
                     current_gap=entry.season_points - rival_states[k].season_points,
-                    expected_final_gap=float(gap.mean()), final_gap_se=_se(gap),
+                    expected_final_gap=float(gap.mean()), final_gap_se=_se(gap, clusters),
                     p_finish_ahead=float((gap > 0).mean())))
         event_points = decision.recommendation.best.metrics.expected_points
         projections.append(PolicyProjection(
@@ -937,27 +1023,43 @@ def plan_event(
             preserved=decision.preserved, event_expected_points=event_points,
             future_expected_points=float(sample["future"].mean()),
             season_expected_points=float(sample["points"].mean()),
-            season_points_se=_se(sample["points"]),
+            season_points_se=_se(sample["points"], clusters),
             expected_unused_tokens=float(sample["unused"].mean()),
             p_season_top3=float(sample["top3"].mean()) if "top3" in sample else None,
             p_season_first=float(sample["first"].mean()) if "first" in sample else None,
             expected_season_payout_cents=(float(sample["payout"].mean())
                                           if "payout" in sample else None),
-            season_payout_se_cents=_se(sample["payout"]) if "payout" in sample else None,
+            season_payout_se_cents=(_se(sample["payout"], clusters) if "payout" in sample
+                                    else None),
             rival_gaps=tuple(rival_gaps), gap_to_best=gaps[policy][0],
-            gap_se=gaps[policy][1], tie_with_best=gaps[policy][2],
+            gap_se=gaps[policy][1], tie_with_best=gaps[policy][2], notes=decision.notes,
         ))
 
     chosen_decision = decisions_by_policy[chosen]
     pairs = chosen_decision.recommendation.best.pairs
+    # Costs start from the projection's per-world charges, activated substitutes included.
+    charged = samples[chosen]["usage"].astype(np.int64)
     values, _, _ = _structure_now(context, set(chosen_decision.preserved))
-    token_costs = _token_costs(context, chosen_decision.spend,
-                               [p.primary.player_id for p in pairs], values)
+    token_costs = _token_costs(context, chosen_decision.spend, charged, values)
     index = {p: i for i, p in enumerate(scenarios.player_ids)}
-    roster = [index[p.primary.player_id] for p in pairs]
+    columns = clusters
+    charges = []
+    for pair in pairs:
+        primary = index[pair.primary.player_id]
+        out = scenarios.withdrawn[primary]
+        if pair.substitute is None:
+            charges.append(_Charge(player=pair.primary.player_id,
+                                   worlds=np.ones(worlds, dtype=np.bool_)))
+            continue
+        cover = scenarios.points[index[pair.substitute.player_id]]
+        charges.append(_Charge(player=pair.primary.player_id, worlds=~out[columns]))
+        if out[columns].any():
+            charges.append(_Charge(player=pair.substitute.player_id, worlds=out[columns],
+                                   substitute=True, cover_now=float((cover * out).mean())))
     base = tuple(b - s for b, s in zip(context.bank(), chosen_decision.spend))
     slam, masters = (base, entry.masters) if context.bank_name == "slam" else (entry.slam, base)
-    use_costs = _use_costs(context, slam, masters, roster, set(chosen_decision.preserved))
+    use_costs = _use_costs(context, slam, masters, charged, charges,
+                           set(chosen_decision.preserved))
     use_costs += chosen_decision.preserved_costs
     tie_rule = ("Policies tie when the paired shortfall is within {:g} standard errors{}; "
                 "ties go to the policy spending fewer seeded tokens now.".format(
@@ -1008,6 +1110,7 @@ class ReplayStep(Contract):
     pairs: tuple[Pair, ...]
     spend: tuple[int, ...]
     preserved: tuple[PlayerId, ...]
+    reserved: tuple[PlayerId, ...]
     planned_expected_points: float
     realized_points: int
     event_rank: int | None
@@ -1058,7 +1161,8 @@ def _realize(pairs: tuple[Pair, ...], outcome: EventOutcome) -> tuple[int, tuple
     return total, tuple(sorted(activated))
 
 
-def _check_replay(events: Sequence[ReplayEvent], ledger: SeasonLedger) -> set[str]:
+def _check_replay(events: Sequence[ReplayEvent], ledger: SeasonLedger,
+                  entry_id: str) -> set[str]:
     rivals: set[str] | None = None
     previous: ReplayEvent | None = None
     for event in events:
@@ -1072,7 +1176,8 @@ def _check_replay(events: Sequence[ReplayEvent], ledger: SeasonLedger) -> set[st
         if outcome.revealed_at < event.terms.deadline:
             raise ValueError("Outcomes must be revealed at or after the deadline")
         players = {s.player_id for s in event.draw.slots if s.player_id is not None}
-        if dict(outcome.points).keys() != players or not set(outcome.withdrawn) <= players:
+        if (len(outcome.points) != len(players) or dict(outcome.points).keys() != players
+                or not set(outcome.withdrawn) <= players):
             raise ValueError("Outcomes must score every draw player exactly once")
         if (any(v < 0 for _, v in outcome.points)
                 or any(v < 0 for _, v in outcome.rival_points)):
@@ -1080,6 +1185,8 @@ def _check_replay(events: Sequence[ReplayEvent], ledger: SeasonLedger) -> set[st
         names = {r for r, _ in outcome.rival_points}
         if len(names) != len(outcome.rival_points) or (rivals is not None and names != rivals):
             raise ValueError("Every event must score the same distinct rivals")
+        if entry_id in names:
+            raise ValueError("Rival results must not include your own entry")
         rivals = names
         previous = event
     return rivals or set()
@@ -1114,22 +1221,33 @@ def replay_season(
         raise ValueError("Replay seed must be a non-negative integer")
     if not events or not policies or len(set(policies)) != len(policies):
         raise ValueError("Replay needs events and distinct policies")
-    rivals = _check_replay(events, ledger)
+    rivals = _check_replay(events, ledger, entry_id)
     start = dict(rival_start or {})
     if not set(start) <= rivals:
         raise ValueError("Rival start points must name scored rivals")
-    if payout is not None and payout.participants != len(rivals) + 1:
-        raise ValueError("Payouts need every other participant's event points")
+    if payout is not None:
+        _check_payout(payout, len(rivals) + 1, allow_provisional, register_path)
     trajectories = []
     for policy in policies:
         own = ledger
-        steps = []
+        steps: list[ReplayStep] = []
         for number, event in enumerate(events):
             snapshot = own.replay(event.cutoff)
             entry = next((e for e in snapshot.entries if e.entry_id == entry_id), None)
             if entry is None:
                 entry = EntryState(entry_id=entry_id, slam=_FULL_BANKS["slam"],
                                    masters=_FULL_BANKS["masters"], usage=())
+            # A substitute of an earlier sheet may still activate after this cutoff:
+            # reserve its use so a later activation cannot break the five-use cap.
+            reserved = tuple(sorted({
+                pair.substitute.player_id for earlier, step in zip(events, steps)
+                if earlier.outcome.revealed_at >= event.cutoff
+                for pair in step.pairs if pair.substitute is not None}))
+            if reserved:
+                usage = dict(entry.usage)
+                for player in reserved:
+                    usage[player] = min(_USE_CAP, usage.get(player, 0) + 1)
+                entry = replace(entry, usage=tuple(sorted(usage.items())))
             context = _context(event.scenarios, event.draw, event.terms, event.cutoff, entry,
                                ledger.events, event.future, params, (_TAG, seed, number))
             decision = _decide(context, policy, event.scenarios, event.draw,
@@ -1179,6 +1297,7 @@ def replay_season(
                                     event.terms.provenance.available_at]
                                    + [f.available_at for f in event.future]),
                 pairs=pairs, spend=decision.spend, preserved=decision.preserved,
+                reserved=reserved,
                 planned_expected_points=decision.recommendation.best.metrics.expected_points,
                 realized_points=realized, event_rank=rank if rivals else None,
                 event_payout_cents=cash, slam_after=own_state.slam,
