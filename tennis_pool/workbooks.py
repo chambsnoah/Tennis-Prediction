@@ -35,6 +35,8 @@ _FORMATS = {"GS128": (128, 128, 32, 7, 5), "M7": (128, 96, 32, 7, 3),
             "M6": (64, 56, 16, 6, 3)}
 _SUPPORT = ("Rankings", "Choix", "Classement", "Banques (Solde restant)", "ChoixSommaire")
 _BANDS = ("1-4", "5-8", "9-16", "17-32")
+_SHEET_NAMESPACES = ("", "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+                     "http://purl.oclc.org/ooxml/spreadsheetml/main")
 
 
 class WorkbookImportError(ValueError):
@@ -66,6 +68,12 @@ def _bounded_bytes(path: str | Path, limits: WorkbookLimits) -> bytes:
         raise WorkbookImportError("file_byte_limit")
     with path.open("rb") as source:
         data = source.read(limits.file_bytes + 1)
+    _check_archive(data, limits)
+    return data
+
+
+def _check_archive(data: bytes, limits: WorkbookLimits) -> None:
+    """Bound and sanity-check an in-memory workbook package before parsing."""
     if len(data) > limits.file_bytes:
         raise WorkbookImportError("file_byte_limit")
     with ZipFile(BytesIO(data)) as archive:
@@ -96,8 +104,10 @@ def _bounded_bytes(path: str | Path, limits: WorkbookLimits) -> bytes:
             current_row = previous_row = previous_column = max_row = max_column = 0
             for action, node in ElementTree.iterparse(BytesIO(content), events=("start", "end")):
                 tag = node.tag.rsplit("}", 1)[-1]
+                # Drawing anchors inside a sheet (form controls' xdr:row) are not cells.
+                in_sheet = worksheet and node.tag.rpartition("}")[0].lstrip("{") in _SHEET_NAMESPACES
                 if action == "start":
-                    if worksheet and tag == "row":
+                    if in_sheet and tag == "row":
                         current_row = int(node.get("r", "0"))
                         if current_row <= previous_row:
                             raise WorkbookImportError("invalid_row_order")
@@ -115,7 +125,7 @@ def _bounded_bytes(path: str | Path, limits: WorkbookLimits) -> bytes:
                             or not target.startswith("xl/worksheets/") or not target.endswith(".xml")
                             or target not in archive.namelist()):
                         raise WorkbookImportError("unsupported_worksheet_location")
-                if worksheet and tag in ("dimension", "c"):
+                if in_sheet and tag in ("dimension", "c"):
                     refs = node.get("ref", "") if tag == "dimension" else node.get("r", "")
                     for ref in refs.split(":"):
                         match = re.fullmatch(r"([A-Z]+)([1-9][0-9]*)", ref)
@@ -132,11 +142,11 @@ def _bounded_bytes(path: str | Path, limits: WorkbookLimits) -> bytes:
                                 raise WorkbookImportError("invalid_cell_order_or_row")
                             previous_column = column
                             max_column = max(max_column, column)
-                if worksheet and tag == "row":
+                if in_sheet and tag == "row":
                     rows += 1
                     if rows > limits.rows or int(node.get("r", "0")) > limits.rows:
                         raise WorkbookImportError("worksheet_row_limit")
-                if worksheet and tag == "c":
+                if in_sheet and tag == "c":
                     cells += 1
                     if cells > limits.cells:
                         raise WorkbookImportError("worksheet_cell_limit")
@@ -145,7 +155,6 @@ def _bounded_bytes(path: str | Path, limits: WorkbookLimits) -> bytes:
                 dense_cells += max_row * max_column
                 if dense_cells > limits.cells:
                     raise WorkbookImportError("worksheet_dense_cell_limit")
-    return data
 
 
 def _sheet_rows(sheet: Any) -> tuple[list[tuple[Any, ...]], set[tuple[int, int]]]:

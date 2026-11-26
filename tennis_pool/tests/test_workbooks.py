@@ -636,3 +636,23 @@ def test_relocated_worksheet_cannot_bypass_preflight_bounds(tmp_path, registry):
         extra=(("xl/private-data.bin", worksheet),))
     with pytest.raises(WorkbookImportError, match="worksheet_location"):
         preview_bytes(tmp_path, registry, data)
+
+
+CONTROL_ANCHOR = (
+    b'<mc:AlternateContent xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006">'
+    b'<mc:Choice Requires="x14" '
+    b'xmlns:x14="http://schemas.microsoft.com/office/spreadsheetml/2009/9/main" '
+    b'xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing">'
+    b'<controls><control shapeId="1025" name="Drop Down 1"><controlPr><anchor><from>'
+    b'<xdr:col>1</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>11</xdr:row><xdr:rowOff>0</xdr:rowOff>'
+    b'</from><to><xdr:col>2</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>2</xdr:row>'
+    b'<xdr:rowOff>0</xdr:rowOff></to></anchor></controlPr></control></controls>'
+    b'</mc:Choice></mc:AlternateContent></worksheet>'
+)
+
+
+def test_form_control_anchor_rows_are_not_mistaken_for_worksheet_rows(tmp_path, registry):
+    data = rewrite_archive(workbook(), lambda name, content:
+        content.replace(b"</worksheet>", CONTROL_ANCHOR)
+        if name == "xl/worksheets/sheet1.xml" else content)
+    assert len(preview_bytes(tmp_path, registry, data).draw.slots) == 128

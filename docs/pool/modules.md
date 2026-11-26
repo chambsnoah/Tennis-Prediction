@@ -399,6 +399,123 @@ rival choice noise) are unfitted priors disclosed in every plan. Fitting them
 and validating policies on real history needs the chronological backtesting
 harness. Tests use synthetic entries only.
 
+## Submission Export
+
+`tennis_pool.submission` fills the commissioner's pick template for one
+participant and writes a new local file. It never emails, sends, submits or
+accepts anything. Install the `excel` extra.
+
+```python
+from datetime import datetime, timezone
+
+from tennis_pool.submission import export_submission, review_submission
+
+review = review_submission(
+    template_path, pairs=plan.recommendation.best.pairs, participant=my_label,
+    draw=draw, terms=event_terms, snapshot=ledger.replay(now), entry_id=my_entry,
+    registry=registry, template_provenance=template_evidence, now=now,
+    event_ids=reviewed_event_ids,  # canonical draw event ID -> pool event ID
+    template_events=reviewed_templates,  # template file SHA-256 -> pool event ID
+    participants=reviewed_participants,  # template participant label -> entry ID
+    allow_provisional=True,
+)
+print(review.describe())          # slots, banks, uses, deadline, problems, warnings
+if review.exportable:
+    # A fresh time, so a deadline or freshness limit passed while reading counts.
+    export = export_submission(review, output_path, now=datetime.now(timezone.utc))
+```
+
+**How the template stores a sheet.** The `VosChoix` sheet holds eleven
+dropdown form controls: the participant, five primaries (`Joueur #1` to `#5`)
+and the five substitutes beside them. Each dropdown keeps a 1-based list index
+in its control part and in a linked `InputChoix` cell (`S1`, `U1`, `W1`, `Y1`,
+`AA1` for primaries, `AD1` to `AL1` for substitutes, `S5` for the participant).
+List index *i* is `InputChoix` row *i* + 2 (player label in column B, band in
+column C, and column D numbering rows from a constant 1 in row 3), and participant *i* is the `Banques (Solde restant)` row whose
+column A holds *i*. The template's formulas turn these indices into names, so
+pair *k* fills slot *k*. The formulas that turn an index into a shown name
+(columns E to L of each list row and the picked-name cells in row 1) must match
+the 2026 layout exactly, so the file cannot display a name other than the
+verified label. A different control set, list position, display formula,
+dropdown range past the row limit or a formula in a linked cell is rejected as
+an unsupported template. Padding rows after the list may keep a band label but
+not a name.
+
+**Review.** `review_submission` reads the template without evaluating
+formulas and checks the five pairs three ways. Against the ledger, it runs
+`validate_roster` on the replayed entry state (every activation combination,
+both banks and the five-use cap). Against the draw, every player must be in
+the template list once, under a reviewed alias, with the template's band equal
+to the draw seed's band. Draws carry a canonical event ID, so a reviewed
+`event_ids` mapping must map it to the requested pool event. The draw's format
+must also fit the event and its dates must span the deadline (from a week
+before the start to the end). The template file names no event, so a reviewed
+`template_events` mapping must bind the SHA-256 of the template as received to
+the requested pool event. Export refuses a template whose digest differs from
+the reviewed one, so the binding carries through to the output. The template's
+Slam or Masters header must also fit, and its player list must match the
+mapped draw (more than a 10% mismatch blocks). Against the template's own formulas, which blank a
+pick whose band shows no tokens left or whose player shows five uses in
+`ChoixSommaire`, and which count primaries per band against the participant's
+bank row. Those bank and use cells, and the use labels the
+lookup searches, must be stored values: a formula's cached
+result could change when Excel recalculates, so it blocks. Both lookup ranges
+must reach every participant, and use counts past the usage range's last row
+are treated as absent, as Excel's lookup would. Use labels match on their
+untrimmed text without regard to case, like Excel's exact `VLOOKUP`, and list
+labels may not contain its wildcards (`*`, `?`, `~`) or outer spaces. A seeded band a pick uses must have a stored
+count in the participant's bank row, since a blank compares equal to zero and
+blanks the pick. Lookup ranges must end inside the worksheet. A reviewed `participants`
+mapping must tie the template participant to `entry_id`, so the template row
+and the ledger state describe the same entry. Any of these, an unknown or ambiguous participant label, a slot
+without a substitute (the template has no empty option), an input dated after
+`now`, a passed deadline, or a sheet the writer cannot record and read back
+unchanged (checked by a dry run) is a problem, and problems block export.
+When the event already has an accepted sheet, the roster is checked against
+the entry state before that sheet, since replay charges only the final
+accepted sheet. Warnings
+cover inputs older than `stale_after` (24 hours by default) and a deadline
+under an hour away. They also cover template banks or use counts that differ
+from the ledger, template players outside the draw or draw players missing from
+it, unreviewed labels, and earlier submitted or accepted sheets for the event.
+The review shows the bank now, after the primaries and if every substitute
+activates. Its repr and `describe()` leave out the participant label and file
+name.
+
+**Export.** `export_submission` refuses a review with problems, a review older
+than its `stale_after`, a template changed since review, a passed deadline, an
+existing output file or a suffix other than the template's. Pass a fresh `now`. It copies every
+ZIP member byte for byte, with the same order and compression, and rewrites
+only the eleven control indices, their linked cells and the workbook's
+`fullCalcOnLoad` flag. Cached formula results still describe the old picks
+until Excel recalculates them on open. Styles, data validation, conditional
+formatting, the controls and any `.xlsm` VBA project are therefore unchanged;
+macros are copied as opaque bytes and never loaded or run. Before and after
+writing, the output is re-imported with `read_submission`: participant, the
+five pairs with their bands, the event's bank kind (Slam or Masters header)
+and the template's player list must match the review, and every other member
+must be byte-identical, or the file is removed. The file is written in a fresh
+owner-only staging folder next to the output, pinned by a directory descriptor
+so renaming the folder cannot redirect any step, read back (the bytes must equal those
+written) and verified there, and only then published with an atomic hard link
+that refuses an existing path. The file is owner-only (mode 0600), because it
+names the participant and their picks. Export only ever removes its own staged file
+and folder, never a file at the output path.
+
+**Not a submission.** Export changes no season state. Once the participant has
+sent the file themself, `submitted_record(export, ...)` builds the ledger's
+`Submitted` record (Excel attachment, sent before the deadline) for the
+reviewed entry. That record
+still debits nothing and counts toward nothing. Only a separate `Accepted` record from the
+commissioner debits the bank and player uses and counts the event toward the
+seven-sheet bonus. `confirmed_qualifying_events` in the review counts accepted
+sheets only. Strict mode blocks on the provisional `submission` decisions, and
+changed decision texts need an implementation review.
+
+Tests build synthetic templates at runtime. The layout follows the 2026
+reference template; real templates have only been exercised locally, not
+certified. Opening an export in Excel has not been automated.
+
 ## Workbook Preview
 
 `tennis_pool.workbooks.preview_workbook` is a read-only adapter for
