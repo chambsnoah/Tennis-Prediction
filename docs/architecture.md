@@ -209,3 +209,100 @@ blocked. Snapshots explicitly report
 refresh and adds no provider adapter. Existing legacy API examples in
 the [README](../README.md) do not approve a source for information observations or backtests.
 Tests use synthetic records only and never read the separate `/tennis` project.
+
+## Local App and Services
+
+`web_interface` is the single-user local app. One command starts it:
+
+```bash
+uv run --locked --extra web --extra excel --extra simulation python -m web_interface
+```
+
+It binds `127.0.0.1` only (there is no host option), never enables the
+Werkzeug debugger or reloader, and accepts only `127.0.0.1`/`localhost` Host
+headers, so a DNS-rebinding page cannot reach it. POST requests with a foreign
+`Origin` are refused, JSON routes require `application/json` and the upload
+route `application/octet-stream`, so a cross-site page cannot send a simple
+form post. Public or multi-user hosting is out of scope.
+
+**Typed services.** Routes call `web_interface.services.LocalServices`
+directly; nothing shells out or parses a script's output. Each method validates
+untrusted JSON into a typed job record (`MatchSimulationJob`,
+`TeamOptimizationJob`, `WorkbookPreviewJob`, `PredictionJob`, `ScenarioJob`,
+`RecommendationJob`) and runs it through the job runner. Python callers can
+build these records and call the job functions or `preview_upload` themselves.
+
+| Route | Service | Notes |
+| --- | --- | --- |
+| `GET /api/status` | `status` | Effective limits and which OS limits workers get; no paths or environment values |
+| `GET /api/tournaments`, `/api/players/<year>/<slug>/<gender>`, `/api/bracket/...` | legacy catalog | 2023/2024 JSON under `TENNIS_DATA_ROOT` |
+| `POST /api/simulate-match` | `simulate_match` | Unvalidated synthetic heuristic, seeded, at most 20,000 matches |
+| `POST /api/optimize-team` | `optimize_team` | Legacy budget annealing, seeded, from the cheapest full team; not 2026 decision support |
+| `POST /api/workbooks/preview?event_id=&format=` | `preview_workbook` | Raw workbook body, at most 8 MiB; returns the canonical draw and counts only |
+| `POST /api/predict` | `predict` | `{artifact, context}`: a canonical `PredictionContext`; the response must bind to it |
+| `POST /api/pool/scenarios` | `simulate_tournament` | `build_scenarios` over a canonical draw; per-player mean/p90 points and the rule register used |
+| `POST /api/pool/recommend` | `recommend` | Scenarios plus `optimizer.recommend` for a configured pool `event_id` (the draw's event and scoring kind must match it) and optional `EntryState` |
+
+**No request paths.** Legacy tournaments are addressed by catalog ID
+(`YYYY/slug`, fixed patterns), pool events by an ID from the configured
+`events.json`, and providers by a manifest artifact name. Files are opened below
+their root one component at a time with `O_NOFOLLOW`, so `..`, separators,
+absolute paths and symlinks never resolve, and every read is size-bounded and
+schema-checked. Static routes serve only `index.html`, `app.js` and
+`styles.css`. Pool calls always use the bundled rule register (no
+`register_path`), and `allow_provisional` must be a JSON boolean defaulting to
+`false`, so strict mode still blocks with `rules_unresolved`. Scenario results
+report the rule register version and each decision's status.
+
+**Bounded jobs.** `web_interface.jobs.JobRunner` runs each job's registered
+`module:function` in a fresh `spawn` worker with a typed payload and a pipe for
+the result. At most `max_concurrent` jobs run (2 by default); another request
+gets `busy` (429) rather than an unbounded queue. A job past its wall-clock
+deadline (120 s), including one still sending its result, is killed
+(`job_timeout`, 504), with `RLIMIT_CPU` as a backstop. Uploaded workbooks are
+staged in an owner-only folder the server removes after the worker is reaped. `RLIMIT_AS` (4 GiB) caps memory where the OS enforces it: Linux does,
+macOS refuses to lower it, and `/api/status` reports which limits took effect.
+Payloads (16 MiB) and results (8 MiB) are bounded, numeric libraries run
+single-threaded, and simulation counts, withdrawal entries (128), withdrawal
+patterns (64), rankings (256), team size and budget have fixed caps. The limits
+live in `LocalAppConfig` and `JobLimits`; the environment only selects
+`TENNIS_DATA_ROOT`, `TENNIS_POOL_ROOT`, `TENNIS_PORT` and an optional
+`TENNIS_ARTIFACT_MANIFEST_SHA256`. Requests without a `seed` use 2026, so equal
+inputs give equal results.
+
+**Safe errors.** Refusals are `{"error": "<reason_code>"}` with a fitting
+status. Workbook failures keep `preview_workbook`'s safe reason codes. Any other
+exception, in a route or a worker, returns `internal_error` with a random
+request ID and is logged by exception type only: messages and tracebacks can
+contain paths or credentials, so they are never returned or logged. No route
+returns configuration paths or environment values.
+
+**Pool inputs and trusted artifacts.** `TENNIS_POOL_ROOT` is an operator-owned
+directory (owned by the running user, not group or world writable) holding a
+reviewed `registry.json` (`IdentityRegistry.to_dict()`), `events.json`
+(`{"schema_version": 1, "events": {"<pool event id>": <canonical Event>}}`) and
+optionally `artifacts/manifest.json`:
+
+```json
+{"schema_version": 1, "artifacts": [
+  {"name": "model-a", "file": "model-a.bin", "kind": "<loader kind>",
+   "sha256": "<64 hex>", "bytes": 1234}]}
+```
+
+The server only resolves an artifact name; the job worker, holding a job slot,
+reads it once (bounded by its declared size), hashes it and compares the pinned
+digest, and the provider loader deserializes those same bytes. A changed,
+resized, symlinked, foreign-owned or group/world-writable artifact, or a
+symlinked `artifacts` folder, is refused. A file that exists but cannot be read
+is reported as `file_unreadable`, never treated as absent. Pinning the manifest
+itself with `TENNIS_ARTIFACT_MANIFEST_SHA256` also refuses an edited manifest.
+Loaders map a manifest `kind` to a `module:function` in
+`LocalAppConfig.provider_loaders`; they are set in code only, never by a
+request or environment variable. No loader ships yet: calibrated model
+artifacts are future work, so prediction and pool routes answer
+`no_provider_loader` until one is configured. Legacy pickle/joblib ensembles are
+not loadable through this boundary.
+
+Tests build synthetic tournaments, workbooks, registries, draws and a fixture
+provider at runtime; the fixture provider is uncalibrated and exists only to
+exercise the boundary.
