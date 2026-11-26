@@ -39,7 +39,8 @@ jobs:
         with:
           version: '0.12.23'
           python-version: '3.13'
-      - run: uv sync --locked --extra simulation --group dev
+      # The web app is in the strict mypy run, so Flask's typed package is needed here.
+      - run: uv sync --locked --extra simulation --extra web --group dev
       - run: uv run --locked ruff check .
       - run: uv run --locked mypy
       # NumPy 2.4 stubs require a 3.12+ parser target; runtime tests still cover 3.11.
@@ -47,6 +48,7 @@ jobs:
       - run: uv run --locked --extra simulation mypy --python-version 3.13 tennis_pool/optimizer.py
       - run: uv run --locked --extra simulation mypy --python-version 3.13 tennis_pool/rivals.py
       - run: uv run --locked --extra simulation mypy --python-version 3.13 tennis_pool/season.py
+      - run: uv run --locked --extra simulation mypy --python-version 3.13 web_interface/pool_jobs.py
       - run: uv run --locked mypy --strict --follow-imports=skip tennis_api/models/player_stats.py
 
   dependency-audit:

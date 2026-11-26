@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import os
 from pathlib import Path
 import sys
 import tempfile
@@ -57,34 +56,26 @@ def check_install(feature="runtime", require_wheel=False):
                 ("Fixture A", "Fixture B", "Fixture C"), start=1
             )}
             (tournament / "players_male.json").write_text(json.dumps(players), encoding="utf-8")
-            previous = os.environ.get("TENNIS_DATA_ROOT")
-            os.environ["TENNIS_DATA_ROOT"] = directory
-            try:
-                server = import_module("web_interface.server")
-                import_module("web_interface.match_simulator")
-                import_module("web_interface.team_optimizer")
-                for resource in ("index.html", "app.js", "styles.css"):
-                    assert files("web_interface").joinpath(resource).is_file(), resource
-                with server.app.test_client() as client:
-                    for path in ("/", "/app.js", "/styles.css"):
-                        assert client.get(path).status_code == 200, path
-                    assert client.get("/api/tournaments").json[0]["id"] == "2024/smoke"
-                    assert len(client.get("/api/players/2024/smoke/male").json) == 3
-                    response = client.post("/api/simulate-match", json={
-                        "tournament_path": "2024/smoke", "gender": "male",
-                        "player1_name": "Fixture A", "player2_name": "Fixture B",
-                        "sets_to_win": 1, "num_simulations": 1,
-                    })
-                    assert response.status_code == 200, response.json
-                    response = client.post("/api/optimize-team", json={
-                        "tournament_path": "2024/smoke", "gender": "male", "team_size": 2,
-                    })
-                    assert response.status_code == 200, response.json
-            finally:
-                if previous is None:
-                    os.environ.pop("TENNIS_DATA_ROOT")
-                else:
-                    os.environ["TENNIS_DATA_ROOT"] = previous
+            server = import_module("web_interface.server")
+            config_module = import_module("web_interface.config")
+            for resource in ("index.html", "app.js", "styles.css"):
+                assert files("web_interface").joinpath(resource).is_file(), resource
+            config = config_module.LocalAppConfig(data_root=Path(directory).resolve())
+            with server.create_app(config).test_client() as client:
+                for path in ("/", "/app.js", "/styles.css"):
+                    assert client.get(path).status_code == 200, path
+                assert client.get("/api/tournaments").json[0]["id"] == "2024/smoke"
+                assert len(client.get("/api/players/2024/smoke/male").json) == 3
+                response = client.post("/api/simulate-match", json={
+                    "tournament_path": "2024/smoke", "gender": "male",
+                    "player1_name": "Fixture A", "player2_name": "Fixture B",
+                    "sets_to_win": 2, "num_simulations": 1,
+                })
+                assert response.status_code == 200, response.json
+                response = client.post("/api/optimize-team", json={
+                    "tournament_path": "2024/smoke", "gender": "male", "team_size": 2,
+                })
+                assert response.status_code == 200, response.json
 
     if require_wheel:
         for name, module in tuple(sys.modules.items()):

@@ -1,9 +1,5 @@
 """Discoverable domain coverage using only synthetic, local inputs."""
 
-import json
-import subprocess
-import sys
-
 import pytest
 from openpyxl import Workbook
 
@@ -18,7 +14,6 @@ from pool_optimizer.pool.parsers import (
 from pool_optimizer.pool.results import match_log, score_tournament
 from pool_optimizer.pool.scoring import atp_points, band, bonus_points, score_player
 from tennis_preds.tennis import Player, PlayerSimple, TennisMatch
-from web_interface import server
 
 
 @pytest.mark.parametrize("simple", [False, True], ids=["detailed", "simple"])
@@ -213,141 +208,3 @@ def test_synthetic_workbook_ingests_banks_and_player_usage(tmp_path, masters_onl
     assert bank.masters_quota == dict(zip(GS_BANDS, [4, 3, 2, 1]))
     assert bank.maxed_players == ["Alpha", "Bravo"]
     assert load_player_usage(str(path)) == {"Synthetic Participant": {"Alpha": 5, "Bravo": 2}}
-
-
-@pytest.fixture
-def synthetic_web_client(tmp_path, monkeypatch):
-    tournament = tmp_path / "2024" / "wimby2024"
-    tournament.mkdir(parents=True)
-    (tournament / "players_male.json").write_text(
-        json.dumps({"Synthetic Beta": {"seed": 2, "cost": 250}, "Synthetic Alpha": {"seed": 1}}),
-        encoding="utf-8",
-    )
-    (tournament / "bracket_male.txt").write_text(
-        "Singles R1 Upcoming Court Synthetic Alpha vs Synthetic Beta\n", encoding="utf-8"
-    )
-    (tmp_path / "2024" / "empty").mkdir()
-    monkeypatch.setattr(server, "PROJECT_ROOT", str(tmp_path))
-    monkeypatch.setitem(server.app.config, "TESTING", True)
-    with server.app.test_client() as client:
-        yield client, tournament
-
-
-def test_web_lists_synthetic_tournaments_players_and_bracket(synthetic_web_client):
-    client, _ = synthetic_web_client
-    response = client.get("/api/tournaments")
-    assert response.status_code == 200
-    assert response.get_json() == [
-        {"id": "2024/wimby2024", "name": "Wimbledon 2024", "has_male": True, "has_female": False}
-    ]
-    response = client.get("/api/players/2024/wimby2024/male")
-    assert response.status_code == 200
-    assert response.get_json() == [
-        {"name": "Synthetic Alpha", "seed": 1, "cost": 0, "p_factor": 0, "n_factor": 0},
-        {"name": "Synthetic Beta", "seed": 2, "cost": 250, "p_factor": 0, "n_factor": 0},
-    ]
-    response = client.get("/api/bracket/2024/wimby2024/male")
-    assert response.status_code == 200
-    assert response.get_json() == {
-        "bracket_text": "Singles R1 Upcoming Court Synthetic Alpha vs Synthetic Beta\n",
-        "matches": [{"round": "R1", "status": "Upcoming", "player1": "Synthetic Alpha", "player2": "Synthetic Beta"}],
-    }
-
-
-@pytest.mark.parametrize("resource", ["players", "bracket"])
-def test_web_missing_synthetic_data_returns_404(synthetic_web_client, resource):
-    client, _ = synthetic_web_client
-    response = client.get(f"/api/{resource}/2024/wimby2024/female")
-    assert response.status_code == 404
-    assert response.get_json() == {"error": f"{resource.title()} file not found"}
-
-
-def test_web_malformed_synthetic_player_json_returns_error(synthetic_web_client):
-    client, tournament = synthetic_web_client
-    (tournament / "players_male.json").write_text("{invalid", encoding="utf-8")
-    response = client.get("/api/players/2024/wimby2024/male")
-    assert response.status_code == 500
-    assert "error" in response.get_json()
-
-
-def test_web_real_match_subprocess_labels_heuristic_and_withholds_details(synthetic_web_client):
-    client, _ = synthetic_web_client
-    response = client.post(
-        "/api/simulate-match",
-        json={
-            "tournament_path": "2024/wimby2024",
-            "gender": "male",
-            "player1_name": "Synthetic Alpha",
-            "player2_name": "Synthetic Beta",
-            "sets_to_win": 2,
-            "num_simulations": 4,
-        },
-    )
-    assert response.status_code == 200
-    result = response.get_json()
-    assert set(result) == {
-        "player1_wins", "player2_wins", "player1_win_percentage", "player2_win_percentage",
-        "win_estimate", "detailed_forecast",
-    }
-    assert result["player1_wins"] + result["player2_wins"] == 4
-    assert result["player1_win_percentage"] + result["player2_win_percentage"] == 100
-    assert result["win_estimate"]["method"] == "synthetic_serve_heuristic"
-    assert result["win_estimate"]["validated"] is False
-    assert "not calibrated model probabilities" in result["win_estimate"]["description"]
-    assert result["detailed_forecast"]["status"] == "unavailable"
-    assert "No validated model-to-serve mapping" in result["detailed_forecast"]["reason"]
-
-
-@pytest.mark.parametrize(
-    "endpoint,script,extra_args,timeout",
-    [
-        ("simulate-match", "match_simulator.py", ["Synthetic Alpha", "Synthetic Beta", "--sets", "3", "--simulations", "500", "--surface", "grass"], 60),
-        ("optimize-team", "team_optimizer.py", ["--budget", "100000", "--team-size", "8"], 120),
-    ],
-)
-def test_web_subprocess_success_uses_current_python_and_defaults(
-    synthetic_web_client, monkeypatch, endpoint, script, extra_args, timeout
-):
-    client, _ = synthetic_web_client
-    payload = {"tournament_path": "2024/wimby2024", "gender": "male", "player1_name": "Synthetic Alpha", "player2_name": "Synthetic Beta"}
-    result = {"synthetic_result": ["Synthetic Alpha"]}
-    calls = []
-
-    def fake_run(cmd, **kwargs):
-        calls.append((cmd, kwargs))
-        return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps(result), stderr="")
-
-    monkeypatch.setattr(server.subprocess, "run", fake_run)
-    response = client.post(f"/api/{endpoint}", json=payload)
-    assert response.status_code == 200
-    assert response.get_json() == result
-    assert calls == [
-        ([sys.executable, str(server.WEB_ROOT + "/" + script), "2024/wimby2024", "male", *extra_args],
-         {"capture_output": True, "text": True, "timeout": timeout})
-    ]
-
-
-@pytest.mark.parametrize("endpoint,label", [("simulate-match", "Simulation"), ("optimize-team", "Optimization")])
-@pytest.mark.parametrize("failure", ["stderr", "empty-stderr", "timeout", "invalid-json"])
-def test_web_subprocess_failures_return_json_errors(synthetic_web_client, monkeypatch, endpoint, label, failure):
-    client, _ = synthetic_web_client
-
-    def fake_run(cmd, **kwargs):
-        if failure == "timeout":
-            raise subprocess.TimeoutExpired(cmd, kwargs["timeout"])
-        if failure == "invalid-json":
-            return subprocess.CompletedProcess(cmd, 0, stdout="not JSON", stderr="")
-        return subprocess.CompletedProcess(cmd, 1, stdout="", stderr="synthetic failure" if failure == "stderr" else "")
-
-    monkeypatch.setattr(server.subprocess, "run", fake_run)
-    response = client.post(
-        f"/api/{endpoint}",
-        json={"tournament_path": "2024/wimby2024", "gender": "male", "player1_name": "Synthetic Alpha", "player2_name": "Synthetic Beta"},
-    )
-    assert response.status_code == 500
-    error = response.get_json()["error"]
-    if failure == "invalid-json":
-        assert error
-    else:
-        expected = {"stderr": "synthetic failure", "empty-stderr": f"{label} failed", "timeout": f"{label} timed out"}
-        assert error == expected[failure]

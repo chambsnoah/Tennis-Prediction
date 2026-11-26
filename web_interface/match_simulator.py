@@ -1,131 +1,71 @@
-#!/usr/bin/env python3
 """Unvalidated synthetic win heuristic for the legacy web interface.
 
 Detailed forecasts are unavailable until a model-to-serve mapping is validated.
+The web app calls ``simulate_matches`` directly as a bounded job; this module
+reads no files and takes no paths.
 """
 
-import sys
-import os
-import json
-import random
-import argparse
+from __future__ import annotations
 
-# Add project paths
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
-sys.path.append(os.path.join(project_root, 'tennis_preds'))
+import random
+from typing import Any
 
 from tennis_preds.tennis import Player, TennisMatch
 
-DATA_ROOT = os.path.abspath(os.environ.get('TENNIS_DATA_ROOT', project_root))
+SURFACE_ADJUSTMENTS = {
+    "grass": {"first_serve": 0.02, "first_win": 0.05, "second_win": 0.02},
+    "clay": {"first_serve": -0.01, "first_win": -0.02, "second_win": 0.01},
+    "hard": {"first_serve": 0.0, "first_win": 0.0, "second_win": 0.0},
+}
 
-def create_player_from_data(name, player_data, surface='grass'):
+
+def create_player(name: str, p_factor: float, n_factor: float, surface: str = "grass") -> Any:
     """Create synthetic heuristic inputs, not measured or model-derived stats."""
-    # Base serving statistics
-    first_serve_percentage = 0.65
-    second_serve_percentage = 0.90
-    first_serve_win_percentage = 0.70
-    second_serve_win_percentage = 0.55
-    
-    # Get player factors
-    p_factor = player_data.get('p_factor', 0)
-    n_factor = player_data.get('n_factor', 0)
-    
-    # Surface adjustments
-    surface_adjustments = {
-        'grass': {'first_serve': 0.02, 'first_win': 0.05, 'second_win': 0.02},
-        'clay': {'first_serve': -0.01, 'first_win': -0.02, 'second_win': 0.01},
-        'hard': {'first_serve': 0, 'first_win': 0, 'second_win': 0}
-    }
-    
-    adj = surface_adjustments.get(surface, surface_adjustments['hard'])
-    
-    # Apply adjustments
-    first_serve_percentage += adj['first_serve'] + (p_factor * 2) - (n_factor * 2)
-    first_serve_win_percentage += adj['first_win'] + (p_factor * 5) - (n_factor * 3)
-    second_serve_win_percentage += adj['second_win'] + (p_factor * 3) - (n_factor * 2)
-    
-    # Ensure realistic bounds
-    first_serve_percentage = max(0.4, min(0.8, first_serve_percentage))
-    first_serve_win_percentage = max(0.5, min(0.85, first_serve_win_percentage))
-    second_serve_win_percentage = max(0.35, min(0.70, second_serve_win_percentage))
-    
-    return Player(name, first_serve_percentage, second_serve_percentage, 
-                 first_serve_win_percentage, second_serve_win_percentage)
+    adj = SURFACE_ADJUSTMENTS[surface]
+    first_serve = 0.65 + adj["first_serve"] + p_factor * 2 - n_factor * 2
+    first_win = 0.70 + adj["first_win"] + p_factor * 5 - n_factor * 3
+    second_win = 0.55 + adj["second_win"] + p_factor * 3 - n_factor * 2
+    return Player(name, max(0.4, min(0.8, first_serve)), 0.90,
+                  max(0.5, min(0.85, first_win)), max(0.35, min(0.70, second_win)))
 
-def simulate_matches(tournament_path, gender, player1_name, player2_name, 
-                    sets_to_win=3, num_simulations=500, surface='grass'):
-    """Return heuristic win counts only, never detailed match forecasts."""
-    if num_simulations < 1:
-        raise ValueError("num_simulations must be positive")
-    
-    # Load player data
-    players_file = os.path.join(DATA_ROOT, tournament_path, f'players_{gender}.json')
-    
-    with open(players_file, 'r') as f:
-        players_data = json.load(f)
-    
-    if player1_name not in players_data or player2_name not in players_data:
-        raise ValueError(f"Player not found in {players_file}")
-    
-    player1_data = players_data[player1_name]
-    player2_data = players_data[player2_name]
-    
-    # Create players
-    player1 = create_player_from_data(player1_name, player1_data, surface)
-    player2 = create_player_from_data(player2_name, player2_data, surface)
-    
-    # Run simulations
-    results: dict[str, float] = {
-        'player1_wins': 0.0,
-        'player2_wins': 0.0,
-    }
-    
-    for i in range(num_simulations):
-        player1_to_start = random.choice([True, False])
-        match = TennisMatch(player1, player2, sets_to_win, player1_to_start)
+
+def simulate_matches(
+    player1: tuple[str, float, float], player2: tuple[str, float, float], *,
+    sets_to_win: int, simulations: int, surface: str, seed: int,
+) -> dict[str, object]:
+    """Return heuristic win counts only, never detailed match forecasts.
+
+    Players are ``(name, p_factor, n_factor)``. The seed fully determines the
+    result: one stream draws who serves first and every point.
+    """
+    if type(simulations) is not int or simulations < 1:
+        raise ValueError("simulations must be a positive integer")
+    if surface not in SURFACE_ADJUSTMENTS:
+        raise ValueError("Unknown surface")
+    rng = random.Random(seed)
+    first = create_player(*player1, surface=surface)
+    second = create_player(*player2, surface=surface)
+    wins = 0
+    for _ in range(simulations):
+        match = TennisMatch(first, second, sets_to_win, rng.random() < 0.5, rng=rng)
         match.simulate_match(verbose=False)
-        
-        winner = match.get_match_winner()
-        if winner == player1:
-            results['player1_wins'] += 1
-        else:
-            results['player2_wins'] += 1
-        
+        wins += match.get_match_winner() is first
     # These frequencies are conditional on synthetic inputs, not calibrated odds.
-    results['player1_win_percentage'] = round((results['player1_wins'] / num_simulations) * 100, 1)
-    results['player2_win_percentage'] = round((results['player2_wins'] / num_simulations) * 100, 1)
     return {
-        **results,
-        'win_estimate': {
-            'method': 'synthetic_serve_heuristic',
-            'validated': False,
-            'description': 'Unvalidated heuristic using synthetic serve inputs; not calibrated model probabilities.',
+        "player1_wins": wins,
+        "player2_wins": simulations - wins,
+        "player1_win_percentage": round(wins / simulations * 100, 1),
+        "player2_win_percentage": round((simulations - wins) / simulations * 100, 1),
+        "seed": seed,
+        "win_estimate": {
+            "method": "synthetic_serve_heuristic",
+            "validated": False,
+            "description": "Unvalidated heuristic using synthetic serve inputs; "
+                           "not calibrated model probabilities.",
         },
-        'detailed_forecast': {
-            'status': 'unavailable',
-            'reason': 'No validated model-to-serve mapping for score, statistics or duration forecasts.',
+        "detailed_forecast": {
+            "status": "unavailable",
+            "reason": "No validated model-to-serve mapping for score, statistics "
+                      "or duration forecasts.",
         },
     }
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Simulate tennis matches')
-    parser.add_argument('tournament_path', help='Path to tournament data')
-    parser.add_argument('gender', choices=['male', 'female'], help='Player gender')
-    parser.add_argument('player1', help='First player name')
-    parser.add_argument('player2', help='Second player name')
-    parser.add_argument('--sets', type=int, default=3, help='Sets to win (default: 3)')
-    parser.add_argument('--simulations', type=int, default=500, help='Number of simulations (default: 500)')
-    parser.add_argument('--surface', choices=['grass', 'clay', 'hard'], default='grass', help='Court surface (default: grass)')
-    
-    args = parser.parse_args()
-    
-    try:
-        results = simulate_matches(
-            args.tournament_path, args.gender, args.player1, args.player2,
-            args.sets, args.simulations, args.surface
-        )
-        print(json.dumps(results, indent=2))
-    except Exception as e:
-        print(json.dumps({'error': str(e)}), file=sys.stderr)
-        sys.exit(1)

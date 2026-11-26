@@ -156,13 +156,13 @@ print(f"Player 1 wins: {player1_wins}, Player 2 wins: {player2_wins}")
 
 ### 3. Web Interface
 
-Start the web application for legacy heuristic win simulations:
+Start the local web application (it listens on 127.0.0.1 only):
 
 ```bash
-uv run --locked --extra web python -m web_interface.server
+uv run --locked --extra web --extra excel --extra simulation python -m web_interface
 ```
 
-Then open your browser to `http://localhost:5000` for:
+Then open your browser to `http://127.0.0.1:5000` for:
 - Unvalidated heuristic win simulations
 - Team optimization tools
 - Tournament bracket visualization

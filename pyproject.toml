@@ -62,15 +62,20 @@ select = ["E9", "F63", "F7", "F82", "F821"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["tennis_pool", "pool_optimizer/pool/scoring.py", "tennis_api/models/canonical.py", "tennis_api/models/identity.py", "tennis_api/models/information.py"]
+files = ["tennis_pool", "pool_optimizer/pool/scoring.py", "tennis_api/models/canonical.py", "tennis_api/models/identity.py", "tennis_api/models/information.py", "web_interface"]
 strict = true
 warn_unused_ignores = true
 # NumPy-backed modules run under a 3.13 parser target in a separate CI step.
-exclude = ["/tests/", "tennis_pool/optimizer\\.py$", "tennis_pool/rivals\\.py$", "tennis_pool/season\\.py$"]
+exclude = ["/tests/", "tennis_pool/optimizer\\.py$", "tennis_pool/rivals\\.py$", "tennis_pool/season\\.py$", "web_interface/pool_jobs\\.py$"]
 
 [[tool.mypy.overrides]]
 # Package initializers re-export legacy optional-ML models outside this gate.
 module = ["tennis_api", "tennis_api.models", "tennis_api.simulation"]
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]
+# The legacy point-by-point engine is untyped; the web wrapper types its own boundary.
+module = ["tennis_preds", "tennis_preds.*"]
 follow_imports = "skip"
 
 [[tool.mypy.overrides]]

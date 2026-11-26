@@ -43,11 +43,13 @@ tools and is not a runtime requirement.
 
 Web wheels do not bundle tournament or participant data. Set `TENNIS_DATA_ROOT`
 to an absolute directory containing the `2023/` and/or `2024/` tournament folders;
-the server and its subprocess wrappers use the same root. For editable checkout
-installs it defaults to the repository root. For example:
+for editable checkout installs it defaults to the repository root. Pool routes
+also need `TENNIS_POOL_ROOT` (see the local app section of
+[architecture.md](architecture.md)) plus the `excel` and `simulation` extras.
+The app binds 127.0.0.1 only. For example:
 
 ```bash
-TENNIS_DATA_ROOT=/path/to/tournament-data uv run --locked --extra web python -m web_interface.server
+TENNIS_DATA_ROOT=/path/to/tournament-data uv run --locked --extra web python -m web_interface
 ```
 
 `uv sync` reconciles `.venv` exactly, removing unselected extras. Always include
