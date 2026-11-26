@@ -18,10 +18,12 @@ from tennis_api.models.canonical import (
     Coverage, Draw, DrawSlot, EntryKind, Event, EventId, MatchProbability, Player, PlayerId,
     PredictionContext, Provenance, RankingSnapshot, Surface, Tour,
 )
+from dataclasses import replace
+
 from tennis_api.models.identity import IdentityRegistry, ReviewedAlias
 from tennis_pool.workbooks import WorkbookLimits
 from web_interface import server
-from web_interface.artifacts import ArtifactStore, VerifiedArtifact
+from web_interface.artifacts import ArtifactStore, VerifiedArtifact, load_provider
 from web_interface.config import LocalAppConfig
 from web_interface.errors import ServiceError
 from web_interface.jobs import JobLimits, JobRunner
@@ -33,7 +35,8 @@ CUTOFF = START + timedelta(hours=1)
 SECRET = "synthetic-credential-sentinel-7f3a91"
 LOADER = (("synthetic-table", "test_local_services:load_synthetic_provider"),)
 TEST_TARGETS = TARGETS | {
-    "test_local_services:sleep_job", "test_local_services:secret_failure_job",
+    "test_local_services:sleep_job", "test_local_services:hold_job",
+    "test_local_services:secret_failure_job",
     "test_local_services:large_result_job", "test_local_services:echo_job",
 }
 
@@ -67,6 +70,15 @@ def load_synthetic_provider(artifact: VerifiedArtifact) -> SyntheticProvider:
 def sleep_job(seconds):
     time.sleep(seconds)
     return seconds
+
+
+def hold_job(marker):
+    """Signal that this job holds its slot, then wait until the test releases it."""
+    Path(marker + ".started").touch()
+    deadline = time.monotonic() + 30
+    while not Path(marker + ".release").exists() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    return "held"
 
 
 def secret_failure_job(_):
@@ -169,7 +181,8 @@ def pool_root(tmp_path):
     root.mkdir(mode=0o700)
     (root / "registry.json").write_text(json.dumps(synthetic_registry().to_dict()))
     (root / "events.json").write_text(json.dumps(
-        {"schema_version": 1, "events": {"australian_open": slam_event().to_dict()}}))
+        {"schema_version": 1, "events": {"australian_open": slam_event().to_dict(),
+                                         "monte_carlo": m6_draw().event.to_dict()}}))
     write_artifacts(root, {"synthetic-v1": {"model_version": "synthetic-1"},
                            "mismatched": {"model_version": "bad", "mismatch": True}})
     return root
@@ -393,6 +406,8 @@ def test_team_and_tournament_sizes_are_bounded(client):
     ({"cutoff": "yesterday"}, "invalid_cutoff"),
     ({"kind": "atp500"}, "invalid_kind"),
     ({"withdrawal_probabilities": {"atp:p1": 1.5}}, "invalid_withdrawal_probabilities"),
+    ({"withdrawal_probabilities": {"atp:p1": 10 ** 400}}, "invalid_withdrawal_probabilities"),
+    ({"withdrawal_probabilities": {"atp:p999": 0.1}}, "invalid_withdrawal_probabilities"),
     ({"withdrawal_probabilities": {f"atp:p{i}": 0.1 for i in range(200)}},
      "invalid_withdrawal_probabilities"),
     ({"allow_provisional": "yes"}, "invalid_allow_provisional"),
@@ -436,8 +451,13 @@ def test_pool_scenarios_and_recommendations_keep_strict_rule_gating(client):
     strict_recommend = client.post("/api/pool/recommend", json={
         **payload, "allow_provisional": False, "event_id": "monte_carlo"})
     assert strict_recommend.get_json() == {"error": "rules_unresolved"}
-    unknown = client.post("/api/pool/recommend", json={**payload, "event_id": "atlantis"})
-    assert unknown.get_json() == {"error": "invalid_pool_request"}
+    assert "provisional" in {d["status"] for d in result["rules"]["decisions"]}
+    for event_id, kind, code in (("atlantis", "m6", "unknown_event"),
+                                 ("australian_open", "m6", "draw_event_mismatch"),
+                                 ("monte_carlo", "m7", "kind_event_mismatch")):
+        refused = client.post("/api/pool/recommend",
+                              json={**payload, "event_id": event_id, "kind": kind})
+        assert refused.get_json() == {"error": code}, event_id
 
 
 def test_prediction_uses_only_verified_artifacts(client, pool_root):
@@ -471,17 +491,22 @@ def test_artifact_store_refuses_untrusted_locations_and_manifests(tmp_path):
     loaders = dict(LOADER)
 
     def store(manifest_sha256=None):
-        return ArtifactStore.from_directory(directory, loaders=loaders,
+        return ArtifactStore.from_pool_root(root, loaders=loaders,
                                             manifest_sha256=manifest_sha256, max_bytes=1024)
 
-    artifact, loader = store(pin).load("model")
-    assert loader == LOADER[0][1] and "data" not in repr(artifact)
+    reference = store(pin).resolve("model")
+    assert reference.loader == LOADER[0][1] and reference.spec.size > 0
+    artifact = store(pin).load("model")
+    assert artifact.sha256 == reference.sha256 and "data" not in repr(artifact)
+    assert isinstance(load_provider(reference), SyntheticProvider)
+    with pytest.raises(ServiceError, match="no_provider_loader"):
+        load_provider(replace(reference, loader="missing_module_xyz:load"))
     with pytest.raises(ServiceError, match="artifact_manifest_digest_mismatch"):
         store("0" * 64)
     with pytest.raises(ServiceError, match="unknown_artifact"):
         store().load("missing")
     with pytest.raises(ServiceError, match="no_provider_loader"):
-        ArtifactStore.from_directory(directory, loaders={}, manifest_sha256=None,
+        ArtifactStore.from_pool_root(root, loaders={}, manifest_sha256=None,
                                      max_bytes=1024).load("model")
     with pytest.raises(ServiceError, match="artifact_digest_mismatch"):
         VerifiedArtifact(name="model", kind="synthetic-table", sha256="0" * 64, data=b"{}")
@@ -502,6 +527,15 @@ def test_artifact_store_refuses_untrusted_locations_and_manifests(tmp_path):
     target.symlink_to(real)
     with pytest.raises(ServiceError, match="unsafe_path"):
         store().load("model")
+
+    # A symlinked artifacts folder is refused instead of followed out of the pool root.
+    moved = tmp_path / "moved-artifacts"
+    directory.rename(moved)
+    directory.symlink_to(moved, target_is_directory=True)
+    with pytest.raises(ServiceError, match="unsafe_path"):
+        store()
+    directory.unlink()
+    moved.rename(directory)
 
     manifest = json.loads((directory / "manifest.json").read_text())
     for bad in ("../model.json", "/etc/passwd", "sub/model.json", "manifest.json", ".hidden"):
@@ -546,23 +580,46 @@ def test_workbook_upload_preview_is_bounded_and_returns_no_private_records(clien
     assert (caught.value.code, caught.value.status) == ("file_byte_limit", 413)
 
 
+def test_staged_upload_is_removed_even_when_the_job_times_out(services, monkeypatch):
+    seen = []
+
+    def timed_out(target, job):
+        seen.append(Path(job.path))
+        assert seen[-1].exists() and oct(seen[-1].stat().st_mode & 0o777) == "0o600"
+        raise ServiceError("job_timeout", 504)
+
+    monkeypatch.setattr(services.runner, "run", timed_out)
+    with pytest.raises(ServiceError, match="job_timeout"):
+        services.preview_workbook(xlsx_bytes(), {"event_id": "australian_open",
+                                                 "format": "GS128"})
+    assert seen and not seen[0].exists() and not seen[0].parent.exists()
+
+
 # --- jobs: concurrency, time, size and determinism ---------------------------------------
 
 
-def test_jobs_are_bounded_in_concurrency_and_time():
-    runner = JobRunner(JobLimits(max_concurrent=1, timeout_seconds=1), TEST_TARGETS)
+def test_jobs_are_bounded_in_concurrency_and_time(tmp_path):
+    runner = JobRunner(JobLimits(max_concurrent=1, timeout_seconds=60), TEST_TARGETS)
+    marker = str(tmp_path / "hold")
     results = []
     worker = threading.Thread(
-        target=lambda: results.append(runner.run("test_local_services:sleep_job", 0.8)))
+        target=lambda: results.append(runner.run("test_local_services:hold_job", marker)))
     worker.start()
-    time.sleep(0.2)
     try:
+        deadline = time.monotonic() + 30
+        while not Path(marker + ".started").exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        # The first job provably holds the only slot until it is released below.
         with pytest.raises(ServiceError) as busy:
             runner.run("test_local_services:echo_job", 1)
         assert (busy.value.code, busy.value.status) == ("busy", 429)
+        assert runner.enforced == {"cpu": None, "memory": None}  # no slot free to probe
     finally:
+        Path(marker + ".release").touch()
         worker.join()
-    assert results == [0.8]
+    assert results == ["held"]
+
+    runner = JobRunner(JobLimits(max_concurrent=1, timeout_seconds=1), TEST_TARGETS)
     started = time.monotonic()
     with pytest.raises(ServiceError) as timeout:
         runner.run("test_local_services:sleep_job", 30)
@@ -659,4 +716,59 @@ def test_one_command_starts_loopback_without_debugger(monkeypatch, legacy_root):
     with pytest.raises(SystemExit):
         server.main(["--host", "0.0.0.0"])
     monkeypatch.setenv("TENNIS_POOL_ROOT", str(legacy_root / "missing"))
+    assert server.main([]) == 2
+
+
+# --- review regressions ----------------------------------------------------------------------
+
+
+def test_unreadable_or_oversized_numbers_are_not_treated_as_missing(legacy_root, client):
+    tournament = legacy_root / "2024" / "wimby2024"
+    points = tournament / "player_points_male.json"
+    points.write_text(json.dumps({"Synthetic Alpha": 10, "Synthetic Beta": 5}))
+    points.chmod(0)
+    try:
+        if os.access(points, os.R_OK):
+            pytest.skip("running with privileges that ignore file modes")
+        response = client.post("/api/optimize-team", json={
+            "tournament_path": "2024/wimby2024", "gender": "male", "team_size": 2})
+        assert (response.status_code, response.get_json()) == (503, {"error": "file_unreadable"})
+    finally:
+        points.chmod(0o644)
+    (tournament / "players_male.json").write_text('{"A": {"seed": 1, "cost": 1' + "0" * 400 + "}}")
+    response = client.get("/api/players/2024/wimby2024/male")
+    assert (response.status_code, response.get_json()) == (422, {"error": "invalid_player_data"})
+
+
+def test_legacy_team_search_keeps_size_budget_and_scored_players(legacy_root, client):
+    tournament = legacy_root / "2024" / "wimby2024"
+    (tournament / "players_male.json").write_text(json.dumps({
+        "A": {"seed": 1, "cost": 10}, "B": {"seed": 2, "cost": 10},
+        "C": {"seed": 3, "cost": 1}, "D": {"seed": 4, "cost": 1}}))
+    request = {"tournament_path": "2024/wimby2024", "gender": "male"}
+    for seed in range(5):
+        team = client.post("/api/optimize-team", json={**request, "team_size": 3, "budget": 12,
+                                                       "seed": seed}).get_json()
+        assert len(team["team_roster"]) == 3 and team["total_cost"] <= 12
+    too_small = client.post("/api/optimize-team", json={**request, "team_size": 2, "budget": 1})
+    assert too_small.get_json() == {"error": "budget_too_small"}
+    (tournament / "player_points_male.json").write_text(json.dumps({"A": 5, "Stale": 9}))
+    stale = client.post("/api/optimize-team", json={**request, "team_size": 2, "budget": 100})
+    assert stale.get_json() == {"error": "insufficient_scored_players"}
+
+
+def test_method_errors_keep_allow_header(client):
+    response = client.get("/api/simulate-match")
+    assert response.status_code == 405
+    assert response.get_json() == {"error": "method_not_allowed"}
+    assert "POST" in response.headers["Allow"]
+
+
+def test_explicit_port_wins_over_a_bad_environment_port(monkeypatch, legacy_root):
+    calls = []
+    monkeypatch.setattr("flask.Flask.run", lambda self, **kwargs: calls.append(kwargs))
+    monkeypatch.setenv("TENNIS_DATA_ROOT", str(legacy_root))
+    monkeypatch.delenv("TENNIS_POOL_ROOT", raising=False)
+    monkeypatch.setenv("TENNIS_PORT", "bad")
+    assert server.main(["--port", "5050"]) == 0 and calls[-1]["port"] == 5050
     assert server.main([]) == 2

@@ -14,7 +14,7 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from tennis_pool.optimizer import ScenarioSet, build_scenarios, recommend
+from tennis_pool.optimizer import ScenarioSet, _gate, build_scenarios, recommend
 from tennis_pool.rules import ProvisionalRulesWarning, UnresolvedRulesError
 from web_interface.artifacts import load_provider
 from web_interface.errors import ServiceError
@@ -38,12 +38,20 @@ def _pool_errors() -> Iterator[None]:
 
 
 def _scenarios(job: ScenarioJob) -> ScenarioSet:
-    provider = load_provider(job.artifact, job.loader)
+    provider = load_provider(job.artifact)
     return build_scenarios(
         job.draw, provider, kind=job.kind, cutoff=job.cutoff, simulations=job.simulations,
         seed=job.seed, withdrawal_probabilities=dict(job.withdrawal_probabilities) or None,
         max_withdrawal_patterns=job.max_withdrawal_patterns, rankings=job.rankings,
         allow_provisional=job.allow_provisional, register_path=None)
+
+
+def _rules(allow_provisional: bool) -> dict[str, object]:
+    """The rule register version and decision statuses the scenarios were scored under."""
+    version, decisions = _gate(allow_provisional, None)
+    return {"register_version": version,
+            "decisions": [{"key": key, "status": status, "decision": text}
+                          for key, status, text in decisions]}
 
 
 def _run(function: Callable[[], dict[str, object]]) -> dict[str, object]:
@@ -57,6 +65,8 @@ def scenario_job(job: ScenarioJob) -> dict[str, object]:
         points = scenarios.points.astype(np.float64)
         return {
             "digest": scenarios.digest,
+            # Provisional rule use is reported here instead of as a warning.
+            "rules": _rules(job.allow_provisional),
             "artifact": job.artifact.name,
             "artifact_sha256": job.artifact.sha256,
             "assumptions": scenarios.assumptions.to_dict(),

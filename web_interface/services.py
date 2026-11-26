@@ -12,11 +12,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 import os
 import re
 import tempfile
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,7 +28,7 @@ from tennis_api.models.canonical import (
 from tennis_api.models.identity import IdentityRegistry
 from tennis_pool.ledger import EntryState
 from tennis_pool.workbooks import WorkbookImportError, WorkbookLimits, WorkbookPreview, preview_workbook
-from web_interface.artifacts import ArtifactStore, VerifiedArtifact, load_provider
+from web_interface.artifacts import ArtifactRef, ArtifactStore, load_provider
 from web_interface.config import LocalAppConfig
 from web_interface.errors import ServiceError, safe_code
 from web_interface.files import read_bounded
@@ -51,6 +51,13 @@ POOL_KINDS = ("gs", "m7", "m6")
 MAX_WITHDRAWALS = 128
 MAX_RANKINGS = 256
 _POOL_EVENT = re.compile(r"[a-z0-9_]{1,64}")
+# Pool event ID -> scoring kind (Slams GS128, six-round Masters M6, other Masters M7).
+POOL_EVENT_KINDS = {
+    **dict.fromkeys(("australian_open", "roland_garros", "wimbledon", "us_open"), "gs"),
+    **dict.fromkeys(("monte_carlo", "paris"), "m6"),
+    **dict.fromkeys(("indian_wells", "miami", "madrid", "rome", "canada", "cincinnati",
+                     "shanghai"), "m7"),
+}
 
 
 # --- request parsing -----------------------------------------------------------
@@ -128,8 +135,10 @@ class TeamOptimizationJob:
 
 @dataclass(frozen=True)
 class WorkbookPreviewJob:
-    data: bytes = field(repr=False)
-    suffix: str
+    """A workbook staged by the parent; the parent removes it after the job ends."""
+
+    path: str = field(repr=False)
+    sha256: str
     event: Event
     format: str
     registry: IdentityRegistry = field(repr=False)
@@ -139,15 +148,13 @@ class WorkbookPreviewJob:
 
 @dataclass(frozen=True)
 class PredictionJob:
-    artifact: VerifiedArtifact
-    loader: str
+    artifact: ArtifactRef
     context: PredictionContext
 
 
 @dataclass(frozen=True)
 class ScenarioJob:
-    artifact: VerifiedArtifact
-    loader: str
+    artifact: ArtifactRef
     draw: Draw
     kind: str
     cutoff: datetime
@@ -182,25 +189,44 @@ def team_optimization_job(job: TeamOptimizationJob) -> dict[str, object]:
                          budget=job.budget, team_size=job.team_size, seed=job.seed)
 
 
-def preview_upload(job: WorkbookPreviewJob) -> WorkbookPreview:
-    """Full preview (private season records included) for in-process callers."""
-    if len(job.data) > job.limits.file_bytes:
-        raise ServiceError("file_byte_limit", 413)
-    digest = hashlib.sha256(job.data).hexdigest()
-    provenance = Provenance(
-        source="local_upload", source_version="sha256:" + digest, source_record_id=None,
-        observed_at=None, available_at=job.received_at, ingested_at=job.received_at)
+@contextmanager
+def staged_upload(data: bytes, suffix: str) -> Iterator[Path]:
+    """Write upload bytes to a fresh owner-only file and always remove it afterwards.
+
+    The caller's process owns the folder, so a worker killed at its deadline
+    cannot leave the private workbook behind.
+    """
     with tempfile.TemporaryDirectory(prefix="tennis-upload-") as directory:
-        path = Path(directory) / ("upload" + job.suffix)
+        path = Path(directory) / ("upload" + suffix)
         fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
         with os.fdopen(fd, "wb") as handle:
-            handle.write(job.data)
-        try:
-            return preview_workbook(
-                path, event=job.event, year=job.event.start_date.year, format=job.format,
-                registry=job.registry, provenance=provenance, limits=job.limits)
-        except WorkbookImportError as error:
-            raise ServiceError(safe_code(str(error), "invalid_workbook_or_metadata"), 422) from None
+            handle.write(data)
+        yield path
+
+
+def preview_staged(job: WorkbookPreviewJob) -> WorkbookPreview:
+    """Full preview (private season records included) of a staged workbook."""
+    provenance = Provenance(
+        source="local_upload", source_version="sha256:" + job.sha256, source_record_id=None,
+        observed_at=None, available_at=job.received_at, ingested_at=job.received_at)
+    try:
+        return preview_workbook(
+            Path(job.path), event=job.event, year=job.event.start_date.year, format=job.format,
+            registry=job.registry, provenance=provenance, limits=job.limits)
+    except WorkbookImportError as error:
+        raise ServiceError(safe_code(str(error), "invalid_workbook_or_metadata"), 422) from None
+
+
+def preview_upload(data: bytes, *, suffix: str, event: Event, format: str,
+                   registry: IdentityRegistry, received_at: datetime,
+                   limits: WorkbookLimits = WorkbookLimits()) -> WorkbookPreview:
+    """In-process preview of upload bytes for Python callers (no job bounds)."""
+    if len(data) > limits.file_bytes:
+        raise ServiceError("file_byte_limit", 413)
+    with staged_upload(data, suffix) as path:
+        return preview_staged(WorkbookPreviewJob(
+            path=str(path), sha256=hashlib.sha256(data).hexdigest(), event=event,
+            format=format, registry=registry, received_at=received_at, limits=limits))
 
 
 def summarize_preview(preview: WorkbookPreview, upload_sha256: str) -> dict[str, object]:
@@ -226,12 +252,11 @@ def summarize_preview(preview: WorkbookPreview, upload_sha256: str) -> dict[str,
 
 
 def workbook_preview_job(job: WorkbookPreviewJob) -> dict[str, object]:
-    preview = preview_upload(job)
-    return summarize_preview(preview, hashlib.sha256(job.data).hexdigest())
+    return summarize_preview(preview_staged(job), job.sha256)
 
 
 def prediction_job(job: PredictionJob) -> dict[str, object]:
-    provider = load_provider(job.artifact, job.loader)
+    provider = load_provider(job.artifact)
     try:
         result = provider.predict(job.context)
     except ServiceError:
@@ -299,11 +324,15 @@ class LocalServices:
         self.artifacts = ArtifactStore.empty(dict(config.provider_loaders))
         if config.pool_root is not None:
             self.pool = load_pool_inputs(config.pool_root)
-            if (config.pool_root / "artifacts").is_dir():
-                self.artifacts = ArtifactStore.from_directory(
-                    config.pool_root / "artifacts", loaders=dict(config.provider_loaders),
+            try:
+                # Opened without following symlinks: artifacts/ must be a real folder.
+                self.artifacts = ArtifactStore.from_pool_root(
+                    config.pool_root, loaders=dict(config.provider_loaders),
                     manifest_sha256=config.manifest_sha256,
                     max_bytes=config.max_artifact_bytes)
+            except ServiceError as error:
+                if error.code != "artifact_manifest_missing" or config.manifest_sha256:
+                    raise
 
     def status(self) -> dict[str, object]:
         return {
@@ -378,41 +407,48 @@ class LocalServices:
             raise ServiceError("unknown_event", 404)
         if len(data) > self.config.workbook_limits.file_bytes:
             raise ServiceError("file_byte_limit", 413)
-        job = WorkbookPreviewJob(
-            data=data, suffix=_choice(params, "suffix", ".xlsx", (".xlsx", ".xlsm")),
-            event=event, format=_choice(params, "format", None, WORKBOOK_FORMATS),
-            registry=self.pool.registry, received_at=now or datetime.now(timezone.utc),
-            limits=self.config.workbook_limits)
-        result: dict[str, object] = self.runner.run(
-            "web_interface.services:workbook_preview_job", job)
+        suffix = _choice(params, "suffix", ".xlsx", (".xlsx", ".xlsm"))
+        format = _choice(params, "format", None, WORKBOOK_FORMATS)
+        with staged_upload(data, suffix) as path:
+            job = WorkbookPreviewJob(
+                path=str(path), sha256=hashlib.sha256(data).hexdigest(), event=event,
+                format=format, registry=self.pool.registry,
+                received_at=now or datetime.now(timezone.utc),
+                limits=self.config.workbook_limits)
+            # run() reaps the worker before returning, so the file is removed after it.
+            result: dict[str, object] = self.runner.run(
+                "web_interface.services:workbook_preview_job", job)
         return result
 
     def predict(self, data: object) -> dict[str, object]:
         request = _object(data, {"artifact", "context"})
-        artifact, loader = self.artifacts.load(request.get("artifact"))
+        artifact = self.artifacts.resolve(request.get("artifact"))
         context = _contract(PredictionContext, request.get("context"), "invalid_prediction_context")
         result: dict[str, object] = self.runner.run(
             "web_interface.services:prediction_job",
-            PredictionJob(artifact=artifact, loader=loader, context=context))
+            PredictionJob(artifact=artifact, context=context))
         return result
 
     def _scenario_job(self, request: Mapping[str, Any]) -> ScenarioJob:
-        artifact, loader = self.artifacts.load(request.get("artifact"))
+        artifact = self.artifacts.resolve(request.get("artifact"))
         draw = _contract(Draw, request.get("draw"), "invalid_draw")
         withdrawals = request.get("withdrawal_probabilities", {})
         if not isinstance(withdrawals, dict) or len(withdrawals) > MAX_WITHDRAWALS:
             raise ServiceError("invalid_withdrawal_probabilities", 422)
+        entrants = {slot.player_id for slot in draw.slots if slot.player_id is not None}
         probabilities = []
         for player, probability in sorted(withdrawals.items()):
-            if (not isinstance(probability, (int, float)) or isinstance(probability, bool)
-                    or not math.isfinite(probability) or not 0 <= probability <= 1):
+            # Range first: comparing never overflows, unlike a float conversion of a
+            # huge JSON integer, and it also rejects NaN and infinities.
+            if (player not in entrants or isinstance(probability, bool)
+                    or not isinstance(probability, (int, float)) or not 0 <= probability <= 1):
                 raise ServiceError("invalid_withdrawal_probabilities", 422)
             probabilities.append((PlayerId(player), float(probability)))
         rankings = request.get("rankings", [])
         if not isinstance(rankings, list) or len(rankings) > MAX_RANKINGS:
             raise ServiceError("invalid_rankings", 422)
         return ScenarioJob(
-            artifact=artifact, loader=loader, draw=draw,
+            artifact=artifact, draw=draw,
             kind=_choice(request, "kind", None, POOL_KINDS),
             cutoff=_cutoff(request.get("cutoff")),
             simulations=_int(request, "simulations", 2000, 1,
@@ -434,13 +470,22 @@ class LocalServices:
 
     def recommend(self, data: object) -> dict[str, object]:
         request = _object(data, self._SCENARIO_FIELDS | {"event_id", "entry"})
+        if self.pool is None:
+            raise ServiceError("pool_inputs_not_configured", 503)
         event_id = request.get("event_id")
-        if not isinstance(event_id, str) or not _POOL_EVENT.fullmatch(event_id):
-            raise ServiceError("invalid_event_id", 422)
+        event = self.pool.events.get(event_id) if isinstance(event_id, str) else None
+        if event is None or event_id not in POOL_EVENT_KINDS:
+            raise ServiceError("unknown_event", 404)
+        scenarios = self._scenario_job(request)
+        # The draw and scoring kind must belong to the selected pool event, or the
+        # roster would be checked against the wrong bank.
+        if scenarios.draw.event.event_id != event.event_id:
+            raise ServiceError("draw_event_mismatch", 422)
+        if scenarios.kind != POOL_EVENT_KINDS[str(event_id)]:
+            raise ServiceError("kind_event_mismatch", 422)
         entry = (None if request.get("entry") is None
                  else _contract(EntryState, request.get("entry"), "invalid_entry"))
-        job = RecommendationJob(scenarios=self._scenario_job(request), event_id=event_id,
-                                entry=entry)
+        job = RecommendationJob(scenarios=scenarios, event_id=str(event_id), entry=entry)
         result: dict[str, object] = self.runner.run(
             "web_interface.pool_jobs:recommendation_job", job)
         return result

@@ -12,6 +12,7 @@ return a reason code only. Public or multi-user hosting is out of scope.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -21,6 +22,7 @@ from pathlib import Path
 
 from flask import Flask, Response, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
+from werkzeug.wrappers import Response as BaseResponse
 
 from web_interface.config import LocalAppConfig
 from web_interface.errors import ServiceError
@@ -73,9 +75,13 @@ def create_app(config: LocalAppConfig, services: LocalServices | None = None) ->
         return _error(error.code, error.status)
 
     @app.errorhandler(HTTPException)
-    def http_error(error: HTTPException) -> tuple[Response, int]:
+    def http_error(error: HTTPException) -> BaseResponse:
+        # Start from Werkzeug's response so headers such as Allow (405) survive.
+        response = error.get_response()
         status = error.code or 500
-        return _error(_HTTP_CODES.get(status, "http_error"), status)
+        response.set_data(json.dumps({"error": _HTTP_CODES.get(status, "http_error")}))
+        response.content_type = "application/json"
+        return response
 
     @app.errorhandler(Exception)
     def internal_error(error: Exception) -> tuple[Response, int]:

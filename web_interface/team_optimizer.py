@@ -11,6 +11,7 @@ import math
 import random
 from collections.abc import Mapping, Sequence
 
+from web_interface.errors import ServiceError
 from web_interface.legacy_data import PlayerRecord
 
 
@@ -19,24 +20,24 @@ def evaluate_combination(combination: Sequence[str], points: Mapping[str, float]
     return (sum(points[p] for p in combination), sum(costs[p] for p in combination))
 
 
-def perturb_solution(rng: random.Random, current: list[str], remaining: list[str],
+def perturb_solution(rng: random.Random, current: list[str], players: list[str],
                      team_size: int) -> list[str]:
-    count = min(team_size - 1, len(remaining))
+    """Replace up to ``team_size - 1`` members with outsiders; the size never changes."""
+    outsiders = [p for p in players if p not in current]
+    count = min(team_size - 1, len(outsiders))
     if count <= 0:
         return current
-    for _ in range(100):
-        candidate = rng.sample(remaining, count) + [rng.choice(current)]
-        if len(set(candidate)) == len(candidate):
-            return candidate
-    return current
+    return rng.sample(current, team_size - count) + rng.sample(outsiders, count)
 
 
 def simulated_annealing(
     rng: random.Random, players: list[str], points: Mapping[str, float],
     costs: Mapping[str, float], budget: float, team_size: int, cutoff: float = 1300,
 ) -> tuple[list[str], float]:
-    current = rng.sample(players, min(team_size, len(players)))
-    remaining = [p for p in players if p not in current]
+    # Start from the cheapest full team, which fits whenever any team does.
+    current = sorted(players, key=lambda p: (costs[p], p))[:team_size]
+    if len(current) < team_size or evaluate_combination(current, points, costs)[1] > budget:
+        raise ServiceError("budget_too_small", 422)
     best = current[:]
     current_score, _ = evaluate_combination(current, points, costs)
     best_score = current_score
@@ -44,14 +45,16 @@ def simulated_annealing(
     for _ in range(1000):
         if temperature <= 0.1 and best_score >= cutoff:
             break
-        candidate = perturb_solution(rng, current, remaining, team_size)
+        candidate = perturb_solution(rng, current, players, team_size)
         score, cost = evaluate_combination(candidate, points, costs)
         if cost <= budget:
             if score > current_score:
                 current, current_score = candidate[:], score
                 if score > best_score:
                     best, best_score = candidate[:], score
-            elif rng.random() < math.exp((score - current_score) / temperature) - 1:
+            # Metropolis acceptance: worse teams are accepted with probability
+            # exp(delta / T). The legacy scripts subtracted 1, which never accepted any.
+            elif rng.random() < math.exp((score - current_score) / temperature):
                 current, current_score = candidate[:], score
         temperature *= 0.95
     return best, best_score
@@ -68,6 +71,9 @@ def optimize_team(
     else:
         # Higher seeds (lower numbers) get higher scores; unseeded counts as 128.
         scores = {name: float(max(1, 129 - (p.seed or 128)) * 10) for name, p in records.items()}
+    if len(scores) < team_size:
+        # A stale points file can leave too few players to fill the team.
+        raise ServiceError("insufficient_scored_players", 422)
     costs = {name: records[name].cost for name in scores}
     best, best_score = simulated_annealing(
         random.Random(seed), sorted(scores), scores, costs, budget, team_size)

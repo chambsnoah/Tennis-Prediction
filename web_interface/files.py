@@ -50,9 +50,12 @@ def read_bounded(
             # O_NONBLOCK keeps a planted FIFO from blocking the open itself.
             fds.append(os.open(parts[-1], _READ | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fds[-1]))
         except OSError as error:
-            code, status = (("unsafe_path", 400) if error.errno in _UNSAFE
-                            else (missing, 404))
-            raise ServiceError(code, status) from None
+            if error.errno in _UNSAFE:
+                raise ServiceError("unsafe_path", 400) from None
+            if error.errno == errno.ENOENT:
+                raise ServiceError(missing, 404) from None
+            # Permission and other I/O failures are not "absent": report them.
+            raise ServiceError("file_unreadable", 503) from None
         info = os.fstat(fds[-1])
         if not stat.S_ISREG(info.st_mode):
             raise ServiceError("unsafe_path", 400)
@@ -63,7 +66,10 @@ def read_bounded(
         chunks: list[bytes] = []
         remaining = limit + 1
         while remaining > 0:
-            chunk = os.read(fds[-1], min(remaining, 1 << 20))
+            try:
+                chunk = os.read(fds[-1], min(remaining, 1 << 20))
+            except OSError:
+                raise ServiceError("file_unreadable", 503) from None
             if not chunk:
                 break
             chunks.append(chunk)

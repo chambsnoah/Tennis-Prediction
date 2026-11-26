@@ -89,7 +89,17 @@ def apply_limits(limits: JobLimits) -> dict[str, bool]:
     }
 
 
+def probe_limits(limits: JobLimits) -> dict[str, bool]:
+    """Job target: report which limits a worker on this platform actually gets."""
+    return apply_limits(limits)
+
+
+PROBE = "web_interface.jobs:probe_limits"
+
+
 def _worker(target: str, payload: bytes, conn: Connection, limits: JobLimits) -> None:
+    # The payload and the pipe come only from the parent JobRunner that spawned
+    # this process; neither is reachable by a request, so unpickling is trusted.
     try:
         try:
             apply_limits(limits)
@@ -111,29 +121,38 @@ def _worker(target: str, payload: bytes, conn: Connection, limits: JobLimits) ->
         conn.close()
 
 
-def _probe(limits: JobLimits) -> dict[str, bool]:
-    return apply_limits(limits)
-
-
 class JobRunner:
-    """Run registered job targets with bounded concurrency, time, memory and size."""
+    """Run registered job targets with bounded concurrency, time, memory and size.
+
+    Payloads are pickled by this runner and results by its own workers; both
+    travel over a private pipe created here, so pickle is used only between
+    trusted processes, never on request bytes.
+    """
 
     def __init__(self, limits: JobLimits, targets: Iterable[str]) -> None:
         self.limits = limits
-        self.targets = frozenset(targets)
+        self.targets = frozenset(targets) | {PROBE}
         if any(t.count(":") != 1 for t in self.targets):
             raise ValueError("Job targets are 'module:function'")
         self._slots = threading.BoundedSemaphore(limits.max_concurrent)
         self._context = multiprocessing.get_context("spawn")
+        self._probe_lock = threading.Lock()
         self._enforced: dict[str, bool] | None = None
 
     @property
-    def enforced(self) -> dict[str, bool]:
-        """Which OS limits a worker on this platform actually gets."""
-        if self._enforced is None:
-            with self._context.Pool(1) as pool:
-                self._enforced = dict(pool.apply(_probe, (self.limits,)))
-        return dict(self._enforced)
+    def enforced(self) -> dict[str, bool | None]:
+        """Which OS limits a worker gets; ``None`` while no job slot is free to probe.
+
+        The probe is an ordinary job, so it uses the same slots and limits, and
+        concurrent callers share one probe.
+        """
+        with self._probe_lock:
+            if self._enforced is None:
+                try:
+                    self._enforced = dict(self.run(PROBE, self.limits))
+                except ServiceError:
+                    return {"cpu": None, "memory": None}
+            return dict(self._enforced)
 
     def run(self, target: str, payload: object) -> Any:
         if target not in self.targets:
@@ -143,36 +162,60 @@ class JobRunner:
             raise ServiceError("payload_too_large", 413)
         if not self._slots.acquire(blocking=False):
             raise ServiceError("busy", 429)
-        process = None
         try:
-            receiver, sender = self._context.Pipe(duplex=False)
-            try:
-                process = self._context.Process(
-                    target=_worker, args=(target, data, sender, self.limits), daemon=True)
-                process.start()
-                sender.close()
-                if not receiver.poll(self.limits.timeout_seconds):
-                    raise ServiceError("job_timeout", 504)
-                message = receiver.recv_bytes(self.limits.max_result_bytes + 4096)
-            except EOFError:
-                # The worker died without answering (for example a CPU or memory limit).
-                raise ServiceError("job_resource_limit", 503) from None
-            except OSError:
-                raise ServiceError("result_too_large", 507) from None
-            finally:
-                sender.close()
-                receiver.close()
+            message = self._execute(target, data)
         finally:
-            if process is not None:
-                if process.is_alive():
-                    process.terminate()
-                    process.join(2)
-                    if process.is_alive():
-                        process.kill()
-                process.join()
             self._slots.release()
         status, *rest = pickle.loads(message)
         if status == "ok":
             return rest[0]
         code, http_status = rest
         raise ServiceError(safe_code(code, "internal_error"), int(http_status))
+
+    def _execute(self, target: str, data: bytes) -> bytes:
+        receiver, sender = self._context.Pipe(duplex=False)
+        process = self._context.Process(
+            target=_worker, args=(target, data, sender, self.limits), daemon=True)
+        expired = threading.Event()
+
+        def expire() -> None:
+            # One deadline covers the whole job, including a partly sent result:
+            # killing the worker closes its end, so a blocked read ends with EOF.
+            expired.set()
+            process.kill()
+
+        timer = threading.Timer(self.limits.timeout_seconds, expire)
+        started = False
+        try:
+            try:
+                process.start()
+            except OSError:
+                raise ServiceError("job_start_failed", 503) from None
+            started = True
+            timer.start()
+            sender.close()
+            try:
+                if not receiver.poll(self.limits.timeout_seconds):
+                    raise ServiceError("job_timeout", 504)
+                message = receiver.recv_bytes(self.limits.max_result_bytes + 4096)
+            except EOFError:
+                if expired.is_set():
+                    raise ServiceError("job_timeout", 504) from None
+                # The worker died without answering (for example a CPU or memory limit).
+                raise ServiceError("job_resource_limit", 503) from None
+            except OSError:
+                # recv_bytes refuses a frame longer than the result limit.
+                raise ServiceError("result_too_large", 507) from None
+            # A complete result that arrived is kept even if the deadline fired meanwhile.
+            return message
+        finally:
+            timer.cancel()
+            sender.close()
+            receiver.close()
+            if started:
+                if process.is_alive():
+                    process.terminate()
+                    process.join(2)
+                    if process.is_alive():
+                        process.kill()
+                process.join()

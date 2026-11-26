@@ -1,7 +1,9 @@
 """Deterministic configuration for the single-user local app.
 
-Limits are fixed in code; the environment only selects local directories, the
-port and an optional manifest digest. The host is always loopback and the
+Limits are fixed in code. The environment only selects ``TENNIS_DATA_ROOT``
+(legacy tournament JSON), ``TENNIS_POOL_ROOT`` (reviewed registry, events and
+artifacts), ``TENNIS_PORT`` and ``TENNIS_ARTIFACT_MANIFEST_SHA256`` (an optional
+pin of ``artifacts/manifest.json``). The host is always loopback and the
 Werkzeug debugger is never enabled. Public or multi-user hosting is out of scope.
 """
 
@@ -66,7 +68,8 @@ class LocalAppConfig:
             values["data_root"] = Path(environ["TENNIS_DATA_ROOT"]).expanduser().resolve()
         if environ.get("TENNIS_POOL_ROOT"):
             values["pool_root"] = Path(environ["TENNIS_POOL_ROOT"]).expanduser().resolve()
-        if environ.get("TENNIS_PORT"):
+        # An explicit --port wins, so a bad TENNIS_PORT cannot block it.
+        if environ.get("TENNIS_PORT") and overrides.get("port") is None:
             if not environ["TENNIS_PORT"].isdigit():
                 raise ValueError("TENNIS_PORT must be a number")
             values["port"] = int(environ["TENNIS_PORT"])

@@ -8,7 +8,6 @@ without following symlinks, size-bounded and schema-checked before use.
 from __future__ import annotations
 
 import json
-import math
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -47,8 +46,10 @@ class PlayerRecord:
 def _number(value: object, default: float, low: float, high: float) -> float:
     if value is None:
         return default
+    # Compare before any float conversion: a huge JSON integer would overflow
+    # math.isfinite, while the range test rejects it (and NaN/infinity) directly.
     if (isinstance(value, bool) or not isinstance(value, (int, float))
-            or not math.isfinite(value) or not low <= value <= high):
+            or not low <= value <= high):
         raise ServiceError("invalid_player_data", 422)
     return value
 
