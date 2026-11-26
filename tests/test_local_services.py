@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import multiprocessing
 import os
+import struct
 import sys
 import threading
 import time
@@ -36,7 +38,7 @@ SECRET = "synthetic-credential-sentinel-7f3a91"
 LOADER = (("synthetic-table", "test_local_services:load_synthetic_provider"),)
 TEST_TARGETS = TARGETS | {
     "test_local_services:sleep_job", "test_local_services:hold_job",
-    "test_local_services:secret_failure_job",
+    "test_local_services:secret_failure_job", "test_local_services:partial_frame_job",
     "test_local_services:large_result_job", "test_local_services:echo_job",
 }
 
@@ -92,6 +94,16 @@ class PickleProbe:
 
 def secret_failure_job(_):
     raise RuntimeError("upstream said key=" + os.environ.get("RAPID_API_APPLICATION_KEY", ""))
+
+
+def partial_frame_job(_):
+    """Send the header and a few bytes of a 1 MiB result frame, then stall."""
+    import gc
+    from multiprocessing.connection import Connection
+
+    conn, = (o for o in gc.get_objects() if isinstance(o, Connection) and o.writable)
+    os.write(conn.fileno(), struct.pack("!i", 1 << 20) + b"partial")
+    time.sleep(60)
 
 
 def large_result_job(size):
@@ -641,34 +653,15 @@ def test_jobs_are_bounded_in_concurrency_and_time(tmp_path):
         runner.run("os:system", "true")
 
 
-def test_deadline_during_a_partial_result_is_a_timeout(monkeypatch):
+def test_deadline_during_a_partial_result_is_a_timeout():
     runner = JobRunner(JobLimits(max_concurrent=1, timeout_seconds=1), TEST_TARGETS)
-    real_pipe = runner._context.Pipe
-
-    class StalledReceiver:
-        """Readable header, then a frame that never completes until the worker dies."""
-
-        def __init__(self, inner):
-            self.inner = inner
-
-        def poll(self, timeout):
-            return True
-
-        def recv_bytes(self, maxlength):
-            time.sleep(2)  # past the deadline: the timer has killed the worker
-            raise OSError("bad message length")
-
-        def close(self):
-            self.inner.close()
-
-    def pipe(duplex=False):
-        receiver, sender = real_pipe(duplex=duplex)
-        return StalledReceiver(receiver), sender
-
-    monkeypatch.setattr(runner._context, "Pipe", pipe)
+    started = time.monotonic()
     with pytest.raises(ServiceError) as caught:
-        runner.run("test_local_services:sleep_job", 30)
+        runner.run("test_local_services:partial_frame_job", None)
     assert (caught.value.code, caught.value.status) == ("job_timeout", 504)
+    assert time.monotonic() - started < 10
+    assert not multiprocessing.active_children()  # the stalled worker was reaped
+    assert runner.run("test_local_services:echo_job", 3) == 3  # and its slot released
 
 
 def test_job_payloads_and_results_are_bounded():
