@@ -96,13 +96,14 @@ def secret_failure_job(_):
     raise RuntimeError("upstream said key=" + os.environ.get("RAPID_API_APPLICATION_KEY", ""))
 
 
-def partial_frame_job(_):
-    """Send the header and a few bytes of a 1 MiB result frame, then stall."""
+def partial_frame_job(marker):
+    """Send the header and a few bytes of a 1 MiB result frame, mark it, then stall."""
     import gc
     from multiprocessing.connection import Connection
 
     conn, = (o for o in gc.get_objects() if isinstance(o, Connection) and o.writable)
     os.write(conn.fileno(), struct.pack("!i", 1 << 20) + b"partial")
+    Path(marker).touch()
     time.sleep(60)
 
 
@@ -653,13 +654,46 @@ def test_jobs_are_bounded_in_concurrency_and_time(tmp_path):
         runner.run("os:system", "true")
 
 
-def test_deadline_during_a_partial_result_is_a_timeout():
-    runner = JobRunner(JobLimits(max_concurrent=1, timeout_seconds=1), TEST_TARGETS)
+def test_deadline_during_a_partial_result_is_a_timeout(tmp_path, monkeypatch):
+    runner = JobRunner(JobLimits(max_concurrent=1, timeout_seconds=3), TEST_TARGETS)
+    marker = tmp_path / "partial-written"
+    blocked_reads = []
+    real_pipe = runner._context.Pipe
+
+    class SpyReceiver:
+        """Delegates to the real connection, recording how each real read ended."""
+
+        def __init__(self, inner):
+            self.inner = inner
+
+        def poll(self, timeout):
+            return self.inner.poll(timeout)
+
+        def recv_bytes(self, maxlength):
+            try:
+                return self.inner.recv_bytes(maxlength)
+            except BaseException as error:
+                blocked_reads.append(type(error).__name__)
+                raise
+
+        def close(self):
+            self.inner.close()
+
+    def pipe(duplex=False):
+        receiver, sender = real_pipe(duplex=duplex)
+        return SpyReceiver(receiver), sender
+
+    monkeypatch.setattr(runner._context, "Pipe", pipe)
     started = time.monotonic()
     with pytest.raises(ServiceError) as caught:
-        runner.run("test_local_services:partial_frame_job", None)
+        runner.run("test_local_services:partial_frame_job", str(marker))
     assert (caught.value.code, caught.value.status) == ("job_timeout", 504)
-    assert time.monotonic() - started < 10
+    assert marker.exists()  # the worker wrote a partial frame before the deadline
+    # OSError (not EOFError) from the real recv_bytes(): the worker died mid-frame
+    # while the parent was blocked reading the announced 1 MiB body.
+    assert blocked_reads == ["OSError"]
+    assert time.monotonic() - started < 15
+    monkeypatch.undo()
     assert not multiprocessing.active_children()  # the stalled worker was reaped
     assert runner.run("test_local_services:echo_job", 3) == 3  # and its slot released
 
