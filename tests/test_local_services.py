@@ -73,12 +73,21 @@ def sleep_job(seconds):
 
 
 def hold_job(marker):
-    """Signal that this job holds its slot, then wait until the test releases it."""
+    """Signal that this job holds its slot, then wait for release (bounded by the runner)."""
     Path(marker + ".started").touch()
-    deadline = time.monotonic() + 30
-    while not Path(marker + ".release").exists() and time.monotonic() < deadline:
+    while not Path(marker + ".release").exists():
         time.sleep(0.01)
     return "held"
+
+
+class PickleProbe:
+    """Records whether a runner serialized it."""
+
+    calls = 0
+
+    def __reduce__(self):
+        type(self).calls += 1
+        return (PickleProbe, ())
 
 
 def secret_failure_job(_):
@@ -609,10 +618,12 @@ def test_jobs_are_bounded_in_concurrency_and_time(tmp_path):
         deadline = time.monotonic() + 30
         while not Path(marker + ".started").exists() and time.monotonic() < deadline:
             time.sleep(0.01)
+        assert Path(marker + ".started").exists(), "the holding job never started"
         # The first job provably holds the only slot until it is released below.
         with pytest.raises(ServiceError) as busy:
-            runner.run("test_local_services:echo_job", 1)
+            runner.run("test_local_services:echo_job", PickleProbe())
         assert (busy.value.code, busy.value.status) == ("busy", 429)
+        assert PickleProbe.calls == 0  # refused before any serialization
         assert runner.enforced == {"cpu": None, "memory": None}  # no slot free to probe
     finally:
         Path(marker + ".release").touch()
@@ -628,6 +639,36 @@ def test_jobs_are_bounded_in_concurrency_and_time(tmp_path):
     assert runner.run("test_local_services:echo_job", 5) == 5  # the slot was released
     with pytest.raises(ValueError, match="Unregistered"):
         runner.run("os:system", "true")
+
+
+def test_deadline_during_a_partial_result_is_a_timeout(monkeypatch):
+    runner = JobRunner(JobLimits(max_concurrent=1, timeout_seconds=1), TEST_TARGETS)
+    real_pipe = runner._context.Pipe
+
+    class StalledReceiver:
+        """Readable header, then a frame that never completes until the worker dies."""
+
+        def __init__(self, inner):
+            self.inner = inner
+
+        def poll(self, timeout):
+            return True
+
+        def recv_bytes(self, maxlength):
+            time.sleep(2)  # past the deadline: the timer has killed the worker
+            raise OSError("bad message length")
+
+        def close(self):
+            self.inner.close()
+
+    def pipe(duplex=False):
+        receiver, sender = real_pipe(duplex=duplex)
+        return StalledReceiver(receiver), sender
+
+    monkeypatch.setattr(runner._context, "Pipe", pipe)
+    with pytest.raises(ServiceError) as caught:
+        runner.run("test_local_services:sleep_job", 30)
+    assert (caught.value.code, caught.value.status) == ("job_timeout", 504)
 
 
 def test_job_payloads_and_results_are_bounded():

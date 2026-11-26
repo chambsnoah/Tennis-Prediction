@@ -157,12 +157,13 @@ class JobRunner:
     def run(self, target: str, payload: object) -> Any:
         if target not in self.targets:
             raise ValueError("Unregistered job target")
-        data = pickle.dumps(payload, protocol=pickle.HIGHEST_PROTOCOL)
-        if len(data) > self.limits.max_payload_bytes:
-            raise ServiceError("payload_too_large", 413)
         if not self._slots.acquire(blocking=False):
             raise ServiceError("busy", 429)
         try:
+            # Serialize only once admitted, so a refused request builds no payload buffer.
+            data = pickle.dumps(payload, protocol=pickle.HIGHEST_PROTOCOL)
+            if len(data) > self.limits.max_payload_bytes:
+                raise ServiceError("payload_too_large", 413)
             message = self._execute(target, data)
         finally:
             self._slots.release()
@@ -204,7 +205,9 @@ class JobRunner:
                 # The worker died without answering (for example a CPU or memory limit).
                 raise ServiceError("job_resource_limit", 503) from None
             except OSError:
-                # recv_bytes refuses a frame longer than the result limit.
+                # Killed at the deadline mid-frame, or a frame longer than the result limit.
+                if expired.is_set():
+                    raise ServiceError("job_timeout", 504) from None
                 raise ServiceError("result_too_large", 507) from None
             # A complete result that arrived is kept even if the deadline fired meanwhile.
             return message
