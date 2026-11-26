@@ -97,12 +97,14 @@ def probe_limits(limits: JobLimits) -> dict[str, bool]:
 PROBE = "web_interface.jobs:probe_limits"
 
 
-def _worker(target: str, payload: bytes, conn: Connection, limits: JobLimits) -> None:
-    # The payload and the pipe come only from the parent JobRunner that spawned
-    # this process; neither is reachable by a request, so unpickling is trusted.
+def _worker(target: str, inbox: Connection, conn: Connection, limits: JobLimits) -> None:
+    # The payload and both pipes come only from the parent JobRunner that spawned
+    # this process; none is reachable by a request, so unpickling is trusted.
     try:
         try:
             apply_limits(limits)
+            payload = inbox.recv_bytes(limits.max_payload_bytes)
+            inbox.close()
             module, _, name = target.partition(":")
             function = getattr(import_module(module), name)
             message = pickle.dumps(("ok", function(pickle.loads(payload))),
@@ -175,8 +177,11 @@ class JobRunner:
 
     def _execute(self, target: str, data: bytes) -> bytes:
         receiver, sender = self._context.Pipe(duplex=False)
+        # The payload travels on its own pipe after start(), so start() only writes
+        # a small bootstrap and the deadline below also covers the payload transfer.
+        inbox, outbox = self._context.Pipe(duplex=False)
         process = self._context.Process(
-            target=_worker, args=(target, data, sender, self.limits), daemon=True)
+            target=_worker, args=(target, inbox, sender, self.limits), daemon=True)
         expired = threading.Event()
 
         def expire() -> None:
@@ -195,6 +200,16 @@ class JobRunner:
             started = True
             timer.start()
             sender.close()
+            inbox.close()
+            try:
+                outbox.send_bytes(data)
+            except OSError:
+                # The worker died (or was killed at the deadline) before reading it.
+                if expired.is_set():
+                    raise ServiceError("job_timeout", 504) from None
+                raise ServiceError("job_resource_limit", 503) from None
+            finally:
+                outbox.close()
             try:
                 if not receiver.poll(self.limits.timeout_seconds):
                     raise ServiceError("job_timeout", 504)
@@ -213,8 +228,8 @@ class JobRunner:
             return message
         finally:
             timer.cancel()
-            sender.close()
-            receiver.close()
+            for end in (sender, receiver, inbox, outbox):
+                end.close()
             if started:
                 if process.is_alive():
                     process.terminate()

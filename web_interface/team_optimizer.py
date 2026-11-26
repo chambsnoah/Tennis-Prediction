@@ -22,11 +22,14 @@ def evaluate_combination(combination: Sequence[str], points: Mapping[str, float]
 
 def perturb_solution(rng: random.Random, current: list[str], players: list[str],
                      team_size: int) -> list[str]:
-    """Replace up to ``team_size - 1`` members with outsiders; the size never changes."""
+    """Swap a random number (at least one) of members for outsiders; the size never changes."""
     outsiders = [p for p in players if p not in current]
-    count = min(team_size - 1, len(outsiders))
-    if count <= 0:
+    most = min(team_size, len(outsiders))
+    if most <= 0:
         return current
+    # Single swaps must be possible: they are the only moves for one-player teams
+    # and often the only affordable ones under a tight budget.
+    count = rng.randint(1, most)
     return rng.sample(current, team_size - count) + rng.sample(outsiders, count)
 
 

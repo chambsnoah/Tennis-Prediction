@@ -679,9 +679,13 @@ def test_deadline_during_a_partial_result_is_a_timeout(tmp_path, monkeypatch):
         def close(self):
             self.inner.close()
 
+    pipes = []
+
     def pipe(duplex=False):
         receiver, sender = real_pipe(duplex=duplex)
-        return SpyReceiver(receiver), sender
+        pipes.append(receiver)
+        # Only the first pipe (the result channel the parent reads) is spied on.
+        return (SpyReceiver(receiver) if len(pipes) == 1 else receiver), sender
 
     monkeypatch.setattr(runner._context, "Pipe", pipe)
     started = time.monotonic()
@@ -696,6 +700,13 @@ def test_deadline_during_a_partial_result_is_a_timeout(tmp_path, monkeypatch):
     monkeypatch.undo()
     assert not multiprocessing.active_children()  # the stalled worker was reaped
     assert runner.run("test_local_services:echo_job", 3) == 3  # and its slot released
+
+
+def test_large_payloads_cross_the_separate_payload_pipe():
+    # Larger than any pipe buffer: start() must not carry it, the payload pipe does.
+    runner = JobRunner(JobLimits(max_payload_bytes=16 * 1024 ** 2, timeout_seconds=60),
+                       TEST_TARGETS)
+    assert runner.run("test_local_services:echo_job", b"y" * (4 * 1024 ** 2)) == b"y" * (4 * 1024 ** 2)
 
 
 def test_job_payloads_and_results_are_bounded():
@@ -818,6 +829,14 @@ def test_legacy_team_search_keeps_size_budget_and_scored_players(legacy_root, cl
         team = client.post("/api/optimize-team", json={**request, "team_size": 3, "budget": 12,
                                                        "seed": seed}).get_json()
         assert len(team["team_roster"]) == 3 and team["total_cost"] <= 12
+    # Cheap A/B/C at 1 point each, costly D/E at 100: only a single swap fits the budget.
+    (tournament / "players_male.json").write_text(json.dumps({
+        "A": {"seed": 120, "cost": 1}, "B": {"seed": 121, "cost": 1}, "C": {"seed": 122, "cost": 1},
+        "D": {"seed": 1, "cost": 10}, "E": {"seed": 2, "cost": 10}}))
+    single = client.post("/api/optimize-team", json={**request, "team_size": 3, "budget": 12}).get_json()
+    assert single["total_cost"] <= 12 and {"D", "E"} & {p["name"] for p in single["team_roster"]}
+    solo = client.post("/api/optimize-team", json={**request, "team_size": 1, "budget": 10}).get_json()
+    assert [p["name"] for p in solo["team_roster"]] == ["D"]
     too_small = client.post("/api/optimize-team", json={**request, "team_size": 2, "budget": 1})
     assert too_small.get_json() == {"error": "budget_too_small"}
     (tournament / "player_points_male.json").write_text(json.dumps({"A": 5, "Stale": 9}))
