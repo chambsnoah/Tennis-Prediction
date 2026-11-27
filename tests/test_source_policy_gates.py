@@ -143,6 +143,8 @@ PINNED_README = f"{REPO}/blob/{SYNTHETIC_SHA}/README.md"
         f"https://github.com/someone/fork/blob/{SYNTHETIC_SHA}/README.md",
         f"{REPO}/blob/{SYNTHETIC_SHA}/LICENSE",
         f"{REPO}/blob/{SYNTHETIC_SHA}/docs/README.md",
+        f"{REPO}/blob/{SYNTHETIC_SHA}/README-old.txt",
+        f"{REPO}/blob/{SYNTHETIC_SHA}/README.md.bak",
         f"{REPO}/tree/{SYNTHETIC_SHA}/README.md",
         f"http://github.com/JeffSackmann/tennis_atp/blob/{SYNTHETIC_SHA}/README.md",
         f"https://example.invalid/JeffSackmann/tennis_atp/{SYNTHETIC_SHA}/README.md",
@@ -162,6 +164,21 @@ def test_raw_urls_at_the_revision_also_pin_evidence(committed):
     policy = _verified(committed, ["automated_ingestion"])
     policy["source"]["readme_evidence"]["url"] = f"{raw}/README.md"
     policy["source"]["license_evidence"]["url"] = f"{raw}/LICENSE"
+    assert _allowed(policy) == {"automated_ingestion"}
+
+
+@pytest.mark.parametrize("name", ["LICENSE-old.txt", "LICENSE.html", "COPYING.LESSER"])
+def test_license_pin_needs_an_exact_license_file_name(committed, name):
+    policy = _verified(committed, ["automated_ingestion"])
+    policy["source"]["license_evidence"]["url"] = f"{REPO}/blob/{SYNTHETIC_SHA}/{name}"
+    unmet = evaluate_gates(policy, AS_OF)["automated_ingestion"].unmet
+    assert "license_not_pinned" in unmet
+
+
+@pytest.mark.parametrize("name", ["readme.md", "README", "README.rst"])
+def test_common_readme_names_still_pin(committed, name):
+    policy = _verified(committed, ["automated_ingestion"])
+    policy["source"]["readme_evidence"]["url"] = f"{REPO}/blob/{SYNTHETIC_SHA}/{name}"
     assert _allowed(policy) == {"automated_ingestion"}
 
 

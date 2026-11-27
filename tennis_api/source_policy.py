@@ -22,8 +22,11 @@ _FULL_SHA = re.compile(r"[0-9a-f]{40}")
 _RIGHTS_HOLDER = "rights_holder"
 _VERIFIED_ACCESS = "verified_at_pinned_revision"
 _RESTRICTED_EVIDENCE_PREFIX = "restricted:"
-_README_NAMES = ("README",)
-_LICENSE_NAMES = ("LICENSE", "LICENCE", "COPYING")
+_TEXT_SUFFIXES = ("", ".MD", ".MARKDOWN", ".RST", ".TXT")  # compared upper-cased
+_README_NAMES = frozenset(f"README{suffix}" for suffix in _TEXT_SUFFIXES)
+_LICENSE_NAMES = frozenset(
+    f"{stem}{suffix}" for stem in ("LICENSE", "LICENCE", "COPYING") for suffix in _TEXT_SUFFIXES
+)
 
 
 @dataclass(frozen=True)
@@ -79,7 +82,7 @@ def _pinned(
     evidence: object,
     repository: tuple[str, str] | None,
     revision: str,
-    file_names: tuple[str, ...],
+    file_names: frozenset[str],
 ) -> bool:
     """README/license evidence must name the file at the reviewed revision.
 
@@ -104,7 +107,7 @@ def _pinned(
         len(segments) == 4
         and (segments[0], segments[1]) == repository
         and segments[2] == revision
-        and segments[3].upper().startswith(file_names)
+        and segments[3].upper() in file_names
     )
 
 
