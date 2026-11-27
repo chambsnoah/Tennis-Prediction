@@ -35,6 +35,8 @@
         previous: {},   // event_id -> last decision, for refresh impact
         locked: {},     // event_id -> locked pairs, compared on every refresh
         generation: 0,  // bumped on every event change; late responses for older ones are dropped
+        deciding: false,  // one decision at a time: the refresh button stays off while one runs
+        decisionToken: 0, // only the latest decision request may render
     };
 
     // The selected event and its generation, captured before any request.
@@ -138,7 +140,8 @@
         } catch (error) {
             if (current(context)) setStatus(explain(error.code || error.message), 'error');
         } finally {
-            button.disabled = button.dataset.locked === 'true';
+            button.disabled = button.dataset.locked === 'true'
+                || (button.id === 'dash-decide' && state.deciding);
         }
     }
 
@@ -206,7 +209,7 @@
         const decide = $('dash-decide');
         const locked = view.mode !== 'decision';
         decide.dataset.locked = String(locked);
-        decide.disabled = locked;
+        decide.disabled = locked || state.deciding;
         banner.dataset.mode = view.mode;
         if (locked) {
             banner.replaceChildren(el('strong', {}, 'Monitoring mode. '),
@@ -511,14 +514,26 @@
     }
 
     async function decide() {
+        if (state.deciding) return;
         if (!state.draw || state.drawEvent !== eventId()) {
             setStatus('Import this event\'s draw first.', 'warn');
             return;
         }
+        state.deciding = true;
+        const token = ++state.decisionToken;
+        try {
+            await runDecision(token);
+        } finally {
+            state.deciding = false;
+        }
+    }
+
+    async function runDecision(token) {
         const context = selectionContext();
+        const latest = () => current(context) && token === state.decisionToken;
         const draw = state.draw;
         const rankings = await readRankings();
-        if (!current(context)) return;
+        if (!latest()) return;
         state.rankings = rankings;
         setStatus('Simulating scenarios, rival sheets and the season plan…');
         const body = {
@@ -530,11 +545,11 @@
         if (state.locked[context.event]) body.compare = state.locked[context.event];
         try {
             const result = await postJson('/api/pool/decision', body);
-            if (!current(context)) return;
+            if (!latest()) return;
             renderDecision(result);
             setStatus('Recommendation refreshed. Review it, then send your sheet yourself.');
         } catch (error) {
-            if (!current(context)) return;
+            if (!latest()) return;
             if (error.code === 'deadline_passed') await loadSeason().catch(() => {});
             throw error;
         }
@@ -556,7 +571,7 @@
              'dash-compare-panel', 'dash-rivals-panel', 'dash-plan-panel', 'dash-versions-panel']
                 .forEach(id => show(id, false));
             $('dash-decide').dataset.locked = 'false';
-            $('dash-decide').disabled = false;
+            $('dash-decide').disabled = state.deciding;
             show('dash-mode', false);
             setStatus('Event changed: import its draw and load the season.');
         });
