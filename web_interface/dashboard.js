@@ -167,13 +167,14 @@
 
     function provisional() { return $('dash-provisional').checked; }
 
+    // Returns the parsed rankings; the caller stores them only if its selection is current.
     async function readRankings() {
         const file = $('dash-rankings').files[0];
-        if (!file) { state.rankings = []; return; }
+        if (!file) return [];
         let parsed;
         try { parsed = JSON.parse(await file.text()); } catch (error) { parsed = null; }
         if (!Array.isArray(parsed)) throw Object.assign(new Error('invalid_rankings'), { code: 'invalid_rankings' });
-        state.rankings = parsed;
+        return parsed;
     }
 
     async function importDraw() {
@@ -515,13 +516,16 @@
             return;
         }
         const context = selectionContext();
-        await readRankings();
+        const draw = state.draw;
+        const rankings = await readRankings();
+        if (!current(context)) return;
+        state.rankings = rankings;
         setStatus('Simulating scenarios, rival sheets and the season plan…');
         const body = {
-            event_id: context.event, artifact: $('dash-artifact').value, draw: state.draw,
+            event_id: context.event, artifact: $('dash-artifact').value, draw,
             simulations: Number($('dash-simulations').value), seed: Number($('dash-seed').value),
             objective: $('dash-objective').value, season_objective: $('dash-season-objective').value,
-            allow_provisional: provisional(), rankings: state.rankings,
+            allow_provisional: provisional(), rankings,
         };
         if (state.locked[context.event]) body.compare = state.locked[context.event];
         try {
