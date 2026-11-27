@@ -32,7 +32,8 @@ from tennis_pool.season import FutureEvent, SeasonObjective, SeasonPlan, plan_ev
 from tennis_pool.substitutions import validate_roster
 from web_interface.artifacts import load_provider
 from web_interface.dashboard import (
-    SeasonInputs, build_ledger, entry_states, mode, season_errors, season_summary,
+    SeasonInputs, build_ledger, decision_baseline, entry_states, mode, season_errors,
+    season_summary,
 )
 from web_interface.errors import ServiceError
 from web_interface.pool_jobs import _pool_errors, _rules
@@ -118,6 +119,18 @@ def _compare(job: DecisionJob, recommendation: Recommendation, entry: EntryState
     allow = job.scenarios.allow_provisional
     check = validate_roster(job.compare, job.scenarios.draw, job.event_id, entry,
                             allow_provisional=allow)
+    problems = list(check.problems) + [
+        problem for scenario in check.scenarios for problem in scenario.problems]
+    simulated = set(scenarios.player_ids)
+    if any(p.primary.player_id not in simulated
+           or (p.substitute is not None and p.substitute.player_id not in simulated)
+           for p in job.compare):
+        # A player left the (revised) draw: keep the recommendation, report the sheet
+        # as stale instead of scoring it.
+        return {"pairs": [p.to_dict() for p in job.compare], "legal": False,
+                "scorable": False, "problems": problems, "metrics": None,
+                "same_as_best": False, "expected_points_vs_best": None,
+                "robust_points_vs_best": None, "points_se": None}
     metrics = evaluate(scenarios, job.compare, rivals=rivals.field if rivals else None,
                        payout=payout if rivals else None,
                        robust_alpha=recommendation.search.limits.robust_alpha,
@@ -126,8 +139,8 @@ def _compare(job: DecisionJob, recommendation: Recommendation, entry: EntryState
     return {
         "pairs": [p.to_dict() for p in job.compare],
         "legal": check.legal,
-        "problems": list(check.problems) + [
-            problem for scenario in check.scenarios for problem in scenario.problems],
+        "scorable": True,
+        "problems": problems,
         "metrics": metrics.to_dict(),
         "same_as_best": tuple(job.compare) == recommendation.best.pairs,
         "expected_points_vs_best": metrics.expected_points - best.expected_points,
@@ -169,7 +182,10 @@ def decision_job(job: DecisionJob) -> dict[str, object]:
     with season_errors():
         snapshot = ledger.replay(cutoff)
         summary = season_summary(job.season, snapshot, job.event_id, job.now)
-        states = entry_states(job.season, snapshot)
+        # Decide from each entry's state before this event: an accepted sheet for it
+        # is already charged by replay, and the chosen sheet must be charged once.
+        states = {entry: decision_baseline(state, snapshot, job.event_id)
+                  for entry, state in entry_states(job.season, snapshot).items()}
         known = [k for k in _parse(KnownPick, job.season.known_picks)
                  if k.event_id == job.event_id]
         appeal = next((a for a in _parse(AppealSnapshot, job.season.appeal)

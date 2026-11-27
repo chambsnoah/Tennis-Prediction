@@ -21,7 +21,7 @@ from test_local_services import (  # noqa: F401 - fixtures are used by name
     TEST_TARGETS, legacy_root, m6_draw, make_config, pool_root, rankings,
 )
 from web_interface import server
-from web_interface.dashboard import parse_season
+from web_interface.dashboard import build_ledger, decision_baseline, entry_states, parse_season
 from web_interface.errors import ServiceError
 from web_interface.jobs import JobRunner
 from web_interface.services import LocalServices
@@ -314,3 +314,45 @@ def test_dashboard_script_is_served_and_renders_without_html_injection(client):
         assert forbidden not in script
     page = client.get("/").get_data(as_text=True)
     assert 'src="dashboard.js"' in page and 'id="pool-dashboard"' in page
+
+
+def test_a_locked_sheet_with_a_player_out_of_the_draw_is_stale_not_fatal(services):
+    gone = (pair(57), pair(5), pair(9), pair(20), pair(21))  # atp:p57 is not in the draw
+    body = services.decision(decision_payload(compare=[p.to_dict() for p in gone]))
+    assert len(body["recommendation"]["best"]["pairs"]) == 5
+    compare = body["compare"]
+    assert compare["scorable"] is False and compare["metrics"] is None
+    assert compare["legal"] is False and compare["problems"]
+
+
+def accepted_for_monte_carlo(picks):
+    return [
+        LedgerRecord(record_id="sub-own-mc", entry_id=OWN, event_id="monte_carlo",
+                     effective_at=at(4), evidence=evidence(4, "sub-own-mc"),
+                     payload=Submitted(picks=picks, submitted_at=at(4), excel=True)),
+        LedgerRecord(record_id="acc-own-mc", entry_id=OWN, event_id="monte_carlo",
+                     effective_at=at(4.5), evidence=evidence(4.5, "acc-own-mc"),
+                     payload=Accepted(submission_id="sub-own-mc",
+                                      approved_by="fixture-commissioner")),
+    ]
+
+
+def test_decisions_start_from_the_state_before_this_events_accepted_sheet(
+        services, season_root):
+    sheet = (pair(1, 2), pair(5), pair(9), pair(20), pair(21))
+    document = season_document()
+    document["records"] += [r.to_dict() for r in accepted_for_monte_carlo(sheet)]
+    (season_root / "season.json").write_text(json.dumps(document))
+    season = parse_season(document)
+    ledger = build_ledger(season, True)
+    before = entry_states(season, ledger.replay(at(3.9)))[OWN]
+    snapshot = ledger.replay(NOW)
+    after = entry_states(season, snapshot)[OWN]
+    assert after.masters != before.masters and after.usage != before.usage
+    assert after.qualifying_events == ("indian_wells", "monte_carlo")
+    assert decision_baseline(after, snapshot, "monte_carlo") == before
+    assert decision_baseline(after, snapshot, "madrid") == after
+    # The accepted sheet itself stays legal when re-checked as a locked sheet.
+    body = services.decision(decision_payload(compare=[p.to_dict() for p in sheet]))
+    assert body["compare"]["legal"] is True
+    assert body["season"]["event"]["accepted"] is True

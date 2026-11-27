@@ -163,6 +163,37 @@ def entry_states(season: SeasonInputs, snapshot: LedgerSnapshot) -> dict[str, En
     return {e: known.get(e) or fresh_state(e) for e in season.entries}
 
 
+def decision_baseline(state: EntryState, snapshot: LedgerSnapshot, event_id: str) -> EntryState:
+    """The entry before this event: reverse only its own selections for ``event_id``.
+
+    Replay already charges an accepted sheet for the event being decided. The
+    optimizer and planner charge the sheet they choose, so the decision must start
+    from the state without it: one use back per selection, one token back in this
+    event's bank per seeded selection, and the event's sheet and points out of the
+    qualifying count and season total. Earlier events keep their spending.
+    """
+    event = next((e for e in snapshot.events
+                  if e.entry_id == state.entry_id and e.event_id == event_id), None)
+    if event is None:
+        return state
+    usage = dict(state.usage)
+    bank = list(state.slam if event_id in SLAM_EVENTS else state.masters)
+    for selection in event.selections:
+        usage[selection.player_id] -= 1
+        if selection.band is not Band.UNSEEDED:
+            bank[_SEEDED.index(selection.band)] += 1
+    qualifying = tuple(e for e in state.qualifying_events if e != event_id)
+    bonus = state.submission_bonus if len(qualifying) >= 7 else 0
+    return EntryState(
+        entry_id=state.entry_id,
+        slam=tuple(bank) if event_id in SLAM_EVENTS else state.slam,
+        masters=state.masters if event_id in SLAM_EVENTS else tuple(bank),
+        usage=tuple(sorted((p, n) for p, n in usage.items() if n > 0)),
+        qualifying_events=qualifying, submission_bonus=bonus,
+        season_points=state.season_points - event.season_points
+        - state.submission_bonus + bonus)
+
+
 def _pairs(pairs: tuple[Pair, ...]) -> list[dict[str, Any]]:
     return [pair.to_dict() for pair in pairs]
 

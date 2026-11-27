@@ -325,7 +325,13 @@ rival field with `rivals.model_rival_field` (rivals are every entry but your
 own), and then runs `season.plan_event` when `future` covers every later
 calendar event, or `optimizer.optimize` for this event alone otherwise. A
 locked sheet is checked with `substitutions.validate_roster` and scored with
-`optimizer.evaluate` on the same scenarios. Payout objectives use
+`optimizer.evaluate` on the same scenarios; a locked sheet naming a player no
+longer in the draw is reported as stale (`scorable: false`) and the
+recommendation is still returned. Decisions start from each entry's state
+before this event: replay already charges an accepted sheet for the event, so
+its uses, band tokens, qualifying sheet and points are reversed first and the
+chosen sheet is charged once. The page drops late responses for an event that
+is no longer selected and clears the previous event's results on a change. Payout objectives use
 `payouts.payout_config` only for 40, 60 or 80 entries. Unseeded draw players
 need first-day ranking snapshots (`rankings_missing` otherwise), since upset
 bonuses order them by rank.

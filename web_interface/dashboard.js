@@ -34,7 +34,15 @@
         decision: null,
         previous: {},   // event_id -> last decision, for refresh impact
         locked: {},     // event_id -> locked pairs, compared on every refresh
+        generation: 0,  // bumped on every event change; late responses for older ones are dropped
     };
+
+    // The selected event and its generation, captured before any request.
+    function selectionContext() { return { event: eventId(), generation: state.generation }; }
+
+    function current(context) {
+        return context.generation === state.generation && context.event === eventId();
+    }
 
     // --- small DOM helpers ---------------------------------------------------
 
@@ -123,11 +131,12 @@
     }
 
     async function busy(button, work) {
+        const context = selectionContext();
         button.disabled = true;
         try {
             await work();
         } catch (error) {
-            setStatus(explain(error.code || error.message), 'error');
+            if (current(context)) setStatus(explain(error.code || error.message), 'error');
         } finally {
             button.disabled = button.dataset.locked === 'true';
         }
@@ -170,13 +179,15 @@
     async function importDraw() {
         const file = $('dash-workbook').files[0];
         if (!file) { setStatus('Choose the event workbook first.', 'warn'); return; }
+        const context = selectionContext();
         const suffix = file.name.toLowerCase().endsWith('.xlsm') ? '.xlsm' : '.xlsx';
-        const query = new URLSearchParams({ event_id: eventId(), format: $('dash-format').value, suffix });
+        const query = new URLSearchParams({ event_id: context.event, format: $('dash-format').value, suffix });
         const data = await call(`/api/workbooks/preview?${query}`, {
             method: 'POST', headers: { 'Content-Type': 'application/octet-stream' },
             body: await file.arrayBuffer() });
+        if (!current(context)) return;
         state.draw = data.draw;
-        state.drawEvent = eventId();
+        state.drawEvent = context.event;
         const players = data.draw.slots.filter(s => s.player_id).length;
         fill('dash-draw', el('div', { class: 'dash-note' },
             `Draw imported: ${data.draw.event.name}, ${players} players, ${data.rankings} ranked. `,
@@ -250,8 +261,10 @@
     }
 
     async function loadSeason() {
+        const context = selectionContext();
         const view = await postJson('/api/pool/season',
-            { event_id: eventId(), allow_provisional: provisional() });
+            { event_id: context.event, allow_provisional: provisional() });
+        if (!current(context)) return;
         renderSeason(view);
         setStatus(view.mode === 'decision'
             ? 'Season loaded. Refresh the recommendation when the draw is imported.'
@@ -352,9 +365,12 @@
                 el('button', { class: 'dash-small', type: 'button', onclick: () => {
                     delete state.locked[result.event_id]; renderCompare(result);
                 } }, 'Unlock')),
-            sameSheet ? [
-                el('p', {}, compare.legal ? 'Legal against the current banks and use caps.'
-                    : 'Not legal against the current season state.'),
+            sameSheet && !compare.scorable ? [
+                el('p', {}, 'Stale: a player in the locked sheet is no longer in the draw, so it cannot be scored. Unlock it or lock a new sheet.'),
+                compare.problems.length ? el('ul', { class: 'dash-warnings' }, compare.problems.map(p => el('li', {}, p))) : null,
+            ] : sameSheet ? [
+                el('p', {}, compare.legal ? 'Legal against the season state before this event.'
+                    : 'Not legal against the season state before this event.'),
                 compare.problems.length ? el('ul', { class: 'dash-warnings' }, compare.problems.map(p => el('li', {}, p))) : null,
                 table(['', 'Expected pts', 'Downside', 'P(top-3)', 'Payout'], [
                     ['Locked', pm(compare.metrics.expected_points, compare.metrics.points_se),
@@ -498,19 +514,23 @@
             setStatus('Import this event\'s draw first.', 'warn');
             return;
         }
+        const context = selectionContext();
         await readRankings();
         setStatus('Simulating scenarios, rival sheets and the season plan…');
         const body = {
-            event_id: eventId(), artifact: $('dash-artifact').value, draw: state.draw,
+            event_id: context.event, artifact: $('dash-artifact').value, draw: state.draw,
             simulations: Number($('dash-simulations').value), seed: Number($('dash-seed').value),
             objective: $('dash-objective').value, season_objective: $('dash-season-objective').value,
             allow_provisional: provisional(), rankings: state.rankings,
         };
-        if (state.locked[eventId()]) body.compare = state.locked[eventId()];
+        if (state.locked[context.event]) body.compare = state.locked[context.event];
         try {
-            renderDecision(await postJson('/api/pool/decision', body));
+            const result = await postJson('/api/pool/decision', body);
+            if (!current(context)) return;
+            renderDecision(result);
             setStatus('Recommendation refreshed. Review it, then send your sheet yourself.');
         } catch (error) {
+            if (!current(context)) return;
             if (error.code === 'deadline_passed') await loadSeason().catch(() => {});
             throw error;
         }
@@ -522,6 +542,15 @@
         $('dash-season').addEventListener('click', e => busy(e.currentTarget, loadSeason));
         $('dash-decide').addEventListener('click', e => busy(e.currentTarget, decide));
         $('dash-event').addEventListener('change', () => {
+            // Results belong to one event: drop the active ones, keep per-event history and locks.
+            state.generation += 1;
+            state.decision = null;
+            state.draw = null;
+            state.drawEvent = null;
+            fill('dash-draw');
+            ['dash-season-panel', 'dash-event-panel', 'dash-recommendation-panel',
+             'dash-compare-panel', 'dash-rivals-panel', 'dash-plan-panel', 'dash-versions-panel']
+                .forEach(id => show(id, false));
             $('dash-decide').dataset.locked = 'false';
             $('dash-decide').disabled = false;
             show('dash-mode', false);
