@@ -29,7 +29,7 @@ from web_interface.errors import ServiceError
 from web_interface.services import LocalServices
 
 WEB_ROOT = Path(__file__).resolve().parent
-STATIC_FILES = {"app.js", "styles.css"}
+STATIC_FILES = {"app.js", "dashboard.js", "styles.css"}
 LOG = logging.getLogger("web_interface.server")
 _HTTP_CODES = {400: "bad_request", 403: "forbidden", 404: "not_found",
                405: "method_not_allowed", 413: "payload_too_large", 415: "unsupported_media_type"}
@@ -66,6 +66,13 @@ def create_app(config: LocalAppConfig, services: LocalServices | None = None) ->
                 if request.mimetype != "application/json":
                     return _error("json_required", 415)
         return None
+
+    @app.after_request
+    def no_store(response: BaseResponse) -> BaseResponse:
+        # API responses can carry private season data: never keep them in a cache.
+        if request.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     def body() -> object:
         return request.get_json(silent=True)
@@ -142,6 +149,14 @@ def create_app(config: LocalAppConfig, services: LocalServices | None = None) ->
     @app.post("/api/pool/recommend")
     def pool_recommend() -> Response:
         return jsonify(services.recommend(body()))
+
+    @app.post("/api/pool/season")
+    def pool_season() -> Response:
+        return jsonify(services.season(body()))
+
+    @app.post("/api/pool/decision")
+    def pool_decision() -> Response:
+        return jsonify(services.decision(body()))
 
     return app
 

@@ -241,15 +241,17 @@ build these records and call the job functions or `preview_upload` themselves.
 | `POST /api/workbooks/preview?event_id=&format=` | `preview_workbook` | Raw workbook body, at most 8 MiB; returns the canonical draw and counts only |
 | `POST /api/predict` | `predict` | `{artifact, context}`: a canonical `PredictionContext`; the response must bind to it |
 | `POST /api/pool/scenarios` | `simulate_tournament` | `build_scenarios` over a canonical draw; per-player mean/p90 points and the rule register used |
-| `POST /api/pool/recommend` | `recommend` | Scenarios plus `optimizer.recommend` for a configured pool `event_id` (the draw's event and scoring kind must match it) and optional `EntryState` |
+| `POST /api/pool/recommend` | `recommend` | Scenarios plus `optimizer.recommend` for a configured pool `event_id` (the draw's event and scoring kind must match it) and optional `EntryState`; refused with `deadline_passed` once a configured season says the event is locked |
+| `POST /api/pool/season` | `season` | `{event_id, allow_provisional}`: ledger replay at the server clock; banks, uses, standings, gaps, calendar and the decision/monitoring mode |
+| `POST /api/pool/decision` | `decision` | Scenario fields plus `event_id`, `objective`, `season_objective` and an optional locked `compare` sheet; refused with `deadline_passed` at or after the deadline |
 
 **No request paths.** Legacy tournaments are addressed by catalog ID
 (`YYYY/slug`, fixed patterns), pool events by an ID from the configured
 `events.json`, and providers by a manifest artifact name. Files are opened below
 their root one component at a time with `O_NOFOLLOW`, so `..`, separators,
 absolute paths and symlinks never resolve, and every read is size-bounded and
-schema-checked. Static routes serve only `index.html`, `app.js` and
-`styles.css`. Pool calls always use the bundled rule register (no
+schema-checked. Static routes serve only `index.html`, `app.js`,
+`dashboard.js` and `styles.css`. Pool calls always use the bundled rule register (no
 `register_path`), and `allow_provisional` must be a JSON boolean defaulting to
 `false`, so strict mode still blocks with `rules_unresolved`. Scenario results
 report the rule register version and each decision's status.
@@ -303,6 +305,63 @@ artifacts are future work, so prediction and pool routes answer
 `no_provider_loader` until one is configured. Legacy pickle/joblib ensembles are
 not loadable through this boundary.
 
-Tests build synthetic tournaments, workbooks, registries, draws and a fixture
-provider at runtime; the fixture provider is uncalibrated and exists only to
-exercise the boundary.
+**Pool dashboard.** The default tab (`dashboard.js`) walks one event: import
+the event workbook (draw) through the preview route, load the season, then
+refresh the recommendation. It reads its season from an optional
+`season.json` in the trusted pool directory, re-read on every request:
+
+```json
+{"schema_version": 1, "entry_id": "<own entry>", "entries": ["<every entry>"],
+ "events": [<EventTerms>], "records": [<LedgerRecord>],
+ "known_picks": [<KnownPick>], "future": [<FutureEvent>], "appeal": [<AppealSnapshot>]}
+```
+
+`events` and `records` rebuild the `SeasonLedger`; `entries` lists pool
+entries without ledger records yet (they get full banks); the last three are
+optional model inputs. The decision job (`web_interface.dashboard_jobs`, a
+NumPy module with its own 3.13 mypy step) replays the ledger at the
+information cutoff, builds scenarios from the verified provider, models the
+rival field with `rivals.model_rival_field` (rivals are every entry but your
+own), and then runs `season.plan_event` when `future` covers every later
+calendar event, or `optimizer.optimize` for this event alone otherwise. A
+locked sheet is checked with `substitutions.validate_roster` and scored with
+`optimizer.evaluate` on the same scenarios. Payout objectives use
+`payouts.payout_config` only for 40, 60 or 80 entries. Unseeded draw players
+need first-day ranking snapshots (`rankings_missing` otherwise), since upset
+bonuses order them by rank.
+
+The response shows exact versus estimated rival picks (known, partial,
+estimated, no history) and projected ownership with its interval; the own
+banks, player uses, standings and gaps; each pair's mean and 90th-percentile
+points, ownership and substitute cover; expected points with standard
+errors, the lower-tail (downside) mean, P(top-3) and expected payout;
+alternatives with their tie verdicts; the season plan's policies, rival gaps
+and token/use preservation advice; and the server clock, information cutoff,
+deadline, artifact digest, provider model and calibration versions, missing
+coverage and warnings (tallied from every prediction), scenario digest, rule
+register and ledger digest. Coverage warnings name what is missing (no
+withdrawal probabilities, no appeal snapshot, no payout schedule, no season
+plan, and that no news or injury observations feed the scenarios). The page
+compares each refresh with the previous one (cutoff, scenarios, artifact,
+primaries in and out, metric changes). Every view states that these are
+model-conditional estimates, not guarantees.
+
+The mode comes from the server clock, never from a request: before the
+deadline the dashboard is in decision mode; at or after it, decision and
+recommend requests are refused (`deadline_passed`) and the season view shows
+the accepted sheet and standings (monitoring mode). A request cutoff may not
+be later than the server clock or the deadline. The dashboard never submits,
+sends or exports anything. Season data (entry IDs, picks, banks, standings) is
+returned only to the loopback browser with `Cache-Control: no-store` on every
+API response, kept in page memory only, rendered as text, and never logged;
+ledger failures return `invalid_season_input` without detail.
+
+Not yet in the dashboard: exporting the commissioner sheet
+(`tennis_pool.submission`), importing season workbooks into the ledger, and
+importing results to update season state; the operator edits `season.json`.
+Stress tests and calibrated artifacts are separate work, so without a
+configured provider loader the decision route answers `no_provider_loader`.
+
+Tests build synthetic tournaments, workbooks, registries, draws, seasons and a
+fixture provider at runtime; the fixture provider is uncalibrated and exists
+only to exercise the boundary.

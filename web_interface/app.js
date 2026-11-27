@@ -12,7 +12,7 @@ class TennisPredictionApp {
     init() {
         this.setupEventListeners();
         this.loadTournaments();
-        this.showTab('match-prediction');
+        this.showTab('pool-dashboard');
     }
 
     setupEventListeners() {

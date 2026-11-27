@@ -792,6 +792,167 @@ body {
     color: #64748b;
 }
 
+/* Pool dashboard */
+.dash-panel {
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
+}
+
+.dash-panel h3 {
+    margin-bottom: 1rem;
+    color: #2d3748;
+}
+
+.dash-panel h4 {
+    margin: 1rem 0 0.5rem;
+    color: #4a5568;
+}
+
+.dash-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.dash-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.dash-field select,
+.dash-field input {
+    padding: 0.5rem;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    font: inherit;
+}
+
+.dash-check {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.dash-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+}
+
+.dash-small {
+    padding: 0.3rem 0.75rem;
+    border: 1px solid #667eea;
+    border-radius: 8px;
+    background: #fff;
+    color: #4c51bf;
+    cursor: pointer;
+}
+
+.dash-status {
+    min-height: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.dash-status[data-kind="error"] { color: #c53030; }
+.dash-status[data-kind="warn"] { color: #b7791f; }
+
+.dash-banner {
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    background: #ebf8ff;
+    border-left: 6px solid #3182ce;
+}
+
+.dash-banner[data-mode="monitoring"] {
+    background: #fffaf0;
+    border-left-color: #dd6b20;
+}
+
+.dash-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.dash-scroll {
+    max-height: 22rem;
+    overflow-y: auto;
+}
+
+.dash-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    margin: 0.5rem 0;
+}
+
+.dash-table th,
+.dash-table td {
+    padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    vertical-align: top;
+}
+
+.dash-table th {
+    background: #f7fafc;
+    font-weight: 600;
+}
+
+.dash-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.dash-metric {
+    background: #f7fafc;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.dash-metric span { font-size: 0.8rem; color: #718096; }
+.dash-metric b { font-size: 1.2rem; color: #2d3748; }
+
+.dash-metrics .dash-note { grid-column: 1 / -1; }
+
+.dash-note {
+    font-size: 0.85rem;
+    color: #718096;
+    margin: 0.5rem 0;
+}
+
+.dash-notice {
+    font-weight: 600;
+    color: #744210;
+    margin-bottom: 0.75rem;
+}
+
+.dash-warnings {
+    margin: 0.5rem 0 0.5rem 1.25rem;
+    font-size: 0.88rem;
+    color: #975a16;
+}
+
+@media (max-width: 768px) {
+    .dash-columns { grid-template-columns: 1fr; }
+}
+
 /* Loading Overlay */
 .loading-overlay {
     position: fixed;

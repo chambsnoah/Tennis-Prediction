@@ -15,7 +15,7 @@ import json
 import os
 import re
 import tempfile
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -26,10 +26,11 @@ from tennis_api.models.canonical import (
     Draw, Event, MatchProbability, PlayerId, PredictionContext, Provenance, RankingSnapshot,
 )
 from tennis_api.models.identity import IdentityRegistry
-from tennis_pool.ledger import EntryState
+from tennis_pool.ledger import EntryState, Pair
 from tennis_pool.workbooks import WorkbookImportError, WorkbookLimits, WorkbookPreview, preview_workbook
 from web_interface.artifacts import ArtifactRef, ArtifactStore, load_provider
 from web_interface.config import LocalAppConfig
+from web_interface.dashboard import SeasonInputs, SeasonJob, load_season, mode
 from web_interface.errors import ServiceError, safe_code
 from web_interface.files import read_bounded
 from web_interface.jobs import JobRunner
@@ -44,10 +45,14 @@ TARGETS = frozenset({
     "web_interface.services:prediction_job",
     "web_interface.pool_jobs:scenario_job",
     "web_interface.pool_jobs:recommendation_job",
+    "web_interface.dashboard:season_job",
+    "web_interface.dashboard_jobs:decision_job",
 })
 POOL_INPUT_BYTES = 8 * 1024 * 1024
 WORKBOOK_FORMATS = ("GS128", "M7", "M6")
 POOL_KINDS = ("gs", "m7", "m6")
+EVENT_OBJECTIVES = ("expected_points", "robust", "p_top3", "expected_payout")
+SEASON_OBJECTIVES = ("expected_season_points", "expected_season_payout", "p_season_top3")
 MAX_WITHDRAWALS = 128
 MAX_RANKINGS = 256
 _POOL_EVENT = re.compile(r"[a-z0-9_]{1,64}")
@@ -171,6 +176,19 @@ class RecommendationJob:
     scenarios: ScenarioJob
     event_id: str
     entry: EntryState | None
+
+
+@dataclass(frozen=True)
+class DecisionJob:
+    """One dashboard decision; ``now`` is the server clock at the request."""
+
+    scenarios: ScenarioJob
+    event_id: str
+    season: SeasonInputs = field(repr=False)
+    now: datetime
+    objective: str
+    season_objective: str
+    compare: tuple[Pair, ...] | None = field(default=None, repr=False)
 
 
 # --- job functions (run inside a bounded worker) ---------------------------------
@@ -316,8 +334,11 @@ def load_pool_inputs(root: Path) -> PoolInputs:
 class LocalServices:
     """Direct, validated service calls for one local user."""
 
-    def __init__(self, config: LocalAppConfig, runner: JobRunner | None = None) -> None:
+    def __init__(self, config: LocalAppConfig, runner: JobRunner | None = None,
+                 clock: Callable[[], datetime] | None = None) -> None:
         self.config = config
+        # The server clock decides decision versus monitoring mode, never a request.
+        self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.catalog = LegacyCatalog(config.data_root)
         self.runner = runner or JobRunner(config.jobs, TARGETS)
         self.pool: PoolInputs | None = None
@@ -341,6 +362,8 @@ class LocalServices:
             "pool_events": sorted(self.pool.events) if self.pool else [],
             "artifacts": list(self.artifacts.names()),
             "provider_kinds": sorted(k for k, _ in self.config.provider_loaders),
+            "season_configured": self.config.pool_root is not None
+            and (self.config.pool_root / "season.json").is_file(),
         }
 
     # Legacy tournament data -------------------------------------------------
@@ -483,6 +506,7 @@ class LocalServices:
             raise ServiceError("draw_event_mismatch", 422)
         if scenarios.kind != POOL_EVENT_KINDS[str(event_id)]:
             raise ServiceError("kind_event_mismatch", 422)
+        self._refuse_after_lock(str(event_id))
         entry = (None if request.get("entry") is None
                  else _contract(EntryState, request.get("entry"), "invalid_entry"))
         job = RecommendationJob(scenarios=scenarios, event_id=str(event_id), entry=entry)
@@ -490,3 +514,117 @@ class LocalServices:
             "web_interface.pool_jobs:recommendation_job", job)
         return result
 
+    # Dashboard ----------------------------------------------------------------------
+
+    def _season(self) -> SeasonInputs:
+        if self.config.pool_root is None or self.pool is None:
+            raise ServiceError("pool_inputs_not_configured", 503)
+        return load_season(self.config.pool_root)
+
+    def _now(self) -> datetime:
+        now = self.clock()
+        if now.tzinfo is None:
+            raise ServiceError("invalid_clock", 500)
+        return now
+
+    def _refuse_after_lock(self, event_id: str) -> None:
+        """With a configured season, no recommendation once the event's deadline passed."""
+        if self.config.pool_root is None:
+            return
+        try:
+            season = self._season()
+        except ServiceError as error:
+            if error.code == "season_input_missing":
+                return
+            raise
+        terms = next((t for t in season.events if t.event_id == event_id), None)
+        if terms is not None and mode(terms, self._now()) != "decision":
+            raise ServiceError("deadline_passed", 409)
+
+    def _pool_event(self, request: Mapping[str, Any]) -> tuple[str, Event]:
+        if self.pool is None:
+            raise ServiceError("pool_inputs_not_configured", 503)
+        event_id = request.get("event_id")
+        event = self.pool.events.get(event_id) if isinstance(event_id, str) else None
+        if event is None or event_id not in POOL_EVENT_KINDS:
+            raise ServiceError("unknown_event", 404)
+        return str(event_id), event
+
+    def season(self, data: object) -> dict[str, object]:
+        """Banks, uses, standings, gaps and the decision/monitoring mode for one event."""
+        request = _object(data, {"event_id", "allow_provisional"})
+        event_id, _ = self._pool_event(request)
+        season = self._season()
+        season.terms(event_id)
+        job = SeasonJob(season=season, event_id=event_id, now=self._now(),
+                        allow_provisional=_bool(request, "allow_provisional"))
+        result: dict[str, object] = self.runner.run("web_interface.dashboard:season_job", job)
+        result["names"] = self._names(_player_ids(result))
+        return result
+
+    _DECISION_FIELDS = (_SCENARIO_FIELDS | {"event_id", "objective", "season_objective",
+                                            "compare"})
+
+    def decision(self, data: object) -> dict[str, object]:
+        """One event decision in season context; refused at or after the deadline."""
+        request = dict(_object(data, self._DECISION_FIELDS))
+        event_id, event = self._pool_event(request)
+        season = self._season()
+        terms = season.terms(event_id)
+        now = self._now()
+        # Before any other work: after lock there is nothing to re-select.
+        if mode(terms, now) != "decision":
+            raise ServiceError("deadline_passed", 409)
+        request.setdefault("kind", POOL_EVENT_KINDS[event_id])
+        request.setdefault("cutoff", now.isoformat())
+        scenarios = self._scenario_job(request)
+        if scenarios.cutoff > now or scenarios.cutoff >= terms.deadline:
+            raise ServiceError("invalid_cutoff", 422)
+        if scenarios.draw.event.event_id != event.event_id:
+            raise ServiceError("draw_event_mismatch", 422)
+        if scenarios.kind != POOL_EVENT_KINDS[event_id]:
+            raise ServiceError("kind_event_mismatch", 422)
+        # Upset bonuses order unseeded players by first-day rank, so each needs one.
+        ranked = {r.player_id for r in scenarios.rankings if r.rank is not None}
+        if any(s.player_id is not None and s.seed is None and s.player_id not in ranked
+               for s in scenarios.draw.slots):
+            raise ServiceError("rankings_missing", 422)
+        compare = request.get("compare")
+        pairs = None
+        if compare is not None:
+            if not isinstance(compare, list) or len(compare) != 5:
+                raise ServiceError("invalid_compare", 422)
+            pairs = tuple(_contract(Pair, item, "invalid_compare") for item in compare)
+        job = DecisionJob(
+            scenarios=scenarios, event_id=event_id, season=season, now=now,
+            objective=_choice(request, "objective", "expected_points", EVENT_OBJECTIVES),
+            season_objective=_choice(request, "season_objective", "expected_season_points",
+                                     SEASON_OBJECTIVES),
+            compare=pairs)
+        result: dict[str, object] = self.runner.run(
+            "web_interface.dashboard_jobs:decision_job", job)
+        draw_ids = {str(s.player_id) for s in scenarios.draw.slots if s.player_id is not None}
+        result["names"] = self._names(draw_ids | _player_ids(result))
+        return result
+
+    def _names(self, player_ids: set[str]) -> dict[str, str]:
+        """Public display names from the reviewed registry for the given player IDs."""
+        assert self.pool is not None
+        return {p.player_id: p.display_name for p in self.pool.registry.players
+                if p.player_id in player_ids}
+
+
+def _player_ids(value: object) -> set[str]:
+    """Every ``player_id`` string inside a job result (bounded by the result cap)."""
+    found: set[str] = set()
+    stack = [value]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            player = item.get("player_id")
+            if isinstance(player, str):
+                found.add(player)
+            stack.extend(item.values())
+        elif isinstance(item, list):
+            stack.extend(item)
+    return found

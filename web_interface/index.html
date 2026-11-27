@@ -18,7 +18,11 @@
                     <h1>Tennis Prediction System</h1>
                 </div>
                 <nav class="nav-tabs">
-                    <button class="nav-tab active" data-tab="match-prediction">
+                    <button class="nav-tab active" data-tab="pool-dashboard">
+                        <i class="fas fa-clipboard-list"></i>
+                        Pool Dashboard
+                    </button>
+                    <button class="nav-tab" data-tab="match-prediction">
                         <i class="fas fa-chart-line"></i>
                         Match Prediction
                     </button>
@@ -40,8 +44,121 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- Pool Dashboard Tab: event decision in season context -->
+            <div class="tab-content active" id="pool-dashboard">
+                <div class="section-header">
+                    <h2><i class="fas fa-clipboard-list"></i> Pool Dashboard</h2>
+                    <p>One event decision in its season context. Estimates are model-conditional, never guarantees.</p>
+                </div>
+
+                <div class="dash-panel" id="dash-setup">
+                    <h3>1. Event and inputs</h3>
+                    <div class="dash-grid">
+                        <label class="dash-field">Pool event
+                            <select id="dash-event"></select>
+                        </label>
+                        <label class="dash-field">Model artifact
+                            <select id="dash-artifact"></select>
+                        </label>
+                        <label class="dash-field">Event objective
+                            <select id="dash-objective">
+                                <option value="expected_points">Expected points</option>
+                                <option value="robust">Robust (downside tail)</option>
+                                <option value="p_top3">P(top-3)</option>
+                                <option value="expected_payout">Expected payout</option>
+                            </select>
+                        </label>
+                        <label class="dash-field">Season objective
+                            <select id="dash-season-objective">
+                                <option value="expected_season_points">Expected season points</option>
+                                <option value="p_season_top3">P(season top-3)</option>
+                                <option value="expected_season_payout">Expected season payout</option>
+                            </select>
+                        </label>
+                        <label class="dash-field">Simulations
+                            <input id="dash-simulations" type="number" min="1" max="20000" value="2000">
+                        </label>
+                        <label class="dash-field">Seed
+                            <input id="dash-seed" type="number" min="0" value="2026">
+                        </label>
+                    </div>
+                    <div class="dash-grid">
+                        <label class="dash-field">Event workbook (draw)
+                            <input id="dash-workbook" type="file" accept=".xlsx,.xlsm">
+                        </label>
+                        <label class="dash-field">First-day rankings (JSON list of ranking snapshots)
+                            <input id="dash-rankings" type="file" accept=".json,application/json">
+                        </label>
+                        <label class="dash-field">Workbook format
+                            <select id="dash-format">
+                                <option value="GS128">GS128 (Slam)</option>
+                                <option value="M7">M7 (Masters, 7 rounds)</option>
+                                <option value="M6">M6 (Monte Carlo, Paris)</option>
+                            </select>
+                        </label>
+                        <label class="dash-field dash-check">
+                            <input id="dash-provisional" type="checkbox">
+                            Use provisional rule interpretations (strict mode refuses until the rules are resolved)
+                        </label>
+                    </div>
+                    <div class="dash-actions">
+                        <button class="optimize-btn" id="dash-preview" type="button"><i class="fas fa-file-import"></i> Import draw</button>
+                        <button class="optimize-btn" id="dash-season" type="button"><i class="fas fa-table"></i> Load season</button>
+                        <button class="optimize-btn" id="dash-decide" type="button"><i class="fas fa-sync"></i> Refresh recommendation</button>
+                    </div>
+                    <p class="dash-status" id="dash-status" role="status"></p>
+                    <div id="dash-draw"></div>
+                </div>
+
+                <div class="dash-banner" id="dash-mode" hidden></div>
+
+                <div class="dash-columns">
+                    <div class="dash-panel" id="dash-season-panel" hidden>
+                        <h3>2. Season state</h3>
+                        <div id="dash-own"></div>
+                        <div id="dash-standings"></div>
+                        <div id="dash-calendar"></div>
+                    </div>
+                    <div class="dash-panel" id="dash-event-panel" hidden>
+                        <h3>This event</h3>
+                        <div id="dash-event-state"></div>
+                    </div>
+                </div>
+
+                <div class="dash-panel" id="dash-recommendation-panel" hidden>
+                    <h3>3. Recommended sheet</h3>
+                    <div id="dash-metrics"></div>
+                    <div id="dash-pairs"></div>
+                    <div id="dash-alternatives"></div>
+                </div>
+
+                <div class="dash-panel" id="dash-compare-panel" hidden>
+                    <h3>Locked sheet and refresh impact</h3>
+                    <div id="dash-compare"></div>
+                    <div id="dash-impact"></div>
+                </div>
+
+                <div class="dash-panel" id="dash-rivals-panel" hidden>
+                    <h3>4. Rival picks: known versus estimated</h3>
+                    <div class="dash-columns">
+                        <div id="dash-rivals"></div>
+                        <div id="dash-ownership"></div>
+                    </div>
+                </div>
+
+                <div class="dash-panel" id="dash-plan-panel" hidden>
+                    <h3>5. Season plan and preservation</h3>
+                    <div id="dash-plan"></div>
+                </div>
+
+                <div class="dash-panel" id="dash-versions-panel" hidden>
+                    <h3>6. Cutoffs, versions and coverage</h3>
+                    <div id="dash-versions"></div>
+                </div>
+            </div>
+
             <!-- Match Prediction Tab -->
-            <div class="tab-content active" id="match-prediction">
+            <div class="tab-content" id="match-prediction">
                 <div class="section-header">
                     <h2><i class="fas fa-chart-line"></i> Match Prediction</h2>
                     <p>Simulate matches between players with detailed statistics</p>
@@ -348,7 +465,7 @@
         </div>
     </div>
 
-    <script src="tennis-engine.js"></script>
     <script src="app.js"></script>
+    <script src="dashboard.js"></script>
 </body>
 </html>
