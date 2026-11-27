@@ -148,6 +148,7 @@ PINNED_README = f"{REPO}/blob/{SYNTHETIC_SHA}/README.md"
         f"{REPO}/tree/{SYNTHETIC_SHA}/README.md",
         f"http://github.com/JeffSackmann/tennis_atp/blob/{SYNTHETIC_SHA}/README.md",
         f"https://example.invalid/JeffSackmann/tennis_atp/{SYNTHETIC_SHA}/README.md",
+        "https://[",
     ],
 )
 def test_readme_pin_must_be_the_revision_path_of_the_selected_repo(committed, url):
@@ -157,6 +158,14 @@ def test_readme_pin_must_be_the_revision_path_of_the_selected_repo(committed, ur
     assert not decision.allowed
     assert "readme_not_pinned" in decision.unmet
     assert "license_not_pinned" not in decision.unmet
+
+
+def test_malformed_urls_fail_closed_without_raising(committed):
+    policy = _verified(committed, ["automated_ingestion"])
+    policy["source"]["license_evidence"]["url"] = "https://["
+    policy["permissions"]["allowed_actions"]["automated_ingestion"] = True
+    assert "license_not_pinned" in evaluate_gates(policy, AS_OF)["automated_ingestion"].unmet
+    assert declared_actions_exceed_evidence(policy, AS_OF) == ("automated_ingestion",)
 
 
 def test_raw_urls_at_the_revision_also_pin_evidence(committed):
@@ -182,9 +191,12 @@ def test_common_readme_names_still_pin(committed, name):
     assert _allowed(policy) == {"automated_ingestion"}
 
 
-def test_unparseable_repository_blocks_both_pins(committed):
+@pytest.mark.parametrize(
+    "repository", ["https://github.com/JeffSackmann/tennis_atp?x=1", "https://["]
+)
+def test_unparseable_repository_blocks_both_pins(committed, repository):
     policy = _verified(committed, ["automated_ingestion"])
-    policy["source"]["repository"] = "https://github.com/JeffSackmann/tennis_atp?x=1"
+    policy["source"]["repository"] = repository
     unmet = evaluate_gates(policy, AS_OF)["automated_ingestion"].unmet
     assert {"readme_not_pinned", "license_not_pinned"} <= set(unmet)
 

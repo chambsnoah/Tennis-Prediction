@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 import re
 from typing import Any, Mapping
-from urllib.parse import urlsplit
+from urllib.parse import SplitResult, urlsplit
 
 RESTRICTED_ACTIONS = ("automated_ingestion", "publication", "paid_prize_pool_use")
 _FULL_SHA = re.compile(r"[0-9a-f]{40}")
@@ -60,12 +60,22 @@ def _date(value: object) -> date | None:
         return None
 
 
+def _split(url: str) -> SplitResult | None:
+    """Parse a URL; a malformed one (for example an unmatched bracket) is unmet."""
+    try:
+        return urlsplit(url)
+    except ValueError:
+        return None
+
+
 def _repository_path(repository: object) -> tuple[str, str] | None:
     """Owner and name of a ``https://github.com/<owner>/<name>`` repository."""
     text = _text(repository)
     if text is None:
         return None
-    parts = urlsplit(text)
+    parts = _split(text)
+    if parts is None:
+        return None
     segments = [s for s in parts.path.split("/") if s]
     if (
         parts.scheme != "https"
@@ -95,8 +105,8 @@ def _pinned(
     url = _text(evidence.get("url"))
     if url is None or _date(evidence.get("retrieved_on")) is None:
         return False
-    parts = urlsplit(url)
-    if parts.scheme != "https" or parts.query or parts.fragment:
+    parts = _split(url)
+    if parts is None or parts.scheme != "https" or parts.query or parts.fragment:
         return False
     segments = parts.path.split("/")[1:]
     if parts.netloc == "github.com" and segments[2:3] == ["blob"]:
