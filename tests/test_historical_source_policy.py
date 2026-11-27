@@ -7,10 +7,9 @@ from pathlib import Path
 import pytest
 
 
-POLICY_PATH = (
-    Path(__file__).resolve().parents[1]
-    / "docs/data/historical_source_policy.json"
-)
+DATA_DIR = Path(__file__).resolve().parents[1] / "docs/data"
+POLICY_PATH = DATA_DIR / "historical_source_policy.json"
+MARKDOWN_PATH = DATA_DIR / "HISTORICAL_SOURCE_POLICY.md"
 
 
 @pytest.fixture
@@ -19,12 +18,15 @@ def policy():
 
 
 def test_unavailable_source_has_no_invented_version_or_license(policy):
-    assert policy["schema_version"] == 1
-    assert policy["policy_version"] == "2026-10-20.1"
+    assert policy["schema_version"] == 2
+    assert policy["policy_version"] == "2026-11-27.1"
     source = policy["source"]
     assert source["repository"] == "https://github.com/JeffSackmann/tennis_atp"
     assert source["access_status"] == "unavailable_http_404"
+    assert source["last_access_check_on"] == policy["reviewed_on"] == "2026-11-27"
     assert source["revision"] is None
+    assert source["readme_evidence"] is None
+    assert source["license_evidence"] is None
     assert source["terms_url"] is None
     assert source["license"] is None
     assert source["license_url"] is None
@@ -38,7 +40,7 @@ def test_owner_source_selection_is_not_permission_approval(policy):
     assert source["selection"] == "selected_pending_access_and_permission"
     assert source["selected_by"] == "project_owner"
     assert date.fromisoformat(source["selected_on"]) == date(2026, 10, 20)
-    assert policy["reviewed_on"] == source["selected_on"]
+    assert date.fromisoformat(policy["reviewed_on"]) > date.fromisoformat(source["selected_on"])
     assert policy["permissions"]["approvals"] == []
     assert not any(policy["permissions"]["allowed_actions"].values())
 
@@ -134,3 +136,66 @@ def test_alternative_sources_are_not_silent_fallbacks(policy, source_id):
     alternative = next(item for item in policy["alternatives"] if item["id"] == source_id)
     assert alternative["status"] == "not_approved"
     assert alternative["automated_ingestion_allowed"] is False
+
+
+def test_policy_versions_are_recorded_in_order(policy):
+    history = policy["history"]
+    versions = [entry["policy_version"] for entry in history]
+    assert versions == ["2026-10-07.1", "2026-10-20.1", "2026-11-27.1"]
+    assert versions == sorted(versions) and len(set(versions)) == len(versions)
+    assert versions[-1] == policy["policy_version"]
+    assert history[-1]["issue"] == 49
+    assert policy["issues"] == [9, 49]
+
+
+def test_every_access_check_failed_and_none_invents_a_revision(policy):
+    checks = policy["source"]["access_checks"]
+    assert [check["checked_on"] for check in checks] == ["2026-10-20", "2026-11-27"]
+    assert all(check["result"] == "http_404" for check in checks)
+    latest = checks[-1]
+    assert {"repository_metadata", "latest_commit_list", "readme_endpoint",
+            "license_endpoint"} <= set(latest["requests"])
+    assert latest["owner_account"] == "public_listing_excludes_tennis_atp"
+    assert all("revision" not in check and "sha" not in check for check in checks)
+
+
+def test_gates_stay_blocked_except_work_needing_no_source_permission(policy):
+    gates = policy["gates"]
+    assert gates["source_access_and_pinned_revision"]["status"] == "blocked_external"
+    assert gates["current_terms_and_license_scope"]["status"] == "blocked"
+    assert gates["rights_holder_permission"]["status"] == "blocked_external"
+    assert gates["coverage_quality_audit"]["status"] == "not_started"
+    assert gates["workbook_privacy_audit"]["status"] == "not_started"
+    assert gates["evaluation_splits"]["status"] == "preserved"
+    assert gates["policy_consistency"]["status"] == "complete"
+    assert gates["real_data_ingestion_notice"] == {
+        "status": "blocked", "real_data_retrieval_allowed": False,
+    }
+    for name, gate in gates.items():
+        assert set(gate.get("blocked_by", [])) <= set(gates) | {"private_audit_authorization"}, name
+    permissions = policy["permissions"]
+    assert permissions["permitted_without_source_permission"] == [
+        "synthetic_fixture_development", "read_only_public_access_recheck",
+    ]
+    assert permissions["rights_holder_request"] == {
+        "status": "not_evidenced", "owner_action_required": True, "sent_by_tooling": False,
+    }
+
+
+def test_markdown_matches_the_machine_readable_decisions(policy):
+    markdown = MARKDOWN_PATH.read_text(encoding="utf-8")
+    assert f"policy **{policy['policy_version']}**" in markdown
+    assert "qualifying/Challenger/Futures/doubles files are **excluded**" in markdown
+    assert "require separate scope decisions" not in markdown
+    privacy_line = next(
+        line for line in markdown.splitlines()
+        if line.startswith("- Commissioner workbook privacy is **not audited**")
+    )
+    for term in (
+        "participants", "contact details", "picks", "quotas", "usage", "payments",
+        "payouts", "hidden sheets", "comments", "metadata", "external links",
+        "VBA", "confidential permission evidence",
+    ):
+        assert term in privacy_line, term
+    for gate in policy["gates"]:
+        assert f"`{gate}`" in markdown, gate

@@ -208,6 +208,17 @@ blocked. Snapshots explicitly report
 `refresh_status="blocked_no_approved_provider"`; this module performs no network
 refresh and adds no provider adapter. Existing legacy API examples in
 the [README](../README.md) do not approve a source for information observations or backtests.
+
+`tennis_api.source_policy.evaluate_gates(policy, as_of)` is the fail-closed check
+a future retrieval preflight should call. It allows `automated_ingestion`,
+`publication` or `paid_prize_pool_use` only when the record holds verified access
+at a full 40-character revision and verified terms with a recorded license. It also
+needs README and license evidence pinned to that revision, plus an unexpired
+rights-holder approval that names the action and revision and cites a
+`restricted:` evidence reference. Owner selection, free-access announcements and
+the declared `allowed_actions` flags are ignored as evidence;
+`declared_actions_exceed_evidence` names any declared flag the evidence does not
+back. It validates declarations and performs no network access.
 Tests use synthetic records only and never read the separate `/tennis` project.
 
 ## Local App and Services
