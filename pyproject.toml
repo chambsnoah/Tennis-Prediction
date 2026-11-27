@@ -62,7 +62,7 @@ select = ["E9", "F63", "F7", "F82", "F821"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["tennis_pool", "pool_optimizer/pool/scoring.py", "tennis_api/models/canonical.py", "tennis_api/models/identity.py", "tennis_api/models/information.py", "web_interface"]
+files = ["tennis_pool", "pool_optimizer/pool/scoring.py", "tennis_api/models/canonical.py", "tennis_api/models/identity.py", "tennis_api/models/information.py", "tennis_api/source_policy.py", "web_interface"]
 strict = true
 warn_unused_ignores = true
 # NumPy-backed modules run under a 3.13 parser target in a separate CI step.

@@ -1,8 +1,28 @@
 {
-  "schema_version": 1,
-  "policy_version": "2026-10-20.1",
-  "reviewed_on": "2026-10-20",
-  "issue": 9,
+  "schema_version": 2,
+  "policy_version": "2026-11-27.1",
+  "reviewed_on": "2026-11-27",
+  "issues": [
+    9,
+    49
+  ],
+  "history": [
+    {
+      "policy_version": "2026-10-07.1",
+      "issue": 9,
+      "change": "fail_closed_source_research"
+    },
+    {
+      "policy_version": "2026-10-20.1",
+      "issue": 9,
+      "change": "owner_selected_source_access_unavailable"
+    },
+    {
+      "policy_version": "2026-11-27.1",
+      "issue": 49,
+      "change": "access_recheck_gate_record_and_policy_alignment"
+    }
+  ],
   "source": {
     "id": "jeff_sackmann_tennis_atp",
     "repository": "https://github.com/JeffSackmann/tennis_atp",
@@ -25,7 +45,42 @@
       "source_url_required": true,
       "license_link_required_if_verified": true,
       "changes_must_be_indicated": true
-    }
+    },
+    "access_checks": [
+      {
+        "checked_on": "2026-10-20",
+        "method": "github_rest_and_raw_readme",
+        "requests": [
+          "repository_metadata",
+          "latest_commit_list",
+          "master_commit",
+          "raw_readme_master",
+          "raw_readme_main"
+        ],
+        "result": "http_404"
+      },
+      {
+        "checked_on": "2026-11-27",
+        "method": "github_rest_authenticated_and_anonymous_and_raw_head",
+        "requests": [
+          "repository_metadata",
+          "latest_commit_list",
+          "readme_endpoint",
+          "license_endpoint",
+          "anonymous_repository_metadata",
+          "repository_web_page",
+          "raw_readme_master",
+          "raw_readme_main",
+          "raw_license_master",
+          "raw_license_main"
+        ],
+        "result": "http_404",
+        "owner_account": "public_listing_excludes_tennis_atp"
+      }
+    ],
+    "last_access_check_on": "2026-11-27",
+    "readme_evidence": null,
+    "license_evidence": null
   },
   "permissions": {
     "status": "blocked_source_and_permission_review",
@@ -44,25 +99,94 @@
       "local_caching_and_retention",
       "raw_and_derived_data_redistribution",
       "model_and_report_publication"
+    ],
+    "rights_holder_request": {
+      "status": "not_evidenced",
+      "owner_action_required": true,
+      "sent_by_tooling": false
+    },
+    "permitted_without_source_permission": [
+      "synthetic_fixture_development",
+      "read_only_public_access_recheck"
     ]
+  },
+  "gates": {
+    "source_access_and_pinned_revision": {
+      "status": "blocked_external",
+      "last_checked_on": "2026-11-27"
+    },
+    "current_terms_and_license_scope": {
+      "status": "blocked",
+      "blocked_by": [
+        "source_access_and_pinned_revision"
+      ]
+    },
+    "rights_holder_permission": {
+      "status": "blocked_external",
+      "blocked_by": [
+        "current_terms_and_license_scope"
+      ]
+    },
+    "coverage_quality_audit": {
+      "status": "not_started",
+      "blocked_by": [
+        "rights_holder_permission"
+      ]
+    },
+    "evaluation_splits": {
+      "status": "preserved"
+    },
+    "workbook_privacy_audit": {
+      "status": "not_started",
+      "blocked_by": [
+        "private_audit_authorization"
+      ]
+    },
+    "policy_consistency": {
+      "status": "complete",
+      "completed_on": "2026-11-27"
+    },
+    "real_data_ingestion_notice": {
+      "status": "blocked",
+      "real_data_retrieval_allowed": false
+    }
   },
   "coverage": {
     "cohort": "ATP men's tour-level singles",
-    "planned_seasons": [2000, 2025],
+    "planned_seasons": [
+      2000,
+      2025
+    ],
     "verified_match_count": null,
     "verified_statistics_coverage": null,
     "missing_statistics": "preserve_null_never_fabricate",
     "date_precision": null,
     "feature_cutoff_policy": "prior_event_until_timing_verified",
     "historical_availability": "not_proven_by_current_snapshot",
-    "excluded_match_files": ["qual_chall", "futures", "doubles"]
+    "excluded_match_files": [
+      "qual_chall",
+      "futures",
+      "doubles"
+    ]
   },
   "evaluation": {
     "frozen_on": "2026-10-07",
-    "train_seasons": [2000, 2022],
-    "validation_seasons": [2023, 2024],
-    "holdout_seasons": [2025, 2025],
-    "shadow_seasons": [2026, 2026],
+    "train_seasons": [
+      2000,
+      2022
+    ],
+    "validation_seasons": [
+      2023,
+      2024
+    ],
+    "holdout_seasons": [
+      2025,
+      2025
+    ],
+    "shadow_seasons": [
+      2026,
+      2026
+    ],
     "shadow_predictions": "post_approval_pre_outcome_only",
     "holdout_used_for_selection": false,
     "split_key": "event_start_season",
@@ -74,10 +198,19 @@
     "revision_strategy": "explicit_reviewed_commit_only",
     "match_file_template": "atp_matches_{season}.csv",
     "player_file": "atp_players.csv",
-    "ranking_file_templates": ["atp_rankings_{decade}s.csv", "atp_rankings_current.csv"],
+    "ranking_file_templates": [
+      "atp_rankings_{decade}s.csv",
+      "atp_rankings_current.csv"
+    ],
     "manifest_required_fields": [
-      "source_revision", "policy_version", "relative_path", "retrieved_at_utc",
-      "sha256", "byte_count", "terms_reference", "permission_reference"
+      "source_revision",
+      "policy_version",
+      "relative_path",
+      "retrieved_at_utc",
+      "sha256",
+      "byte_count",
+      "terms_reference",
+      "permission_reference"
     ]
   },
   "workbook_privacy": {
@@ -85,14 +218,36 @@
     "publication_allowed": false,
     "fixture_strategy": "generated_synthetic_only",
     "excluded_from_public_artifacts": [
-      "participant_names", "contact_details", "selections", "quotas", "usage",
-      "payments", "payouts", "hidden_sheets", "comments", "external_links",
-      "document_metadata", "macros", "confidential_permission_evidence"
+      "participant_names",
+      "contact_details",
+      "selections",
+      "quotas",
+      "usage",
+      "payments",
+      "payouts",
+      "hidden_sheets",
+      "comments",
+      "external_links",
+      "document_metadata",
+      "macros",
+      "confidential_permission_evidence"
     ]
   },
   "alternatives": [
-    {"id": "tennis_abstract_website", "status": "not_approved", "automated_ingestion_allowed": false},
-    {"id": "official_atp", "status": "not_approved", "automated_ingestion_allowed": false},
-    {"id": "commercial_api", "status": "not_approved", "automated_ingestion_allowed": false}
+    {
+      "id": "tennis_abstract_website",
+      "status": "not_approved",
+      "automated_ingestion_allowed": false
+    },
+    {
+      "id": "official_atp",
+      "status": "not_approved",
+      "automated_ingestion_allowed": false
+    },
+    {
+      "id": "commercial_api",
+      "status": "not_approved",
+      "automated_ingestion_allowed": false
+    }
   ]
 }
