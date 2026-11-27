@@ -213,9 +213,10 @@ the [README](../README.md) do not approve a source for information observations 
 a future retrieval preflight should call. It allows `automated_ingestion`,
 `publication` or `paid_prize_pool_use` only when the record holds verified access
 at a full 40-character revision and verified terms with a recorded license. It also
-needs README and license evidence pinned to that revision, plus an unexpired
-rights-holder approval that names the action and revision and cites a
-`restricted:` evidence reference. Owner selection, free-access announcements and
+needs README and license evidence whose URL path names the selected repository,
+that revision and the file (a revision in a query or fragment does not count). It
+also needs an unexpired rights-holder approval that names the action and revision
+and cites a `restricted:<id>` evidence reference with a nonblank identifier. Owner selection, free-access announcements and
 the declared `allowed_actions` flags are ignored as evidence;
 `declared_actions_exceed_evidence` names any declared flag the evidence does not
 back. It validates declarations and performs no network access.

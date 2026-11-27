@@ -131,12 +131,55 @@ def test_each_missing_source_proof_blocks_every_action(committed, path, value, r
         assert reason in decision.unmet
 
 
+PINNED_README = f"{REPO}/blob/{SYNTHETIC_SHA}/README.md"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        f"{REPO}/blob/master/README.md?pin=/{SYNTHETIC_SHA}/",
+        f"{REPO}/blob/master/README.md#/{SYNTHETIC_SHA}/",
+        f"{PINNED_README}?ref=master",
+        f"https://github.com/someone/fork/blob/{SYNTHETIC_SHA}/README.md",
+        f"{REPO}/blob/{SYNTHETIC_SHA}/LICENSE",
+        f"{REPO}/blob/{SYNTHETIC_SHA}/docs/README.md",
+        f"{REPO}/tree/{SYNTHETIC_SHA}/README.md",
+        f"http://github.com/JeffSackmann/tennis_atp/blob/{SYNTHETIC_SHA}/README.md",
+        f"https://example.invalid/JeffSackmann/tennis_atp/{SYNTHETIC_SHA}/README.md",
+    ],
+)
+def test_readme_pin_must_be_the_revision_path_of_the_selected_repo(committed, url):
+    policy = _verified(committed, ["automated_ingestion"])
+    policy["source"]["readme_evidence"]["url"] = url
+    decision = evaluate_gates(policy, AS_OF)["automated_ingestion"]
+    assert not decision.allowed
+    assert "readme_not_pinned" in decision.unmet
+    assert "license_not_pinned" not in decision.unmet
+
+
+def test_raw_urls_at_the_revision_also_pin_evidence(committed):
+    raw = f"https://raw.githubusercontent.com/JeffSackmann/tennis_atp/{SYNTHETIC_SHA}"
+    policy = _verified(committed, ["automated_ingestion"])
+    policy["source"]["readme_evidence"]["url"] = f"{raw}/README.md"
+    policy["source"]["license_evidence"]["url"] = f"{raw}/LICENSE"
+    assert _allowed(policy) == {"automated_ingestion"}
+
+
+def test_unparseable_repository_blocks_both_pins(committed):
+    policy = _verified(committed, ["automated_ingestion"])
+    policy["source"]["repository"] = "https://github.com/JeffSackmann/tennis_atp?x=1"
+    unmet = evaluate_gates(policy, AS_OF)["automated_ingestion"].unmet
+    assert {"readme_not_pinned", "license_not_pinned"} <= set(unmet)
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
         ("source_revision", "cd" * 20),
         ("evidence_reference", "https://example.invalid/public-email"),
         ("evidence_reference", ""),
+        ("evidence_reference", "restricted:"),
+        ("evidence_reference", "restricted:   "),
         ("granted_on", "2026-12-01"),
         ("granted_on", None),
         ("expires_on", "2026-11-26"),

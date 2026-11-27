@@ -15,12 +15,15 @@ import json
 from pathlib import Path
 import re
 from typing import Any, Mapping
+from urllib.parse import urlsplit
 
 RESTRICTED_ACTIONS = ("automated_ingestion", "publication", "paid_prize_pool_use")
 _FULL_SHA = re.compile(r"[0-9a-f]{40}")
 _RIGHTS_HOLDER = "rights_holder"
 _VERIFIED_ACCESS = "verified_at_pinned_revision"
 _RESTRICTED_EVIDENCE_PREFIX = "restricted:"
+_README_NAMES = ("README",)
+_LICENSE_NAMES = ("LICENSE", "LICENCE", "COPYING")
 
 
 @dataclass(frozen=True)
@@ -54,21 +57,60 @@ def _date(value: object) -> date | None:
         return None
 
 
-def _pinned(evidence: object, revision: str) -> bool:
-    """README/license evidence must cite a URL at the reviewed revision."""
-    if not isinstance(evidence, Mapping):
+def _repository_path(repository: object) -> tuple[str, str] | None:
+    """Owner and name of a ``https://github.com/<owner>/<name>`` repository."""
+    text = _text(repository)
+    if text is None:
+        return None
+    parts = urlsplit(text)
+    segments = [s for s in parts.path.split("/") if s]
+    if (
+        parts.scheme != "https"
+        or parts.netloc != "github.com"
+        or parts.query
+        or parts.fragment
+        or len(segments) != 2
+    ):
+        return None
+    return segments[0], segments[1]
+
+
+def _pinned(
+    evidence: object,
+    repository: tuple[str, str] | None,
+    revision: str,
+    file_names: tuple[str, ...],
+) -> bool:
+    """README/license evidence must name the file at the reviewed revision.
+
+    Only the URL path counts: ``github.com/<owner>/<name>/blob/<sha>/<file>`` or
+    ``raw.githubusercontent.com/<owner>/<name>/<sha>/<file>``. A revision in the
+    query or fragment, another repository, or a different file does not pin it.
+    """
+    if not isinstance(evidence, Mapping) or repository is None:
         return False
     url = _text(evidence.get("url"))
+    if url is None or _date(evidence.get("retrieved_on")) is None:
+        return False
+    parts = urlsplit(url)
+    if parts.scheme != "https" or parts.query or parts.fragment:
+        return False
+    segments = parts.path.split("/")[1:]
+    if parts.netloc == "github.com" and segments[2:3] == ["blob"]:
+        segments = segments[:2] + segments[3:]
+    elif parts.netloc != "raw.githubusercontent.com":
+        return False
     return (
-        url is not None
-        and url.startswith("https://")
-        and f"/{revision}/" in url
-        and _date(evidence.get("retrieved_on")) is not None
+        len(segments) == 4
+        and (segments[0], segments[1]) == repository
+        and segments[2] == revision
+        and segments[3].upper().startswith(file_names)
     )
 
 
 def _source_unmet(source: Mapping[str, Any]) -> list[str]:
     unmet: list[str] = []
+    repository = _repository_path(source.get("repository"))
     revision = _text(source.get("revision"))
     if source.get("access_status") != _VERIFIED_ACCESS:
         unmet.append("source_access_not_verified")
@@ -79,9 +121,13 @@ def _source_unmet(source: Mapping[str, Any]) -> list[str]:
         unmet.append("terms_not_verified")
     if _text(source.get("license")) is None or _text(source.get("license_url")) is None:
         unmet.append("license_not_recorded")
-    if revision is None or not _pinned(source.get("readme_evidence"), revision):
+    if revision is None or not _pinned(
+        source.get("readme_evidence"), repository, revision, _README_NAMES
+    ):
         unmet.append("readme_not_pinned")
-    if revision is None or not _pinned(source.get("license_evidence"), revision):
+    if revision is None or not _pinned(
+        source.get("license_evidence"), repository, revision, _LICENSE_NAMES
+    ):
         unmet.append("license_not_pinned")
     return unmet
 
@@ -104,6 +150,7 @@ def _valid_approval(
         and approval.get("source_revision") == revision
         and evidence is not None
         and evidence.startswith(_RESTRICTED_EVIDENCE_PREFIX)
+        and evidence[len(_RESTRICTED_EVIDENCE_PREFIX):].strip() != ""
         and granted is not None
         and granted <= as_of
         and (expires_raw is None or (expires is not None and as_of <= expires))
