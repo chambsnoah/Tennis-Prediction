@@ -49,33 +49,8 @@ substitutes for the selected source and were not inspected.
 
 Because no repository, README or license was reachable, the current terms, the
 permitted-use scope, attribution wording, caching/retention and redistribution
-rules remain **unverified**.
-
-### Historical License Evidence From A 2018 Copy
-
-The owner found [`stakah/tennis_atp`](https://github.com/stakah/tennis_atp) [S6].
-It is a standalone copy created on 2018-09-14 and described as cloned from the
-upstream repository. GitHub does not list it as a fork. Its most recent
-Sackmann-authored commit is `a4ec6b5c920ec7bc2ba4b6ab698db93a13dd6d82`
-(2018-05-28). The copy's owner later added their own application and model code.
-On 2026-11-27 only its metadata, commit list and
-[README at `c30a23b55863bccd216b3d7dbf59622a8d412534`](https://github.com/stakah/tennis_atp/blob/c30a23b55863bccd216b3d7dbf59622a8d412534/README.md)
-were read; no data file was opened.
-
-That README keeps the upstream license notice. It licenses the "Tennis databases,
-files, and algorithms" by Jeff Sackmann / Tennis Abstract under **CC BY-NC-SA 4.0
-International**, and summarizes this as attribution required and non-commercial
-use only. This is the first direct evidence that the publisher applied the
-NonCommercial license examined below, at least in 2018. It strengthens the
-paid-prize-pool concern.
-
-The copy cannot serve as the source or as current-terms evidence. A third party
-can grant no more rights than the original license. The copy ends in 2018, so it
-cannot cover the 2019-2026 seasons in the splits. It was modified after copying,
-so it does not show upstream's current revision or terms. The JSON records it as
-`historical_license_evidence` with `establishes_current_terms: false` and
-`usable_as_source: false`; `license` and `license_url` stay `null`, and
-`third_party_copies_and_forks` is listed as a non-approved alternative.
+rules remain **unverified**. The conditional CC BY-NC-SA 4.0 analysis below still
+describes risks only; it does not establish the applicable license.
 
 **Step for the project owner.** Permission for the paid-prize-pool use has to come
 from the rights holder(s), and only the owner can ask for it. The request should
@@ -90,7 +65,7 @@ The policy records `rights_holder_request.status = "not_evidenced"`.
 | Gate | Status on 2026-11-27 | Unblocks when |
 | --- | --- | --- |
 | `source_access_and_pinned_revision` | Blocked, external: HTTP 404 on both checks. | Upstream is reachable and a full 40-character commit SHA plus README/LICENSE URLs at that SHA are recorded. |
-| `current_terms_and_license_scope` | Blocked by source access. A 2018 copy shows CC BY-NC-SA 4.0 ("non-commercial use only") [S6]; current terms unverified. | Terms are read at the pinned revision and recorded with their URL. |
+| `current_terms_and_license_scope` | Blocked by source access. | Terms are read at the pinned revision and recorded with their URL. |
 | `rights_holder_permission` | Blocked, external: no request or approval evidenced. | A dated rights-holder approval names each action and the revision, with restricted evidence. |
 | `coverage_quality_audit` | Not started; needs permission. | Ingestion is permitted; then measure seasons, events, fields, missing statistics and date semantics. |
 | `evaluation_splits` | Preserved: 2000-2022 / 2023-2024 / 2025 / 2026 shadow. | Unchanged; any revision is predeclared before modeling. |
@@ -103,7 +78,7 @@ development and read-only public access re-checks of metadata, README and LICENS
 endpoints. `automated_ingestion`, `publication` and `paid_prize_pool_use` stay
 false; `evaluate_gates` reports the same.
 
-## Primary Sources
+## Five Primary Sources
 
 All sources below were initially checked on **2026-10-07**; the updates above identify the S1/S2 rechecks on **2026-10-20** and the S1 recheck on **2026-11-27**. Only GitHub public metadata/README and first-party informational/terms pages were requested. No historical dataset, repository archive, live provider API, or workbook was downloaded.
 
@@ -116,7 +91,6 @@ All sources below were initially checked on **2026-10-07**; the updates above id
 | S3 | [Creative Commons BY-NC-SA 4.0 International legal code](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.en) | Available; exact **4.0 International** terms examined, conditionally, not established as the candidate's current license. |
 | S4 | [Tennis Abstract homepage](https://www.tennisabstract.com/) | Available; player analysis, stats/ratings/report links and a separate "Tennis data at GitHub" link; no bulk-reuse authorization established. |
 | S5 | [ATP Tour Terms and Conditions](https://www.atptour.com/en/terms-and-conditions) | Available; sections 3.A, 7, 12 and 14 are relevant to copying, retrieval, use, accuracy and availability. |
-| S6 | [Third-party 2018 copy `stakah/tennis_atp`](https://github.com/stakah/tennis_atp); [README at `c30a23b`](https://github.com/stakah/tennis_atp/blob/c30a23b55863bccd216b3d7dbf59622a8d412534/README.md) | Checked 2026-11-27; the upstream README notice states CC BY-NC-SA 4.0 as of 2018. Not a fork, not a source, not current terms. |
 
 ## Availability And Statistics Caveats
 
@@ -130,7 +104,7 @@ All sources below were initially checked on **2026-10-07**; the updates above id
 
 ## Conditional License And Use-Case Gate
 
-The following is an examination of **CC BY-NC-SA 4.0 International**, not confirmation that it applies to the unavailable repository today [S1, S3]. The 2018 upstream notice preserved in S6 named this license. Do not silently substitute another version.
+The following is an examination of **CC BY-NC-SA 4.0 International**, not confirmation that it applies to the unavailable repository [S1, S3]. Do not silently substitute another version.
 
 - Sections 1(k) and 2(a)(1): NonCommercial means "not primarily intended for or directed towards commercial advantage or monetary compensation"; reproduction, sharing and adaptation grants are NonCommercial only. The condition applies to private reproduction too, not just selling or redistributing files [S3].
 - Section 3(a): when sharing, retain supplied creator/copyright/license/disclaimer notices and source link; identify modifications and retain prior modification indications; link the license. Do not imply endorsement (section 2(a)(6)) [S3].

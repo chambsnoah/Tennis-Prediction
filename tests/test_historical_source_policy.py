@@ -131,10 +131,7 @@ def test_private_workbooks_are_not_approved_public_fixtures(policy):
     }
 
 
-@pytest.mark.parametrize(
-    "source_id",
-    ["tennis_abstract_website", "official_atp", "commercial_api", "third_party_copies_and_forks"],
-)
+@pytest.mark.parametrize("source_id", ["tennis_abstract_website", "official_atp", "commercial_api"])
 def test_alternative_sources_are_not_silent_fallbacks(policy, source_id):
     alternative = next(item for item in policy["alternatives"] if item["id"] == source_id)
     assert alternative["status"] == "not_approved"
@@ -202,28 +199,3 @@ def test_markdown_matches_the_machine_readable_decisions(policy):
         assert term in privacy_line, term
     for gate in policy["gates"]:
         assert f"`{gate}`" in markdown, gate
-
-
-def test_2018_copy_is_license_history_not_a_source_or_current_terms(policy):
-    source = policy["source"]
-    evidence = source["historical_license_evidence"]
-    assert evidence["kind"] == "third_party_copy"
-    assert evidence["github_fork"] is False
-    assert evidence["stated_license"] == "CC-BY-NC-SA-4.0"
-    assert "non_commercial_use_only" in evidence["stated_terms"]
-    assert evidence["establishes_current_terms"] is False
-    assert evidence["usable_as_source"] is False
-    assert date.fromisoformat(evidence["latest_upstream_authored_on"]) == date(2018, 5, 28)
-    for key in ("copy_revision", "latest_upstream_authored_revision"):
-        assert len(evidence[key]) == 40 and int(evidence[key], 16) >= 0
-    assert f"/blob/{evidence['copy_revision']}/README.md" in evidence["readme_url"]
-    assert evidence["repository"] != source["repository"]
-    assert source["revision"] is None and source["license"] is None
-    assert source["terms_verified"] is False
-
-
-def test_markdown_records_the_2018_copy_as_non_source_evidence():
-    markdown = MARKDOWN_PATH.read_text(encoding="utf-8")
-    assert "stakah/tennis_atp" in markdown
-    assert "`usable_as_source: false`" in markdown
-    assert "`establishes_current_terms: false`" in markdown

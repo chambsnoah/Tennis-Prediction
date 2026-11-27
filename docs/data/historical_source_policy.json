@@ -80,26 +80,7 @@
     ],
     "last_access_check_on": "2026-11-27",
     "readme_evidence": null,
-    "license_evidence": null,
-    "historical_license_evidence": {
-      "kind": "third_party_copy",
-      "repository": "https://github.com/stakah/tennis_atp",
-      "github_fork": false,
-      "copy_revision": "c30a23b55863bccd216b3d7dbf59622a8d412534",
-      "latest_upstream_authored_revision": "a4ec6b5c920ec7bc2ba4b6ab698db93a13dd6d82",
-      "latest_upstream_authored_on": "2018-05-28",
-      "readme_url": "https://github.com/stakah/tennis_atp/blob/c30a23b55863bccd216b3d7dbf59622a8d412534/README.md",
-      "retrieved_on": "2026-11-27",
-      "stated_license": "CC-BY-NC-SA-4.0",
-      "stated_license_url": "http://creativecommons.org/licenses/by-nc-sa/4.0/",
-      "stated_attribution": "Jeff Sackmann / Tennis Abstract",
-      "stated_terms": [
-        "attribution_required",
-        "non_commercial_use_only"
-      ],
-      "establishes_current_terms": false,
-      "usable_as_source": false
-    }
+    "license_evidence": null
   },
   "permissions": {
     "status": "blocked_source_and_permission_review",
@@ -265,11 +246,6 @@
     },
     {
       "id": "commercial_api",
-      "status": "not_approved",
-      "automated_ingestion_allowed": false
-    },
-    {
-      "id": "third_party_copies_and_forks",
       "status": "not_approved",
       "automated_ingestion_allowed": false
     }
